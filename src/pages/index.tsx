@@ -1,5 +1,5 @@
-// pages/index.tsx
 import Head from "next/head";
+import Image from "next/image";
 import HomeHero from "@/components/home/HomeHeader";
 
 export default function HomePage() {
@@ -32,6 +32,18 @@ export default function HomePage() {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
         />
       </Head>
+
+      {/* 🌿 Decorative vine just below navbar */}
+      <div className="relative w-[80%] overflow-hidden mx-[auto] mb-5">
+        <Image
+          src="/decorative/vines.png"
+          alt="Διακοσμητικό στοιχείο φύλλων"
+          width={1920}
+          height={200}
+          priority
+          className="w-full h-auto max-h-28 sm:max-h-36 md:max-h-44 object-contain select-none pointer-events-none"
+        />
+      </div>
 
       {/* HERO (matches your wireframe) */}
       <HomeHero />
@@ -81,9 +93,7 @@ export default function HomePage() {
                 className="rounded-2xl bg-white ring-1 ring-black/5 p-5 shadow-sm"
               >
                 <div className="aspect-[16/9] w-full overflow-hidden rounded-xl bg-slate-100 mb-4" />
-                <h3 className="font-medium">
-                  Τίτλος άρθρου #{i}
-                </h3>
+                <h3 className="font-medium">Τίτλος άρθρου #{i}</h3>
                 <p className="mt-2 text-sm text-slate-600">
                   Σύντομη περιγραφή άρθρου για προεπισκόπηση.
                 </p>

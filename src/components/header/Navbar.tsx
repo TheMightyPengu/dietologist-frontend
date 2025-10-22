@@ -72,7 +72,7 @@ export default function Navbar() {
   }, []);
 
   return (
-    <div className="w-full bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-[40px] sm:top-[40px] z-40 border-b border-slate-100">
+    <div className="w-full bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-[40px] sm:top-[40px] z-40 border-b border-slate-100 px-5">
       <div ref={navRef} className="mx-auto max-w-7xl px-3">
         <div className="flex h-16 items-center justify-between">
           {/* Left: Logo */}
@@ -121,7 +121,7 @@ export default function Navbar() {
                   {hasChildren && isOpen && (
                     <div
                       role="menu"
-                      className="absolute left-0 mt-2 w-64 rounded-xl border border-slate-100 bg-white p-2 shadow-xl"
+                      className="absolute left-0 w-64 rounded-xl border border-slate-150 bg-white p-2 shadow-xl"
                     >
                       {item.children!.map((child) => (
                         <Link

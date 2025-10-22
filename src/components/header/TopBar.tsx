@@ -1,12 +1,7 @@
 import { useMemo } from "react";
 import type { ReactNode } from "react";
 
-
-type SocialLink = {
-  label: string;
-  href: string;
-  icon: ReactNode;
-};
+type SocialLink = { label: string; href: string; icon: ReactNode };
 
 const Icon = {
   Instagram: (
@@ -71,37 +66,33 @@ export default function TopBar() {
   );
 
   return (
-    <div className="w-full bg-[rgba(255,255,255,0.7)] backdrop-blur sticky top-0 z-50 border-b border-[rgba(122,122,196,0.15)]">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2 text-sm">
-        <div className="flex items-center gap-4 text-[13px]">
-          <a href="tel:+30-210-0000000" className="flex items-center gap-2 text-slate-700 hover:text-[#7a7ac4]">
+    <div className="w-full bg-white/70 backdrop-blur sticky top-0 z-50 border-b border-[#7a7ac426] px-6">
+      <div className="mx-auto flex max-w-7xl items-center justify-between py-2 text-sm">
+        {/* Left: contact info */}
+        <div className="flex items-center gap-4 text-[13px] text-slate-700 whitespace-nowrap">
+          <a href="tel:+30-210-0000000" className="flex items-center gap-2 hover:text-[#7a7ac4]">
             {Icon.Phone}
             <span className="hidden sm:inline">+30 210 0000000</span>
           </a>
           <span className="hidden sm:inline text-slate-300">|</span>
-          <a href="mailto:hello@dietitian.gr" className="flex items-center gap-2 text-slate-700 hover:text-[#7a7ac4]">
+          <a href="mailto:hello@dietitian.gr" className="flex items-center gap-2 hover:text-[#7a7ac4]">
             {Icon.Mail}
-            <span className="hidden sm:inline">hello@dietitian.gr</span>
+            <span className="hidden md:inline">hello@dietitian.gr</span>
           </a>
         </div>
 
+        {/* Right: social icons */}
         <div className="flex items-center gap-3">
           {socials.map((s) => (
             <a
               key={s.label}
               href={s.href}
               aria-label={s.label}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-white/70 text-[#7a7ac4] ring-1 ring-[#7a7ac4]/20 hover:bg-[#7a7ac4] hover:text-white transition"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-[#7a7ac4] ring-1 ring-[#7a7ac4]/20 hover:bg-[#7a7ac4] hover:text-white transition"
             >
               {s.icon}
             </a>
           ))}
-          <a
-            href="#book"
-            className="ml-1 hidden sm:inline-flex items-center rounded-full bg-[#7a7ac4] px-3 py-1.5 text-white hover:opacity-90"
-          >
-            Κλείστε ραντεβού
-          </a>
         </div>
       </div>
     </div>
