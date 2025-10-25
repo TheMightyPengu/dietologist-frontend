@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LeafBurstButton from "../decorative/LeafBurstButton";
 
 export default function HomeHero() {
   return (
@@ -44,12 +45,7 @@ export default function HomeHero() {
 
             {/* Primary CTA */}
             <div className="pt-2">
-              <Link
-                href="/contact/book"
-                className="inline-flex items-center rounded-2xl bg-[#7a7ac4] px-6 py-3 text-white text-lg font-medium shadow hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7a7ac4]"
-              >
-                ΖΗΤΗΣΤΕ ΕΝΑ ΡΑΝΤΕΒΟΥ
-              </Link>
+              <LeafBurstButton text={"ΖΗΤΗΣΤΕ ΕΝΑ ΡΑΝΤΕΒΟΥ"}/>
             </div>
           </div>
 

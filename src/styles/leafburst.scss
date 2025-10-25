@@ -1,0 +1,134 @@
+/* ---------------------------
+   PROJECT-COMPATIBLE OVERRIDES
+   --------------------------- */
+
+/* 1) Wrapper: inline in your layout (no absolute centering) */
+.button {
+  position: relative;            /* instead of absolute */
+  display: inline-block;
+  top: auto; left: auto; right: auto;
+  margin: 0;                     /* let your layout handle spacing */
+  height: auto; width: auto;
+  transform: none;               /* remove CodePen demo centering */
+}
+
+/* 2) Your Next <Link> as the interactive face */
+.button .button_inner {
+  position: relative;            /* instead of absolute + fixed size */
+  display: inline-flex;          /* your Tailwind styles still apply */
+  width: auto; height: auto;
+  left: auto; right: auto; top: auto; margin: 0;
+
+  z-index: 1;                    /* sits above particles */
+  cursor: pointer;
+}
+
+/* 3) Particle field: use the original CodePen's 200x50 coords centered
+   under your real button, so the nth-child left/top math lines up */
+.button .b_l_quad {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 270px;          /* CodePen reference width */
+  height: 30px;          /* CodePen reference height */
+  transform: translate(-100px, -25px); /* center that 200x50 box */
+  z-index: 0;            /* behind the button */
+  pointer-events: none;
+  overflow: visible;     /* allow particles to fly out */
+}
+
+
+/* ---------------------------
+   LEAF PARTICLES (bubbles -> leaves)
+   --------------------------- */
+
+.button .button_spots{
+  position:absolute;
+  border-radius:0;               /* leaves are not circles */
+  opacity:0;
+  animation:opacity 1s;
+
+  /* leaf sprite */
+  background: none;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  filter: drop-shadow(0 0 10px rgba(34,197,94,0.25));
+
+  @for $i from 1 through 52{
+    &:nth-of-type(#{$i}){
+      transform-origin:90px - random(10) 20px - random(10);
+      background-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>\
+<path fill='%2322c55e' d='M21 3c-6.2.7-11.3 5.8-12 12c-2-1.7-4.7-2.3-7-1c2.1 3.8 6.6 5.4 10.7 3.8c.5 1 1.1 2 1.9 2.9l1.4-1.4c-.7-.7-1.2-1.5-1.6-2.4c2.8-1.9 5-5.1 6.6-9.4L21 3z'/>\
+</svg>");
+      box-shadow:0px 0px 10px rgba(255,255,255,0.12);
+      transition:all 1.8s + random(10)/10;
+    }
+  }
+}
+
+/* Keep the original “quad” placement logic so paths feel identical */
+.button .b_l_quad .button_spots{
+  @for $i from 1 through 20{
+    &:nth-child(#{$i}){ padding:random(3) + 2 + px; left: -25 + ($i * 12) + px; top: 50 + px; }
+  }
+  @for $i from 20 through 40{
+    &:nth-child(#{$i}){ padding:random(3) + 2 + px; left: -255 + ($i * 12) + px; top: -12 + px; }
+  }
+  @for $i from 40 through 46{
+    &:nth-child(#{$i}){ padding:random(3) + 2 + px; left: 204px; top: -488 + ($i * 12) + px; }
+  }
+  @for $i from 46 through 52{
+    &:nth-child(#{$i}){ padding:random(3) + 2 + px; left: -10px; top: -568 + ($i * 12) + px; }
+  }
+}
+
+/* Hover = fire the particles (exact same triggers) */
+.button .button_inner:hover .button_spots{
+  @for $i from 1 through 19{
+    &:nth-of-type(#{$i}){ animation: spot-#{$i} .7s .4/random(10) + random(10)/10 + s linear infinite; }
+  }
+  @for $i from 20 through 40{
+    &:nth-of-type(#{$i}){ animation: spot-#{$i} .7s .4/random(10) + random(10)/10 + s linear infinite; }
+  }
+  @for $i from 40 through 46{
+    &:nth-of-type(#{$i}){ animation: spot-#{$i} .7s .4/random(10) + random(10)/10 + s linear infinite; }
+  }
+  @for $i from 46 through 54{
+    &:nth-of-type(#{$i}){ animation: spot-#{$i} .7s .4/random(10) + random(10)/10 + s linear infinite; }
+  }
+}
+
+/* ========= ORIGINAL KEYFRAMES (unchanged paths/timings) =========== */
+@for $i from 1 through 20{
+  @keyframes spot-#{$i}{
+    from{opacity:0;}
+    to{transform:translateY(30px) translatex(-20px + $i*2);opacity:.6;}
+  }
+}
+@for $i from 20 through 40{
+  @keyframes spot-#{$i}{
+    from{opacity:0;}
+    to{transform:translateY(-30px) translatex(-50px + $i*2);opacity:.6;}
+  }
+}
+@for $i from 40 through 45{
+  @keyframes spot-#{$i}{
+    from{opacity:0;}
+    to{transform:translateY(-86px + $i*2) translatex(40px);opacity:.6;}
+  }
+}
+@for $i from 46 through 54{
+  @keyframes spot-#{$i}{
+    from{opacity:0;}
+    to{transform:translateY(-99px + $i*2) translatex(-40px);opacity:.6;}
+  }
+}
+
+@keyframes opacity{ from{} to{opacity:0;} }
+@keyframes rotate{ from{opacity:.8} to{transform:rotate(360deg);opacity:.8} }
+@keyframes down{ from{left:10px;} to{left:57px;} }
+@keyframes spew{ from{opacity:0;} to{opacity:0.8;} }
+@keyframes final{ from{opacity:1;} to{opacity:0;} }
+@keyframes finalbox{ from{} to{width:50px;} }
+@keyframes tick{ from{} to{transform:scale(1) rotate(-90deg)} }

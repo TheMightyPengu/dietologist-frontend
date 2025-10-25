@@ -34,7 +34,7 @@ export default function HomePage() {
       </Head>
 
       {/* 🌿 Decorative vine just below navbar */}
-      <div className="relative w-[80%] overflow-hidden mx-[auto] mb-5">
+      {/* <div className="relative w-[80%] overflow-hidden mx-[auto] mb-5">
         <Image
           src="/decorative/vines.png"
           alt="Διακοσμητικό στοιχείο φύλλων"
@@ -43,7 +43,7 @@ export default function HomePage() {
           priority
           className="w-full h-auto max-h-28 sm:max-h-36 md:max-h-44 object-contain select-none pointer-events-none"
         />
-      </div>
+      </div> */}
 
       {/* HERO (matches your wireframe) */}
       <HomeHero />
@@ -60,7 +60,12 @@ export default function HomePage() {
             <a
               key={s.title}
               href={s.href}
-              className="rounded-2xl bg-white/80 ring-1 ring-black/5 p-6 shadow-sm hover:shadow transition block"
+              className="block text-center self-center m-2 px-4 py-2
+                rounded-tl-full rounded-br-full rounded-2xl bg-white/80
+                ring-1 ring-black/5 text-white text-xs sm:text-sm md:text-base
+                font-medium shadow-sm hover:shadow transition-all duration-200
+                [box-shadow:1px_1px_4px_#7a7ac4] hover:[box-shadow:2px_2px_7px_#7a7ac4]
+                sm:px-5 sm:py-3 md:px-6 md:py-4"
             >
               <h3 className="text-lg font-semibold">{s.title}</h3>
               <p className="mt-2 text-sm text-slate-600">

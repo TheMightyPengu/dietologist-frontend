@@ -14,7 +14,7 @@ export default function RootLayout({ children }: Props) {
       </header>
 
       {/* Leave room for the sticky bars */}
-      <main className="pt-10 md:pt-[2.25rem] min-h-[60vh] relative overflow-x-clip">
+      <main className="pt-25 md:pt-[6.25rem] min-h-[60vh] relative overflow-x-clip">
         {children}
       </main>
 
