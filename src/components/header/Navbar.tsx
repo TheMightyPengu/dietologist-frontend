@@ -20,8 +20,8 @@ const NAV: MenuItem[] = [
     label: "ΥΠΗΡΕΣΙΕΣ",
     href: "/services",
     children: [
-      { label: "1:1 ΡΑΝΤΕΒΟΥ", href: "/services/one-to-one" },
-      { label: "ΟΜΑΔΙΚΕΣ ΣΥΝΑΝΤΗΣΕΙΣ", href: "/services/group" },
+      { label: "1:1 ΡΑΝΤΕΒΟΥ", href: "/services#one-to-one" },
+      { label: "ΟΜΑΔΙΚΕΣ ΣΥΝΑΝΤΗΣΕΙΣ", href: "/services#groups" },
     ],
   },
   { label: "ΣΕΜΙΝΑΡΙΑ", href: "/seminars" },
@@ -61,7 +61,6 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
 
-  // Close desktop dropdowns on outside click
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
       if (!navRef.current) return;
@@ -71,21 +70,22 @@ export default function Navbar() {
     return () => document.removeEventListener("click", onDocClick);
   }, []);
 
+  const closeAll = () => {
+    setOpenIdx(null);
+    setMobileOpen(false);
+  };
+
   return (
     <div className="w-full bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-[40px] sm:top-[40px] z-40 border-b border-slate-100 px-5">
       <div ref={navRef} className="mx-auto max-w-7xl px-3">
         <div className="flex h-16 items-center justify-between">
-          {/* Left: Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            {/* Replace with your logo */}
+          <Link href="/" className="flex items-center gap-2" onClick={closeAll}>
             <img
               src="/logo.svg"
               alt="Dietitian Logo"
               className="h-9 w-9 rounded-full ring-2 ring-[#7a7ac4]/20"
             />
-            <span className="font-semibold tracking-tight text-slate-800">
-              Dietitian
-            </span>
+            <span className="font-semibold tracking-tight text-slate-800">Dietitian</span>
           </Link>
 
           {/* Desktop nav */}
@@ -93,6 +93,7 @@ export default function Navbar() {
             {NAV.map((item, idx) => {
               const hasChildren = !!item.children?.length;
               const isOpen = openIdx === idx;
+
               return (
                 <div
                   key={item.label}
@@ -100,23 +101,33 @@ export default function Navbar() {
                   onMouseEnter={() => hasChildren && setOpenIdx(idx)}
                   onMouseLeave={() => hasChildren && setOpenIdx(null)}
                 >
-                  <Link
-                    href={item.href || "#"}
-                    className="group inline-flex items-center gap-1 rounded-md px-3 py-2 text-[15px] font-medium text-slate-700 hover:text-[#7a7ac4] hover:bg-[#7a7ac4]/5"
-                    onClick={(e) => {
-                      if (hasChildren) {
-                        e.preventDefault();
-                        setOpenIdx(isOpen ? null : idx);
-                      }
-                    }}
-                    aria-haspopup={hasChildren ? "menu" : undefined}
-                    aria-expanded={hasChildren ? isOpen : undefined}
-                  >
-                    {item.label}
+                  <div className="group inline-flex items-center gap-1 rounded-md px-1">
+                    {/* Label always navigates */}
+                    <Link
+                      href={item.href || "#"}
+                      className="inline-flex items-center rounded-md px-3 py-2 text-[15px] font-medium text-slate-700 hover:text-[#7a7ac4] hover:bg-[#7a7ac4]/5"
+                      onClick={closeAll}
+                    >
+                      {item.label}
+                    </Link>
+
+                    {/* Separate chevron toggler (only if dropdown) */}
                     {hasChildren && (
-                      <ChevronDown className={`h-4 w-4 transition ${isOpen ? "rotate-180" : ""}`} />
+                      <button
+                        type="button"
+                        aria-haspopup="menu"
+                        aria-expanded={isOpen}
+                        aria-label={`${item.label} υπομενού`}
+                        className="inline-flex items-center rounded-md px-1.5 py-2 text-slate-600 hover:text-[#7a7ac4] hover:bg-[#7a7ac4]/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenIdx(isOpen ? null : idx);
+                        }}
+                      >
+                        <ChevronDown className={`h-4 w-4 transition ${isOpen ? "rotate-180" : ""}`} />
+                      </button>
                     )}
-                  </Link>
+                  </div>
 
                   {hasChildren && isOpen && (
                     <div
@@ -129,11 +140,10 @@ export default function Navbar() {
                           href={child.href}
                           className="block rounded-lg px-3 py-2 text-[14px] text-slate-700 hover:bg-[#7a7ac4]/5 hover:text-[#7a7ac4]"
                           role="menuitem"
+                          onClick={closeAll}
                         >
                           <div className="font-medium">{child.label}</div>
-                          {child.desc && (
-                            <div className="text-xs text-slate-500">{child.desc}</div>
-                          )}
+                          {child.desc && <div className="text-xs text-slate-500">{child.desc}</div>}
                         </Link>
                       ))}
                     </div>
@@ -148,6 +158,7 @@ export default function Navbar() {
             <Link
               href="/contact/book"
               className="rounded-full bg-[#7a7ac4] px-4 py-2 text-sm font-medium text-white shadow hover:opacity-90"
+              onClick={closeAll}
             >
               Κλείστε ραντεβού
             </Link>
@@ -177,18 +188,32 @@ export default function Navbar() {
               const isOpen = openIdx === idx;
               return (
                 <div key={item.label} className="border-t border-slate-100">
-                  <button
-                    className="flex w-full items-center justify-between px-2 py-3 text-left text-[15px] font-medium text-slate-800"
-                    onClick={() => (hasChildren ? setOpenIdx(isOpen ? null : idx) : null)}
-                    aria-expanded={hasChildren ? isOpen : undefined}
-                  >
-                    <Link href={item.href || "#"} className="flex-1">
+                  <div className="flex w-full items-stretch justify-between px-2 py-1">
+                    {/* Label always navigates on mobile too */}
+                    <Link
+                      href={item.href || "#"}
+                      className="flex-1 rounded-md px-2 py-2 text-[15px] font-medium text-slate-800"
+                      onClick={() => {
+                        closeAll();
+                      }}
+                    >
                       {item.label}
                     </Link>
                     {hasChildren && (
-                      <ChevronDown className={`h-4 w-4 transition ${isOpen ? "rotate-180" : ""}`} />
+                      <button
+                        type="button"
+                        aria-expanded={isOpen}
+                        aria-label={`${item.label} υπομενού`}
+                        className="ml-1 rounded-md px-3 py-2 text-slate-700 hover:bg-[#7a7ac4]/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenIdx(isOpen ? null : idx);
+                        }}
+                      >
+                        <ChevronDown className={`h-4 w-4 transition ${isOpen ? "rotate-180" : ""}`} />
+                      </button>
                     )}
-                  </button>
+                  </div>
                   {hasChildren && isOpen && (
                     <div className="px-2 pb-2">
                       {item.children!.map((child) => (
@@ -196,6 +221,7 @@ export default function Navbar() {
                           key={child.href}
                           href={child.href}
                           className="block rounded-lg px-3 py-2 text-[14px] text-slate-700 hover:bg-[#7a7ac4]/10"
+                          onClick={closeAll}
                         >
                           {child.label}
                         </Link>
@@ -209,6 +235,7 @@ export default function Navbar() {
               <Link
                 href="/contact/book"
                 className="block w-full rounded-full bg-[#7a7ac4] px-4 py-2 text-center text-sm font-medium text-white"
+                onClick={closeAll}
               >
                 Κλείστε ραντεβού
               </Link>
