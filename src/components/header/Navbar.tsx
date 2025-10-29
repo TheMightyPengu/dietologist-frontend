@@ -31,7 +31,7 @@ const NAV: MenuItem[] = [
     href: "/blog",
     children: [
       { label: "ΑΡΘΡΑ", href: "/blog/articles" },
-      { label: "ΣΥΝΤΑΓΕΣ", href: "/blog/recipes" },
+      { label: "ΣΥΝΤΑΓΕΣ", href: "/recipes" },
     ],
   },
   {
