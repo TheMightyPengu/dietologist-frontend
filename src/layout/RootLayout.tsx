@@ -1,24 +1,24 @@
-import { ReactNode } from "react";
+import useHideOnScroll from "@/components/hooks/useHideOnScroll";
 import TopBar from "@/components/header/TopBar";
 import Navbar from "@/components/header/Navbar";
 
-type Props = { children: ReactNode };
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const hidden = useHideOnScroll({ downDelay: 12, upDelay: 8 });
 
-export default function RootLayout({ children }: Props) {
-  // TopBar ~40px tall, Navbar ~64px tall → add ~104px top padding for page content
   return (
     <div className="min-h-screen bg-[#F7F7EF] text-slate-800 antialiased">
-      <header>
+      <header
+        className={[
+          "sticky top-0 z-50 bg-[#F7F7EF]/90 backdrop-blur shadow-sm transition-transform duration-200 will-change-transform",
+          hidden ? "-translate-y-full" : "translate-y-0",
+        ].join(" ")}
+      >
         <TopBar />
         <Navbar />
       </header>
 
-      {/* Leave room for the sticky bars */}
-      <main className="pt-25 md:pt-[6.25rem] min-h-[60vh] relative overflow-x-clip">
-        {children}
-      </main>
-
-      {/* TODO: <Footer /> */}
+      {/* Header is ~104px tall (40 + 64). Adjust as needed. */}
+      <main className="pt-[104px]">{children}</main>
     </div>
   );
 }
