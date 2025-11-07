@@ -13,8 +13,8 @@ export type Category = "Breakfast" | "Main" | "Snack" | "Drink" | "Dessert" | "S
 
 export type Recipe = {
   id: number;
-  slug: string;
-  title: string;
+  slug: string;          // API/internal slug (EN)
+  title: string;         // Used to derive Greek pretty slug for the UI
   category: Category;
   minutes: number;
   rating: number;
@@ -39,7 +39,7 @@ const CATEGORIES: Category[] = ["Breakfast", "Main", "Snack", "Drink", "Dessert"
 
 const ALLERGENS = ["gluten", "dairy", "egg", "soy", "peanut", "tree nut", "sesame"] as const;
 
-const ALLERGEN_LABELS: Record<typeof ALLERGENS[number], string> = {
+const ALLERGEN_LABELS: Record<(typeof ALLERGENS)[number], string> = {
   gluten: "Γλουτένη",
   dairy: "Γαλακτοκομικά",
   egg: "Αυγό",
@@ -309,6 +309,22 @@ function formatMin(m: number) {
   return m <= 60 ? `${m}′` : `${Math.floor(m / 60)} ώ ${m % 60}′`;
 }
 
+function stripGreekAccents(s: string) {
+  // remove tonos/dialytika but keep letters
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ς/g, "σ"); // final sigma → sigma for consistency
+}
+function toGreekSlug(s: string) {
+  return stripGreekAccents(s)
+    .toLowerCase()
+    .replace(/[^a-z0-9\u0370-\u03FF\s-]/g, "") // allow greek letters
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
+
 function arrFromQuery(v: string | string[] | undefined): string[] {
   if (!v) return [];
   if (Array.isArray(v)) return v.flatMap((s) => s.split(",").filter(Boolean));
@@ -343,7 +359,7 @@ function Chip({ children }: { children: React.ReactNode }) {
 // -------------------- Page --------------------
 export default function RecipesIndex() {
   const router = useRouter();
-  const { pathname, query } = router;
+  const { query } = router;
 
   // Κρατάμε φίλτρα στο URL ώστε να είναι shareable
   const [search, setSearch] = useState<string>((query.q as string) || "");
@@ -400,7 +416,7 @@ export default function RecipesIndex() {
   const paged = filtered.slice((pageClamped - 1) * PER_PAGE, pageClamped * PER_PAGE);
 
   function applyFilters(nextPage = 1) {
-    const dest = setQuery(router.push, pathname, {
+    const dest = setQuery(router.push, "/recipes", {
       q: search || undefined,
       cat: cats,
       free,
@@ -554,33 +570,37 @@ export default function RecipesIndex() {
 
               {/* Grid */}
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {paged.map((r) => (
-                  <Link
-                    key={r.id}
-                    href={`/recipes/${r.slug}`}
-                    className="group rounded-2xl bg-white/90 ring-1 ring-black/5 p-3 shadow-sm hover:shadow transition block"
-                  >
-                    <div className="relative overflow-hidden rounded-xl">
-                      <img
-                        src={r.image}
-                        alt={r.title}
-                        className="h-44 w-full object-cover group-hover:scale-[1.02] transition"
-                      />
-                      <div className="absolute top-2 left-2 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-xs ring-1 ring-black/5">
-                        <ClockIcon /> {formatMin(r.minutes)}
+                {paged.map((r) => {
+                  const pretty = toGreekSlug(r.title);
+                  return (
+                    <Link
+                      key={r.id}
+                      href={{ pathname: "/recipes/[slug]", query: { slug: r.slug } }} // real route uses API slug
+                      as={`/recipes/${pretty}`} // UI shows Greek pretty slug
+                      className="group rounded-2xl bg-white/90 ring-1 ring-black/5 p-3 shadow-sm hover:shadow transition block"
+                    >
+                      <div className="relative overflow-hidden rounded-xl">
+                        <img
+                          src={r.image}
+                          alt={r.title}
+                          className="h-44 w-full object-cover group-hover:scale-[1.02] transition"
+                        />
+                        <div className="absolute top-2 left-2 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-xs ring-1 ring-black/5">
+                          <ClockIcon /> {formatMin(r.minutes)}
+                        </div>
                       </div>
-                    </div>
-                    <div className="pt-3 space-y-1">
-                      <div className="font-medium leading-snug line-clamp-2">{r.title}</div>
-                      <div className="text-xs text-slate-600">{CATEGORY_LABELS[r.category]}</div>
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {r.tags.slice(0, 2).map((t) => (
-                          <Chip key={t}>{t}</Chip>
-                        ))}
+                      <div className="pt-3 space-y-1">
+                        <div className="font-medium leading-snug line-clamp-2">{r.title}</div>
+                        <div className="text-xs text-slate-600">{CATEGORY_LABELS[r.category]}</div>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {r.tags.slice(0, 2).map((t) => (
+                            <Chip key={t}>{t}</Chip>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  );
+                })}
               </div>
 
               {/* Pagination */}
