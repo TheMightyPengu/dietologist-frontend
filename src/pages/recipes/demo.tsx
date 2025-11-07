@@ -2,6 +2,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+// ---------- THIS PAGE IS NOT NEEDED ANYMORE --------------
 
 // ---------- Dummy data (replace with API later) ----------
 const RECIPE = {

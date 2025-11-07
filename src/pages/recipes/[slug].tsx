@@ -4,52 +4,29 @@ import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/router";
 
 /*
-  Σελίδα λίστας συνταγών (UI στα ελληνικά).
-  - Τα εσωτερικά keys (κατηγορίες/αλλεργιογόνα) παραμένουν αγγλικά για μελλοντικό API.
+  Drop this file at: pages/recipes/index.tsx
+  - Mimics Pick Up Limes listing UX with faceted filters
+  - Uses data mapped from the SWEETOOTH PDF
+  - Uses query params so the URL is shareable (SSR/ISR can be added later)
+  - No next/image (plain <img>)
 */
 
 // -------------------- Types --------------------
-export type Category = "Breakfast" | "Main" | "Snack" | "Drink" | "Dessert" | "Salad";
-
 export type Recipe = {
   id: number;
   slug: string;
   title: string;
-  category: Category;
+  category: "Breakfast" | "Main" | "Snack" | "Drink" | "Dessert" | "Salad";
   minutes: number;
   rating: number;
   tags: string[];
-  allergensFree: string[]; // tokens π.χ. ["gluten", "dairy"]
+  allergensFree: string[]; // e.g., ["gluten", "dairy"]
   ingredients: string[];
   image: string;
-  createdAt: string; // ISO για sort=new
+  createdAt: string; // ISO for sort=new
 };
 
-// -------------------- Labels (UI) --------------------
-const CATEGORY_LABELS: Record<Category, string> = {
-  Breakfast: "Πρωινό",
-  Main: "Κυρίως",
-  Snack: "Σνακ",
-  Drink: "Ρόφημα",
-  Dessert: "Γλυκό",
-  Salad: "Σαλάτα",
-};
-
-const CATEGORIES: Category[] = ["Breakfast", "Main", "Snack", "Drink", "Dessert", "Salad"] as const;
-
-const ALLERGENS = ["gluten", "dairy", "egg", "soy", "peanut", "tree nut", "sesame"] as const;
-
-const ALLERGEN_LABELS: Record<typeof ALLERGENS[number], string> = {
-  gluten: "Γλουτένη",
-  dairy: "Γαλακτοκομικά",
-  egg: "Αυγό",
-  soy: "Σόγια",
-  peanut: "Φυστίκι",
-  "tree nut": "Ξηροί καρποί",
-  sesame: "Σουσάμι",
-};
-
-// -------------------- Data (demo) --------------------
+// -------------------- Data from the PDF --------------------
 const RECIPES: Recipe[] = [
   {
     id: 3001,
@@ -302,13 +279,14 @@ const RECIPES: Recipe[] = [
   },
 ];
 
+const CATEGORIES = ["Breakfast", "Main", "Snack", "Drink", "Dessert", "Salad"] as const;
+const ALLERGENS = ["gluten", "dairy", "egg", "soy", "peanut", "tree nut", "sesame"] as const;
+
 // -------------------- Helpers --------------------
 const PER_PAGE = 12;
-
 function formatMin(m: number) {
-  return m <= 60 ? `${m}′` : `${Math.floor(m / 60)} ώ ${m % 60}′`;
+  return m <= 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`;
 }
-
 function arrFromQuery(v: string | string[] | undefined): string[] {
   if (!v) return [];
   if (Array.isArray(v)) return v.flatMap((s) => s.split(",").filter(Boolean));
@@ -345,7 +323,7 @@ export default function RecipesIndex() {
   const router = useRouter();
   const { pathname, query } = router;
 
-  // Κρατάμε φίλτρα στο URL ώστε να είναι shareable
+  // Pretend we're "hydrating" from an API: keep filters in URL/query
   const [search, setSearch] = useState<string>((query.q as string) || "");
   const [cats, setCats] = useState<string[]>(arrFromQuery(query.cat));
   const [free, setFree] = useState<string[]>(arrFromQuery(query.free));
@@ -429,7 +407,7 @@ export default function RecipesIndex() {
         <title>Συνταγές — NutriClinic</title>
         <meta
           name="description"
-          content="Αναζήτηση και φιλτράρισμα συνταγών (demo) — όλα στα ελληνικά."
+          content="Αναζήτηση και φιλτράρισμα συνταγών βασισμένων στο SWEETOOTH PDF (demo)."
         />
         <link rel="canonical" href="https://example.gr/recipes" />
       </Head>
@@ -474,7 +452,7 @@ export default function RecipesIndex() {
                           )
                         }
                       />
-                      <span>{CATEGORY_LABELS[c]}</span>
+                      <span>{c}</span>
                     </label>
                   ))}
                 </div>
@@ -498,7 +476,7 @@ export default function RecipesIndex() {
 
               {/* Allergens free */}
               <div className="rounded-2xl bg-white/90 ring-1 ring-black/5 p-4 shadow-sm">
-                <div className="text-sm font-medium mb-2">Χωρίς</div>
+                <div className="text-sm font-medium mb-2">Χωρίς (free from)</div>
                 <div className="flex flex-wrap gap-2">
                   {ALLERGENS.map((a) => (
                     <button
@@ -512,7 +490,7 @@ export default function RecipesIndex() {
                           : "bg-sky-50 text-sky-700 ring-sky-200"
                       }`}
                     >
-                      {ALLERGEN_LABELS[a]}
+                      {a}
                     </button>
                   ))}
                 </div>
@@ -572,7 +550,7 @@ export default function RecipesIndex() {
                     </div>
                     <div className="pt-3 space-y-1">
                       <div className="font-medium leading-snug line-clamp-2">{r.title}</div>
-                      <div className="text-xs text-slate-600">{CATEGORY_LABELS[r.category]}</div>
+                      <div className="text-xs text-slate-600">{r.category}</div>
                       <div className="flex flex-wrap gap-2 pt-1">
                         {r.tags.slice(0, 2).map((t) => (
                           <Chip key={t}>{t}</Chip>
