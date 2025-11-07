@@ -12,8 +12,8 @@ const NAV: MenuItem[] = [
     label: "ΑΡΧΙΚΗ",
     href: "/",
     children: [
-      { label: "ΦΙΛΟΣΟΦΙΑ", href: "/philosophy" },
-      { label: "ΒΙΟΓΡΑΦΙΚΟ", href: "/bio" },
+      { label: "ΒΙΟΓΡΑΦΙΚΟ", href: "/#bio" },
+      { label: "ΦΙΛΟΣΟΦΙΑ", href: "/#philosophy" },
     ],
   },
   {

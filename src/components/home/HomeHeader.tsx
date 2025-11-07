@@ -1,173 +1,99 @@
 import Link from "next/link";
+import LeafBurstButton from "../decorative/LeafBurstButton";
 
 export default function HomeHero() {
   return (
     <section className="relative">
       {/* Decorative vine (desktop only) */}
-      <img
+      {/* <img
         src="/decor/vine.png"
         alt=""
         aria-hidden="true"
         className="pointer-events-none select-none hidden md:block absolute -top-6 right-0 w-44 opacity-90"
-      />
+      /> */}
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* GRID: left text / right content */}
-        <div className="grid items-start gap-8 md:grid-cols-12">
-          {/* Left column */}
-          <div className="md:col-span-6 lg:col-span-5 space-y-6">
-            {/* Logo card */}
-            <div className="inline-flex items-center justify-center rounded-2xl bg-white/80 ring-1 ring-[#7a7ac4]/20 shadow-sm p-4">
-              <img
-                src="https://img.freepik.com/premium-photo/diet-healthy-nutrition-portrait-dietitian-s_118454-1331.jpg"
-                alt="Diet out of the Box — Διατροφή & Υγεία"
-                className="h-auto w-auto"
-              />
-            </div>
+        {/* GRID: left photo / right welcome text */}
+        <div className="grid items-center gap-10 md:grid-cols-12">
+          {/* Left column — Arch photo */}
+          <div className="md:col-span-6 lg:col-span-5">
+            <div className="relative mx-auto max-w-md">
+              {/* Arch frame */}
+              <div className="overflow-hidden rounded-t-[180px] rounded-b-none shadow-[0_10px_25px_rgba(0,0,0,0.10)] ring-1 ring-black/5">
+                <img
+                  src="https://img.freepik.com/premium-photo/diet-healthy-nutrition-portrait-dietitian-s_118454-1331.jpg"
+                  alt="Diet out of the Box — Διατροφή & Υγεία"
+                  className="block h-auto w-full object-cover"
+                />
+              </div>
 
-            {/* Name & title */}
-            <div className="pt-2">
-              <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
-                Βασιλική Χύτα
-              </h1>
-              <p className="mt-1 text-xl sm:text-2xl text-slate-700">
-                Διαιτολόγος-Διατροφολόγος
+              {/* Subtle base to anchor the arch visually */}
+              <div className="h-3 w-full mx-auto -mt-1 rounded-b-xl bg-white/80 ring-1 ring-black/5 backdrop-blur" />
+            </div>
+          </div>
+
+          {/* Right column — Welcome & intro */}
+          <div className="md:col-span-6 md:col-start-7 lg:col-span-7 space-y-5">
+            <p className="text-sm tracking-[0.18em] text-[#7a7ac4] uppercase">
+              diet out of the box
+            </p>
+
+            <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight font-serif">
+              Καλώς ήρθατε!
+            </h1>
+
+            <div className="text-[17px] leading-relaxed text-slate-700 font-serif/none">
+              <p className="mb-3">
+                Είμαι η <span className="font-medium">Βασιλική Χύτα</span>,
+                Διαιτολόγος–Διατροφολόγος. Πιστεύω σε μια ήπια, ανθρωποκεντρική
+                προσέγγιση που συνδέει τη γνώση με τη φροντίδα: εκπαίδευση,
+                ευεξία και ισορροπία, πέρα από στερεότυπα και «γρήγορες λύσεις».
+              </p>
+              <p className="mb-0">
+                Στόχος μου είναι να χτίσουμε μαζί μια ουσιαστική σχέση με την
+                τροφή και το σώμα, με ρεαλισμό, σεβασμό και συνέπεια στην
+                καθημερινότητα.
               </p>
             </div>
 
-            {/* Short intro text */}
-            <p className="max-w-prose text-[17px] leading-relaxed text-slate-700">
-              Προσωποκεντρική καθοδήγηση διατροφής με έμφαση στην ευεξία, την
-              εκπαίδευση και την ισορροπία, πέρα από στερεότυπα και «γρήγορες
-              λύσεις».
-            </p>
-
-            {/* Primary CTA */}
-            <div className="pt-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
+              <LeafBurstButton text="ΖΗΤΗΣΤΕ ΕΝΑ ΡΑΝΤΕΒΟΥ" />
               <Link
-                href="/contact/book"
-                className="inline-flex items-center rounded-2xl bg-[#7a7ac4] px-6 py-3 text-white text-lg font-medium shadow hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7a7ac4]"
+                href="#bio"
+                className="text-base underline underline-offset-4 decoration-[#7a7ac4]/40 hover:decoration-[#7a7ac4] text-slate-800"
               >
-                ΖΗΤΗΣΤΕ ΕΝΑ ΡΑΝΤΕΒΟΥ
+                Διαβάστε περισσότερα εδώ
               </Link>
             </div>
           </div>
-
-          {/* Right column — Biography (stays here) */}
-          <div className="md:col-span-6 md:col-start-7 lg:col-span-7">
-            <article className="relative w-full rounded-3xl overflow-hidden ring-1 ring-black/5 shadow-[0_10px_25px_rgba(0,0,0,0.08)] bg-white p-6 sm:p-8">
-              <div className="prose prose-slate max-w-none">
-                <h2 className="mb-3">ΦΙΛΟΣΟΦΙΑ</h2>
-                <p>
-                  Η φιλοσοφία μου στηρίζεται στο βιοψυχοκοινωνικό μοντέλο της
-                  ιατρικής, μια προσέγγιση που αναγνωρίζει ότι η υγεία και η
-                  διατροφή δεν καθορίζονται μόνο από βιολογικούς παράγοντες και
-                  τα γονίδια, αλλά επηρεάζονται εξίσου από την ψυχολογία και το
-                  κοινωνικό πλαίσιο του κάθε ανθρώπου.
-                </p>
-                <p>
-                  Ως διαιτολόγος, βλέπω τη διατροφή όχι ως απομονωμένο σύνολο
-                  κανόνων, αλλά ως καθρέφτη της σχέσης μας με το σώμα, τα
-                  συναισθήματα και το περιβάλλον μας. Το πώς τρώμε, τι
-                  επιλέγουμε, πότε σταματάμε - συχνά αποτυπώνει το πώς
-                  σχετιζόμαστε με τον εαυτό μας και τον κόσμο γύρω μας.
-                </p>
-                <p>
-                  Στις συνεδρίες δουλεύουμε ολιστικά και ανθρωποκεντρικά,
-                  δίνοντας χώρο σε όλες τις πτυχές της εμπειρίας: το σώμα, τον
-                  νου, τη συναισθηματική ζωή, τις συνήθειες και το πλαίσιο μέσα
-                  στο οποίο εκδηλώνονται. Αντλώ στοιχεία από τη
-                  γνωστική–συμπεριφορική θεραπεία (CBT), προσαρμόζοντάς τα στις
-                  ανάγκες της διατροφικής παρέμβασης.
-                </p>
-                <p>
-                  Στόχος δεν είναι η “τέλεια διατροφή”, αλλά «ο άνθρωπος στο
-                  κέντρο της εμπειρίας» και η σύνδεση με το σώμα και τις ανάγκες
-                  του με έναν τρόπο ήπιο και ρεαλιστικό. Μέσα από τη διαδικασία
-                  αυτή, η διατροφή παύει να είναι πεδίο μάχης και ελέγχου και
-                  γίνεται χώρος φροντίδας και αυτογνωσίας.
-                </p>
-                <p>
-                  Αναλαμβάνω ενήλικες και εφήβους, που επιθυμούν να βελτιώσουν
-                  τη σχέση τους με το φαγητό και το σώμα τους ή να υποστηρίξουν
-                  τη συνολική τους υγεία μέσα από τη διατροφή. Συγκεκριμένα,
-                  εργάζομαι σε:
-                </p>
-                <ul className="list-disc pl-6">
-                  <li>
-                    Διατροφικές διαταραχές (ψυχογενής βουλιμία, υπερφαγία,
-                    ανορεξία, συναισθηματική κατανάλωση)
-                  </li>
-                  <li>Δυσκολίες στη ρύθμιση βάρους</li>
-                  <li>
-                    Σύνδρομο Πολυκυστικών Ωοθηκών (PCOS) και ορμονικές
-                    διαταραχές
-                  </li>
-                  <li>
-                    Διατροφή σε κάθε νόσο (σακχαρώδης διαβήτης, υπέρταση,
-                    υπερλιπιδαιμία, πεπτικές διαταραχές κ.ά.)
-                  </li>
-                  <li>Εκπαίδευση στη συνειδητή και διαισθητική διατροφή</li>
-                  <li>Αποκατάσταση μεταβολισμού και θρέψης</li>
-                </ul>
-              </div>
-
-              {/* Subtle inner border */}
-              <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-black/5" />
-            </article>
-          </div>
         </div>
 
-        {/* BELOW EVERYTHING — Philosophy full width */}
-        <article className="mt-12 relative w-full rounded-3xl overflow-hidden ring-1 ring-black/5 shadow-[0_10px_25px_rgba(0,0,0,0.08)] bg-white p-6 sm:p-8">
-          <div className="prose prose-slate max-w-none">
-            <h2 className="mb-3">ΒΙΟΓΡΑΦΙΚΟ</h2>
-            <h3 className="mt-0">Σχετικά με εμένα</h3>
-            <p>
-              Ονομάζομαι Βασιλική Χύτα και είμαι Διαιτολόγος – Διατροφολόγος.
-            </p>
-            <p>
-              Σπούδασα Διατροφή και Διαιτολογία στο Διεθνές Πανεπιστήμιο Ελλάδος
-              και πραγματοποίησα την πρακτική μου άσκηση στο Ιπποκράτειο Γενικό
-              Νοσοκομείο Θεσσαλονίκης, στο τμήμα Διατροφής του Ψυχιατρικού
-              Τομέα, όπου είχα την ευκαιρία να συνεργαστώ με ανθρώπους που
-              πάλευαν με διατροφικές διαταραχές.
-            </p>
-            <p>
-              Η ερευνητική μου εργασία, με τίτλο «Σύνδρομο Πολυκυστικών Ωοθηκών:
-              Διατροφικές συνήθειες και πιθανότητα εμφάνισης διατροφικών
-              διαταραχών», παρουσιάστηκε στο 1ο Διεθνές Συνέδριο Διατροφής και
-              Διαιτολογίας και αποτέλεσε μια σημαντική στιγμή στην διαδρομή μου
-              στην έρευνα.
-            </p>
-            <p>
-              Στη συνέχεια, εκπαιδεύτηκα στην «Τεκμηριωμένη Ιατρική
-              Διατροφολογία» στην Ιατρική Σχολή του Αριστοτελείου Πανεπιστημίου
-              Θεσσαλονίκης και παρακολούθησα πολυάριθμα σεμινάρια και
-              μετεκπαιδεύσεις με επίκεντρο τις διατροφικές διαταραχές και τη
-              σχέση ανθρώπου–τροφής.
-            </p>
-            <p>
-              Μέχρι πρόσφατα διατηρούσα το ιδιωτικό μου γραφείο στο κέντρο της
-              Θεσσαλονίκης, ενώ πλέον ζω στη Γαλλία και συνεργάζομαι διαδικτυακά
-              με ανθρώπους από διάφορες χώρες. Παράλληλα, συντονίζω ομαδικές
-              συναντήσεις και workshops σε συνεργασία με άλλες ειδικότητες, με
-              θέμα το φαγητό, το σώμα και την ψυχολογία.
-            </p>
-            <p>
-              Αυτό που με οδήγησε σε αυτό το μονοπάτι δεν ήταν μόνο η αγάπη μου
-              για τη διατροφή, αλλά και η προσωπική μου εμπειρία με το φαγητό
-              και το σώμα μου. Θέλησα να κατανοήσω σε βάθος τη σχέση μας με την
-              τροφή, όχι μόνο διατροφικά, αλλά και συναισθηματικά. Αυτή η
-              αναζήτηση έγινε ο δρόμος μου μέσα από τον οποίο προσπαθώ
-              καθημερινά να συνοδεύω τους ανθρώπους στο ταξίδι τους στην
-              διατροφική θεραπεία που αναζητούν.
-            </p>
+        {/* SERVICES TEASER (moved here from index.tsx) */}
+        <section className="py-12 md:py-16">
+          <div className="grid gap-6 md:grid-cols-3">
+            {[
+              { title: "1:1 Ραντεβού", href: "/services/one-to-one" },
+              { title: "Ομαδικές Συναντήσεις", href: "/services/group" },
+              { title: "Σεμινάρια", href: "/seminars" },
+            ].map((s) => (
+              <Link
+                key={s.title}
+                href={s.href}
+                className="block text-center self-center m-2 px-4 py-2
+                rounded-tl-full rounded-br-full rounded-2xl bg-white/80
+                ring-1 ring-black/5 text-white text-xs sm:text-sm md:text-base
+                font-medium shadow-sm hover:shadow transition-all duration-200
+                [box-shadow:1px_1px_4px_#7a7ac4] hover:[box-shadow:2px_2px_7px_#7a7ac4]
+                sm:px-5 sm:py-3 md:px-6 md:py-4"
+              >
+                <h3 className="text-lg font-semibold">{s.title}</h3>
+                <p className="mt-2 text-sm text-slate-600">
+                  Μάθετε περισσότερα για τον τρόπο που δουλεύουμε.
+                </p>
+              </Link>
+            ))}
           </div>
-
-          {/* Subtle inner border */}
-          <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-black/5" />
-        </article>
+        </section>
       </div>
     </section>
   );
