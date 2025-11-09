@@ -11,10 +11,9 @@ export default class MyDocument extends Document {
           <link rel="icon" href="/favicon.ico" />
 
           {/* Fonts example (optional — replace with your choice later) */}
-          <link
-            href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600&family=Inter:wght@400;500;600&display=swap"
-            rel="stylesheet"
-          />
+          <link rel="preconnect" href="https://fonts.googleapis.com"/>
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/>
+          <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet"/>
         </Head>
         <body className="antialiased bg-bg text-ink">
           <Main />
