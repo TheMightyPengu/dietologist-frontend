@@ -1,5 +1,5 @@
 import Head from "next/head";
-import Image from "next/image";
+import Link from "next/link";
 import HomeHero from "@/components/home/HomeHeader";
 
 export default function HomePage() {
@@ -28,27 +28,13 @@ export default function HomePage() {
         <link rel="canonical" href="https://your-domain.gr/" />
         <script
           type="application/ld+json"
-          // @ts-ignore
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
         />
       </Head>
 
-      {/* 🌿 Decorative vine just below navbar */}
-      {/* <div className="relative w-[80%] overflow-hidden mx-[auto] mb-5">
-        <Image
-          src="/decorative/vines.png"
-          alt="Διακοσμητικό στοιχείο φύλλων"
-          width={1920}
-          height={200}
-          priority
-          className="w-full h-auto max-h-28 sm:max-h-36 md:max-h-44 object-contain select-none pointer-events-none"
-        />
-      </div> */}
-
-      {/* HERO (matches your wireframe) */}
+      {/* HERO */}
       <HomeHero />
 
-      {/* --- Optional: add teaser sections below when ready --- */}
       {/* Services Teaser */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 md:py-16">
         <div className="grid gap-6 md:grid-cols-3">
@@ -57,7 +43,7 @@ export default function HomePage() {
             { title: "Ομαδικές Συναντήσεις", href: "/services/group" },
             { title: "Σεμινάρια", href: "/seminars" },
           ].map((s) => (
-            <a
+            <Link
               key={s.title}
               href={s.href}
               className="block text-center self-center m-2 px-4 py-2
@@ -71,7 +57,7 @@ export default function HomePage() {
               <p className="mt-2 text-sm text-slate-600">
                 Μάθετε περισσότερα για τον τρόπο που δουλεύουμε.
               </p>
-            </a>
+            </Link>
           ))}
         </div>
       </section>
@@ -83,14 +69,14 @@ export default function HomePage() {
             <h2 className="text-2xl md:text-3xl font-semibold">
               Πρόσφατα από το Blog
             </h2>
-            <a
+            <Link
               href="/blog"
               className="text-sm font-medium text-[#7a7ac4] hover:opacity-90"
             >
               Δείτε όλα →
-            </a>
+            </Link>
           </div>
-          {/* Replace with real posts */}
+
           <div className="mt-6 grid gap-6 md:grid-cols-3">
             {[1, 2, 3].map((i) => (
               <article
@@ -102,12 +88,12 @@ export default function HomePage() {
                 <p className="mt-2 text-sm text-slate-600">
                   Σύντομη περιγραφή άρθρου για προεπισκόπηση.
                 </p>
-                <a
+                <Link
                   href="/blog/articles/sample"
                   className="mt-3 inline-block text-sm font-medium text-[#7a7ac4] hover:opacity-90"
                 >
                   Διαβάστε περισσότερο →
-                </a>
+                </Link>
               </article>
             ))}
           </div>
@@ -123,12 +109,12 @@ export default function HomePage() {
           <p className="mt-2 max-w-2xl text-white/90">
             Κλείστε ραντεβού για την πρώτη μας συνάντηση — από κοντά ή online.
           </p>
-          <a
+          <Link
             href="/contact/book"
             className="mt-6 inline-flex items-center rounded-2xl bg-white px-6 py-3 text-[#7a7ac4] font-medium hover:opacity-90"
           >
             Ζητήστε ένα ραντεβού
-          </a>
+          </Link>
         </div>
       </section>
     </>
