@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 type MenuItem = {
   label: string;
@@ -80,8 +81,8 @@ export default function Navbar() {
       <div ref={navRef} className="mx-auto max-w-7xl px-3">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2" onClick={closeAll}>
-            <img
-              src="/logo.svg"
+            <Image
+                src="/logo.svg"
               alt="Dietitian Logo"
               className="h-9 w-9 rounded-full ring-2 ring-[#7a7ac4]/20"
             />

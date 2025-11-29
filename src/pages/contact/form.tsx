@@ -14,11 +14,12 @@ export default function ContactFormPage() {
   const [ok, setOk] = useState<null | boolean>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function mockApi(payload: any) {
+  async function mockApi() {
     await new Promise((r) => setTimeout(r, 800));
     if (Math.random() < 0.1) throw new Error("Σφάλμα αποστολής.");
     return { success: true };
   }
+
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -26,16 +27,17 @@ export default function ContactFormPage() {
     setOk(null);
     setError(null);
 
-    const fd = new FormData(e.currentTarget);
-    const payload = Object.fromEntries(fd.entries());
+    //const fd = new FormData(e.currentTarget);
+    //const payload = Object.fromEntries(fd.entries());
 
     try {
-      await mockApi(payload);
+      await mockApi();
       setOk(true);
       (e.target as HTMLFormElement).reset();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Κάτι πήγε στραβά. Δοκιμάστε ξανά.";
       setOk(false);
-      setError(err?.message || "Κάτι πήγε στραβά. Δοκιμάστε ξανά.");
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -56,9 +58,13 @@ export default function ContactFormPage() {
         <div className="mx-auto max-w-5xl px-4 py-10 md:py-14">
           {/* Breadcrumbs */}
           <nav className="mb-6 text-sm text-slate-600">
-            <Link href="/" className="hover:underline">Αρχική</Link>
+            <Link href="/" className="hover:underline">
+              Αρχική
+            </Link>
             <span className="mx-2">/</span>
-            <Link href="/contact" className="hover:underline">Επικοινωνία</Link>
+            <Link href="/contact" className="hover:underline">
+              Επικοινωνία
+            </Link>
             <span className="mx-2">/</span>
             <span className="font-medium text-slate-800">Φόρμα Επικοινωνίας</span>
           </nav>

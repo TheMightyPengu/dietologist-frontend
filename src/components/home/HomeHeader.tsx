@@ -1,12 +1,13 @@
 import Link from "next/link";
 import LeafBurstButton from "../decorative/LeafBurstButton";
+import Image from "next/image";
 
 export default function HomeHero() {
   return (
     <section className="relative">
       {/* Decorative vine (desktop only) */}
-      {/* <img
-        src="/decor/vine.png"
+      {/* <Image
+        src="/decorative/vines.png"
         alt=""
         aria-hidden="true"
         className="pointer-events-none select-none hidden md:block absolute -top-6 right-0 w-44 opacity-90"
@@ -20,8 +21,8 @@ export default function HomeHero() {
             <div className="relative mx-auto max-w-md">
               {/* Arch frame */}
               <div className="overflow-hidden rounded-t-[180px] rounded-b-none shadow-[0_10px_25px_rgba(0,0,0,0.10)] ring-1 ring-black/5">
-                <img
-                  src="https://img.freepik.com/premium-photo/diet-healthy-nutrition-portrait-dietitian-s_118454-1331.jpg"
+                <Image
+                  src="https://img.freepik.com/premium-photo/portrait-happy-female-dietologist-holding-apple-recommending-fresh-fruits-vegetables-copy_116547-77941.jpg"
                   alt="Diet out of the Box — Διατροφή & Υγεία"
                   className="block h-auto w-full object-cover"
                 />

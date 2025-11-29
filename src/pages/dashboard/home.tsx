@@ -7,7 +7,8 @@ import {
   updateHomeContent,
   type HomeContent,
 } from "@/lib/mgmtHomeAPI";
-
+import Image
+ from "next/image";
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
 const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({ className, children }) => (
   <div className={cx("rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-200/50", className)}>
@@ -206,8 +207,7 @@ export default function ManagementHomePage() {
               <h3 className="text-lg font-semibold">Ζωντανή Προεπισκόπηση</h3>
               <div className="mt-3 space-y-4">
                 <div className="aspect-[16/9] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img alt="Hero preview" src={previewSrc} className="h-full w-full object-cover" />
+                  <Image alt="Hero preview" src={previewSrc} className="h-full w-full object-cover" />
                 </div>
                 <div>
                   <h4 className="text-xl font-semibold">{data.welcomeTitle}</h4>

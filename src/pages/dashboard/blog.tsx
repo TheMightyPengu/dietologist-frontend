@@ -7,6 +7,7 @@ import {
   type Article, type ArticleCategory, type ContentBlock,
   type Recipe,  type RecipeCategory
 } from "@/lib/mgmtBlogAPI";
+import Image from "next/image";
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
 const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({ className, children }) => (
@@ -191,7 +192,7 @@ function ArticleEditorCard({
 }: { row: Article; busy: boolean; onSave: (a: Article)=>void; onDelete:(id:string)=>void }) {
   const [draft, setDraft] = useState<Article>(row);
   const [open, setOpen] = useState(true);
-  useEffect(() => setDraft(row), [row.id]);
+  useEffect(() => setDraft(row), [row]);
 
   const addTag = () => {
     const v = prompt("Νέα ετικέτα (χωρίς #):");
@@ -437,8 +438,7 @@ function ArticleEditorCard({
           <div className="lg:col-span-1">
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
               <div className="aspect-[16/10] bg-slate-100">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {draft.imageUrl ? <img src={draft.imageUrl} alt="" className="h-full w-full object-cover" /> : null}
+                {draft.imageUrl ? <Image src={draft.imageUrl} alt="" className="h-full w-full object-cover" /> : null}
               </div>
               <div className="px-4 py-3">
                 <span className="inline-block text-[11px] rounded-full bg-[#7a7ac4]/15 text-[#2b2b6f] px-2 py-0.5 mb-2">{draft.category}</span>
@@ -575,7 +575,7 @@ function RecipeEditorCard({
 }: { row: Recipe; busy: boolean; onSave: (r: Recipe)=>void; onDelete:(id:string)=>void }) {
   const [draft, setDraft] = useState<Recipe>(row);
   const [open, setOpen] = useState(true);
-  useEffect(() => setDraft(row), [row.id]);
+  useEffect(() => setDraft(row), [row]);
 
   const addTag = () => {
     const v = prompt("Νέα ετικέτα:");
@@ -811,8 +811,7 @@ function RecipeEditorCard({
           <div className="lg:col-span-1">
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
               <div className="aspect-[16/10] bg-slate-100">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {draft.hero ? <img src={draft.hero} alt="" className="h-full w-full object-cover" /> : null}
+                {draft.hero ? <Image src={draft.hero} alt="" className="h-full w-full object-cover" /> : null}
               </div>
               <div className="px-4 py-3">
                 <div className="flex items-center gap-2 text-xs text-slate-600">

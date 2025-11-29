@@ -1,6 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 /**
  * ΚΛΕΙΣΤΕ ΡΑΝΤΕΒΟΥ — Booking form
@@ -36,11 +36,12 @@ export default function BookPage() {
   });
 
   // ---------------- Mock APIs ----------------
-  async function mockApiSubmit(payload: any) {
+  async function mockApiSubmit() {
     await new Promise((r) => setTimeout(r, 900));
     if (Math.random() < 0.12) throw new Error("Προσωρινό σφάλμα διακομιστή.");
     return { success: true, id: Math.floor(Math.random() * 100000) };
   }
+
 
   async function mockApiFetchServices(): Promise<Service[]> {
     await new Promise((r) => setTimeout(r, 500));
@@ -170,8 +171,8 @@ export default function BookPage() {
     setOk(null);
     setError(null);
 
-    const fd = new FormData(e.currentTarget);
-    const payload = Object.fromEntries(fd.entries());
+    //const fd = new FormData(e.currentTarget);
+    //const payload = Object.fromEntries(fd.entries());
 
     // extra guard
     if (!selectedDate || takenDates.has(selectedDate) || isPast(selectedDate)) {
@@ -182,14 +183,15 @@ export default function BookPage() {
     }
 
     try {
-      await mockApiSubmit(payload);
+      await mockApiSubmit();
       setOk(true);
       (e.target as HTMLFormElement).reset();
       setSelectedDate("");
       setSelectedService("");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Κάτι πήγε στραβά. Δοκιμάστε ξανά.";
       setOk(false);
-      setError(err?.message || "Κάτι πήγε στραβά. Δοκιμάστε ξανά.");
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -210,18 +212,20 @@ export default function BookPage() {
         <div className="mx-auto max-w-5xl px-4 py-10 md:py-14">
           {/* Breadcrumbs */}
           <nav className="mb-6 text-sm text-slate-600">
-            <Link href="/" className="hover:underline">Αρχική</Link>
+            <Link href="/" className="hover:underline">
+              Αρχική
+            </Link>
             <span className="mx-2">/</span>
-            <Link href="/contact" className="hover:underline">Επικοινωνία</Link>
+            <Link href="/contact" className="hover:underline">
+              Επικοινωνία
+            </Link>
             <span className="mx-2">/</span>
             <span className="font-medium text-slate-800">Κλείστε Ραντεβού</span>
           </nav>
 
           {/* Heading */}
           <header className="mb-8">
-            <h1 className="text-3xl md:text-4xl font-semibold text-slate-900">
-              Κλείστε Ραντεβού
-            </h1>
+            <h1 className="text-3xl md:text-4xl font-semibold text-slate-900">Κλείστε Ραντεβού</h1>
             <p className="mt-2 max-w-2xl text-slate-700">
               Συμπληρώστε τη φόρμα και θα σας καλέσουμε για επιβεβαίωση.
             </p>
@@ -274,9 +278,7 @@ export default function BookPage() {
 
                   {/* Τηλέφωνο */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">
-                      Τηλέφωνο
-                    </label>
+                    <label className="block text-sm font-medium text-slate-700">Τηλέφωνο</label>
                     <input
                       name="phone"
                       required
@@ -287,9 +289,7 @@ export default function BookPage() {
 
                   {/* Email */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">
-                      Email
-                    </label>
+                    <label className="block text-sm font-medium text-slate-700">Email</label>
                     <input
                       type="email"
                       name="email"
@@ -333,7 +333,9 @@ export default function BookPage() {
                         {/* Weekdays */}
                         <div className="grid grid-cols-7 gap-1 text-center text-xs text-slate-500">
                           {["Δε", "Τρ", "Τε", "Πε", "Πα", "Σα", "Κυ"].map((w) => (
-                            <div key={w} className="py-1">{w}</div>
+                            <div key={w} className="py-1">
+                              {w}
+                            </div>
                           ))}
                         </div>
 
@@ -398,9 +400,7 @@ export default function BookPage() {
 
                     {/* TIME */}
                     <div className="md:col-span-1">
-                      <label className="block text-sm font-medium text-slate-700">
-                        Ώρα
-                      </label>
+                      <label className="block text-sm font-medium text-slate-700">Ώρα</label>
                       <input
                         type="time"
                         name="time"

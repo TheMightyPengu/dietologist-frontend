@@ -9,6 +9,7 @@ import {
   type Ebook,
   type EbookFeature,
 } from "@/lib/mgmtEbooksAPI";
+import Image from "next/image"; 
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
 const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({ className, children }) => (
@@ -183,7 +184,7 @@ function EbookEditorCard({
   const [draft, setDraft] = useState<Ebook>(eb);
   const [open, setOpen] = useState(true);
 
-  useEffect(() => setDraft(eb), [eb.id]);
+  useEffect(() => setDraft(eb), [eb]);
 
   const addFeature = () =>
     setDraft(d => ({ ...d, features: [...d.features, { id: `f-${Date.now().toString(36)}`, title: "", desc: "" }] }));
@@ -461,9 +462,10 @@ function EbookEditorCard({
           <div className="lg:col-span-1">
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
               <div className="aspect-[4/5] bg-slate-100">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 {draft.coverUrl ? (
-                  <img src={draft.coverUrl} alt="" className="h-full w-full object-cover" />
+                  <>
+                    <Image src={draft.coverUrl} alt="" className="h-full w-full object-cover" />
+                  </>
                 ) : (
                   <div className="h-full w-full grid place-items-center text-slate-400 text-sm">
                     Προσθέστε εικόνα (URL)

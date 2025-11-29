@@ -2,6 +2,7 @@
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import Image from "next/image";
 
 // -------------------- Types --------------------
 type Category = "Breakfast" | "Main" | "Snack" | "Drink" | "Dessert" | "Salad";
@@ -350,7 +351,15 @@ export default function RecipeDetail() {
           </div>
 
           <div className="mt-6 rounded-2xl overflow-hidden ring-1 ring-black/5 bg-white/90">
-            <img src={recipe.image} alt={recipe.title} className="w-full h-80 object-cover" />
+            <div className="relative w-full h-80">
+              <Image
+                src={recipe.image}
+                alt={recipe.title}
+                fill
+                className="object-cover"
+                sizes="(min-width: 1024px) 768px, 100vw"
+              />
+            </div>
           </div>
 
           <section className="mt-8">

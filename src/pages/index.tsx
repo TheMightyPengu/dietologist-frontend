@@ -1,4 +1,5 @@
 import Head from "next/head";
+import Link from "next/link";
 import HomeHero from "@/components/home/HomeHeader";
 
 export default function HomePage() {
@@ -27,7 +28,6 @@ export default function HomePage() {
         <link rel="canonical" href="https://your-domain.gr/" />
         <script
           type="application/ld+json"
-          // @ts-ignore
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
         />
       </Head>
@@ -150,25 +150,31 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 md:py-16">
           <div className="flex items-end justify-between gap-4">
             <h2 className="text-2xl md:text-3xl font-semibold">Πρόσφατα από το Blog</h2>
-            <a href="/blog" className="text-sm font-medium text-[#7a7ac4] hover:opacity-90">
+            <Link
+              href="/blog"
+              className="text-sm font-medium text-[#7a7ac4] hover:opacity-90"
+            >
               Δείτε όλα →
-            </a>
+            </Link>
           </div>
           {/* Replace with real posts */}
           <div className="mt-6 grid gap-6 md:grid-cols-3">
             {[1, 2, 3].map((i) => (
-              <article key={i} className="rounded-2xl bg-white ring-1 ring-black/5 p-5 shadow-sm">
+              <article
+                key={i}
+                className="rounded-2xl bg-white ring-1 ring-black/5 p-5 shadow-sm"
+              >
                 <div className="aspect-[16/9] w-full overflow-hidden rounded-xl bg-slate-100 mb-4" />
                 <h3 className="font-medium">Τίτλος άρθρου #{i}</h3>
                 <p className="mt-2 text-sm text-slate-600">
                   Σύντομη περιγραφή άρθρου για προεπισκόπηση.
                 </p>
-                <a
+                <Link
                   href="/blog/articles/sample"
                   className="mt-3 inline-block text-sm font-medium text-[#7a7ac4] hover:opacity-90"
                 >
                   Διαβάστε περισσότερο →
-                </a>
+                </Link>
               </article>
             ))}
           </div>
@@ -182,12 +188,12 @@ export default function HomePage() {
           <p className="mt-2 max-w-2xl text-white/90">
             Κλείστε ραντεβού για την πρώτη μας συνάντηση — από κοντά ή online.
           </p>
-          <a
+          <Link
             href="/contact/book"
             className="mt-6 inline-flex items-center rounded-2xl bg-white px-6 py-3 text-[#7a7ac4] font-medium hover:opacity-90"
           >
             Ζητήστε ένα ραντεβού
-          </a>
+          </Link>
         </div>
       </section>
     </>
