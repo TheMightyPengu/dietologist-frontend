@@ -1,14 +1,29 @@
 /* === GLOBAL TOKENS & RESET === */
 
 :root {
-  /* 60-30-10 color rule */
-  --bg: #fcfcfd;        /* 60% - soft white tint */
-  --ink: #1f2533;       /* main text color */
-  --brand: #7a7ac4;     /* accent (10% or 30%) */
-  --sage: #9bb8a7;      /* secondary neutral (leafy tone) */
-  --peach: #ffd9c9;     /* soft warm accent */
+  /* Brand palette (Tailwind-friendly RGB for alpha support) */
+  --primary: 122 122 196; /* #7A7AC4 (Purple) */
+  --accent: 164 199 126;  /* #A4C77E (Green) */
+  --warm: 199 157 126;    /* #C79D7E (Warm sand) */
 
+  /* Neutrals (also RGB so you can use opacity if needed) */
+  --bg: 252 252 253;      /* #FCFCFD */
+  --surface: 255 255 255; /* #FFFFFF */
+  --ink: 31 37 51;        /* #1F2533 */
+  --muted: 91 91 102;     /* ~#5B5B66 */
+  --border: 231 231 239;  /* ~#E7E7EF */
+
+  /* Role tokens (what we discussed) */
+  --link: var(--primary);         /* links = purple */
+  --link-hover: var(--accent);    /* hover = green */
+
+  --focus: var(--primary);        /* focus ring = purple */
+  --success: var(--accent);       /* success = green */
+  --highlight: var(--warm);       /* rare callouts = warm sand */
+
+  /* Component tokens */
   --radius: 16px;
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
 }
 
 /* Smooth typography & layout defaults */
@@ -16,13 +31,21 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Basic reset-ish */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   padding: 0;
   font-family: 'Inter', 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI',
     Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  background-color: var(--bg);
-  color: var(--ink);
+
+  background-color: rgb(var(--bg));
+  color: rgb(var(--ink));
   line-height: 1.6;
 }
 
@@ -30,17 +53,63 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Quicksand', 'Inter', sans-serif;
   font-weight: 600;
-  color: var(--ink);
+  color: rgb(var(--ink));
 }
 
-/* Links & buttons */
-a {
-  color: var(--brand);
+/* Navbar links (purple default, green hover) */
+.navbar-link {
+  position: relative;
+  color: rgb(var(--link));
   text-decoration: none;
+  transition: color 0.15s ease-out;
 }
 
-a:hover {
-  opacity: 0.85;
+.navbar-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-color: rgb(var(--link-hover));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.15s ease-out;
+}
+
+.navbar-link:hover {
+  color: rgb(var(--link-hover));
+}
+
+.navbar-link:hover::after {
+  transform: scaleX(1);
+}
+
+/* Disable underline for specific buttons */
+a.no-hover-underline:hover::after {
+  display: none;
+}
+
+/* Focus styles (purple ring) - for buttons and form elements, not links */
+:where(button, input, textarea, select, summary):focus-visible {
+  outline: 3px solid rgba(var(--focus), 0.45);
+  outline-offset: 3px;
+  border-radius: 10px; /* slight rounding for ring */
+}
+
+/* Optional: inputs get a subtle border that turns purple on focus */
+input, textarea, select {
+  border: 1px solid rgba(var(--border), 1);
+  border-radius: 12px;
+  padding: 0.65rem 0.85rem;
+  background: rgb(var(--surface));
+  color: rgb(var(--ink));
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: rgba(var(--primary), 0.75);
+  box-shadow: 0 0 0 4px rgba(var(--primary), 0.12);
+  outline: none;
 }
 
 /* Utility helpers */
@@ -50,25 +119,58 @@ a:hover {
   margin: 0 auto;
 }
 
+/* Cards: neutral surface, GREEN is the default accent (subtle) */
 .rounded-card {
   border-radius: var(--radius);
-  background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: rgb(var(--surface));
+  box-shadow: var(--shadow);
   padding: 1.5rem;
+
+  border: 1px solid rgba(var(--accent), 0.25); /* green used slightly more */
 }
 
-/* Scrollbar styling (optional aesthetic) */
+/* Optional helpers if you use “featured” vs “primary” accents */
+.card-accent {
+  border-left: 6px solid rgba(var(--accent), 0.9); /* default = green */
+  padding-left: 1.25rem;
+}
+
+.card-primary {
+  border-left-color: rgba(var(--primary), 0.9); /* purple for key emphasis */
+}
+
+.card-warm {
+  border-left-color: rgba(var(--warm), 0.9); /* rare decorative */
+}
+
+/* Soft panels / callouts */
+.callout-success {
+  background: rgba(var(--success), 0.14);
+  border: 1px solid rgba(var(--success), 0.35);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+}
+
+.callout-note {
+  background: rgba(var(--highlight), 0.14);
+  border: 1px solid rgba(var(--highlight), 0.35);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+}
+
+/* Scrollbar styling (optional aesthetic)
+   Use green by default (more usage), with purple as a hover cue */
 ::-webkit-scrollbar {
   width: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg);
+  background: rgb(var(--bg));
 }
 ::-webkit-scrollbar-thumb {
-  background-color: var(--brand);
+  background-color: rgba(var(--accent), 0.9);
   border-radius: 10px;
+  border: 2px solid rgb(var(--bg));
 }
-
-
-
-
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(var(--primary), 0.9);
+}

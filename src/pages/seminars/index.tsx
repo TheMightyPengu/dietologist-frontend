@@ -7,7 +7,11 @@ import { useEffect, useMemo, useState } from "react";
  * - Ελληνικό UI
  * - Μινιμαλιστική, μοντέρνα σελιδοποίηση/πλέγμα
  * - Skeletons, loading, error state
- * - Accent: #7a7ac4 (60-30-10 rule με ουδέτερο φόντο)
+ * - Palette rules:
+ *   - Backgrounds: WHITE only
+ *   - Purple = primary/high-focus (CTAs, focus rings)
+ *   - Green = more frequent accent (tints, borders, chips, dividers, shadows)
+ *   - Links: purple default -> green on hover
  */
 
 type Seminar = {
@@ -36,7 +40,7 @@ export default function SeminarsPage() {
 
     const timer = setTimeout(() => {
       if (!active) return;
-      // dummy dataset (θα αντικατασταθεί από πραγματικό API)
+
       const data: Seminar[] = [
         {
           id: "sem-1",
@@ -77,6 +81,7 @@ export default function SeminarsPage() {
           slug: "mindful-eating",
         },
       ];
+
       setItems(data);
       setLoading(false);
     }, 800);
@@ -108,14 +113,18 @@ export default function SeminarsPage() {
         />
       </Head>
 
-      <section className="bg-[#F7F7EF] text-slate-800">
+      {/* White-only background wrapper */}
+      <section className="text-slate-800">
         {/* hero */}
         <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-14 md:pt-20 pb-6">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             <div className="max-w-3xl">
-              <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-                ΣΕΜΙΝΑΡΙΑ
-              </h1>
+              <div className="inline-flex items-center gap-3">
+                <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
+                  ΣΕΜΙΝΑΡΙΑ
+                </h1>
+                <span className="hidden sm:inline-block h-px w-20 bg-accent/40" />
+              </div>
               <p className="mt-3 text-slate-600">
                 Μικρές, στοχευμένες ενότητες με πρακτικό περιεχόμενο. Online
                 &amp; δια ζώσης, με έμφαση στην εφαρμογή.
@@ -133,9 +142,17 @@ export default function SeminarsPage() {
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Αναζήτηση σεμιναρίων…"
-                  className="w-full rounded-2xl border border-slate-300 bg-white/70 backdrop-blur px-4 py-3 pr-12 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#7a7ac4]"
+                  className={[
+                    "w-full rounded-2xl px-4 py-3 pr-12 shadow-sm transition",
+                    // bg must be white only
+                    "bg-white",
+                    // green used more: border + subtle hover tint
+                    "border border-accent/35 hover:bg-accent/10",
+                    // focus is purple (high focus)
+                    "focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary/40",
+                  ].join(" ")}
                 />
-                <span className="absolute inset-y-0 right-3 flex items-center text-slate-400">
+                <span className="absolute inset-y-0 right-3 flex items-center text-accent/70">
                   ⌕
                 </span>
               </div>
@@ -150,21 +167,28 @@ export default function SeminarsPage() {
               {Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={i}
-                  className="rounded-2xl bg-white shadow-sm border border-slate-200 overflow-hidden animate-pulse"
+                  className={[
+                    "rounded-2xl overflow-hidden animate-pulse",
+                    // bg must be white only
+                    "bg-white",
+                    // green-tinted structure
+                    "ring-1 ring-accent/20",
+                    "shadow-sm shadow-[0_12px_28px_rgba(164,199,126,0.10)]",
+                  ].join(" ")}
                 >
-                  <div className="h-40 bg-slate-200" />
+                  <div className="h-40 bg-accent/15" />
                   <div className="p-5 space-y-3">
-                    <div className="h-5 bg-slate-200 rounded w-3/4" />
-                    <div className="h-4 bg-slate-200 rounded w-full" />
-                    <div className="h-4 bg-slate-200 rounded w-2/3" />
-                    <div className="h-9 bg-slate-200 rounded w-28" />
+                    <div className="h-5 bg-accent/20 rounded w-3/4" />
+                    <div className="h-4 bg-accent/20 rounded w-full" />
+                    <div className="h-4 bg-accent/20 rounded w-2/3" />
+                    <div className="h-9 bg-accent/20 rounded w-28" />
                   </div>
                 </div>
               ))}
             </div>
           ) : error ? (
-            <div className="rounded-xl bg-red-50 border border-red-200 p-4">
-              <p className="text-red-700">
+            <div className="rounded-xl bg-white ring-1 ring-accent/30 p-4 shadow-sm">
+              <p className="text-slate-800">
                 Κάτι πήγε στραβά. Δοκιμάστε ξανά αργότερα.
               </p>
             </div>
@@ -187,39 +211,57 @@ export default function SeminarsPage() {
                 return (
                   <article
                     key={s.id}
-                    className="group rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow h-full flex flex-col"
+                    className={[
+                      "group rounded-2xl overflow-hidden h-full flex flex-col transition",
+                      // bg must be white only
+                      "bg-white",
+                      // more green tints: ring + green glow on hover
+                      "ring-1 ring-accent/20",
+                      "shadow-sm shadow-[0_12px_28px_rgba(164,199,126,0.10)]",
+                      "hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)]",
+                    ].join(" ")}
                   >
                     <div
                       className="h-40 bg-cover bg-center"
                       style={{ backgroundImage: `url(${s.cover})` }}
                     />
+
                     <div className="p-5 flex flex-col grow">
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-1">
+                      <div className="flex items-center gap-2 text-xs text-slate-600">
+                        {/* Chip: white bg, green ring, green hover tint */}
+                        <span className="inline-flex items-center rounded-full bg-white px-2 py-1 ring-1 ring-accent/30">
                           {s.mode}
                         </span>
-                        <span>•</span>
+                        <span className="text-accent/70">•</span>
                         <span>{niceDate}</span>
-                        <span>•</span>
+                        <span className="text-accent/70">•</span>
                         <span>{s.durationMin}′</span>
                       </div>
 
-                      <h3 className="mt-2 text-lg font-semibold leading-snug">
+                      <h3 className="mt-2 text-lg font-semibold leading-snug text-slate-900">
                         {s.title}
                       </h3>
 
-                      <p className="mt-1 text-sm text-slate-600">
-                        {s.excerpt}
-                      </p>
+                      <p className="mt-1 text-sm text-slate-600">{s.excerpt}</p>
 
                       {/* Sticky-to-bottom footer */}
                       <div className="mt-auto flex items-center justify-between pt-3">
-                        <span className="text-[#7a7ac4] font-semibold">
+                        <span className="text-accent font-semibold">
                           {s.priceEUR ? `${s.priceEUR}€` : "ΔΩΡΕΑΝ"}
                         </span>
+
+                        {/* Primary CTA = purple, green hover tint on container */}
                         <Link
                           href={`/seminars/${s.slug}`}
-                          className="inline-flex items-center gap-2 rounded-xl border border-[#7a7ac4]/20 bg-[#7a7ac4] text-white px-3 py-2 text-sm shadow hover:opacity-95 transition"
+                          className={[
+                            "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm shadow transition",
+                            // purple as primary action
+                            "bg-primary text-white",
+                            "ring-1 ring-primary/20",
+                            // green hover glow without changing bg away from purple
+                            "hover:shadow-[0_12px_28px_rgba(164,199,126,0.18)]",
+                            "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
+                          ].join(" ")}
                         >
                           Κράτηση θέσης
                           <span aria-hidden>→</span>
@@ -233,19 +275,34 @@ export default function SeminarsPage() {
           )}
         </div>
 
-        {/* CTA band (accent ~10%) */}
-        <div className="bg-[#7a7ac4] text-white">
+        {/* CTA band: keep white bg, push green tints; primary (purple) button inside */}
+        <div>
           <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 flex flex-col md:flex-row items-center gap-4 md:gap-6">
-            <h2 className="text-xl md:text-2xl font-semibold">
-              Θέλετε εταιρικό σεμινάριο;
-            </h2>
-            <p className="opacity-90">
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl md:text-2xl font-semibold text-slate-900">
+                Θέλετε εταιρικό σεμινάριο;
+              </h2>
+              <span className="hidden md:inline-block h-px w-20 bg-accent/40" />
+            </div>
+
+            <p className="text-slate-600">
               Επικοινωνήστε για προσαρμοσμένα workshops στην ομάδα σας.
             </p>
+
             <div className="md:ml-auto">
               <Link
                 href="/contact"
-                className="inline-flex rounded-xl bg-white text-[#7a7ac4] px-4 py-2 font-medium shadow hover:opacity-90 transition"
+                className={[
+                  "inline-flex rounded-xl px-4 py-2 font-medium shadow transition",
+                  // bg must be white only
+                  "bg-white",
+                  // link rule: purple default -> green hover
+                  "text-primary hover:text-accent",
+                  // more green tint
+                  "ring-1 ring-accent/40 hover:bg-accent/10",
+                  "shadow-[0_12px_28px_rgba(164,199,126,0.12)] hover:shadow-[0_16px_34px_rgba(164,199,126,0.18)]",
+                  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                ].join(" ")}
               >
                 Επικοινωνία
               </Link>

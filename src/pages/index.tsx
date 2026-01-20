@@ -165,9 +165,9 @@ export default function HomePage() {
                 </p>
                 <a
                   href="/blog/articles/sample"
-                  className="mt-3 inline-block text-sm font-medium text-[#7a7ac4] hover:opacity-90"
+                  className="mt-3 inline-block text-sm font-medium navbar-link"
                 >
-                  Διαβάστε περισσότερο →
+                  Διαβάστε περισσότερα →
                 </a>
               </article>
             ))}

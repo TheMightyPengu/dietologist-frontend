@@ -52,22 +52,30 @@ export default function ContactFormPage() {
         <link rel="canonical" href="https://example.gr/contact/form" />
       </Head>
 
-      <section className="bg-[#F7F7EF]">
+      <section className="bg-white">
         <div className="mx-auto max-w-5xl px-4 py-10 md:py-14">
           {/* Breadcrumbs */}
           <nav className="mb-6 text-sm text-slate-600">
-            <Link href="/" className="hover:underline">Αρχική</Link>
+            <Link
+              href="/"
+              className="text-primary hover:text-accent underline decoration-primary/30 hover:decoration-accent/50 transition"
+            >
+              Αρχική
+            </Link>
             <span className="mx-2">/</span>
-            <Link href="/contact" className="hover:underline">Επικοινωνία</Link>
+            <Link
+              href="/contact"
+              className="text-primary hover:text-accent underline decoration-primary/30 hover:decoration-accent/50 transition"
+            >
+              Επικοινωνία
+            </Link>
             <span className="mx-2">/</span>
             <span className="font-medium text-slate-800">Φόρμα Επικοινωνίας</span>
           </nav>
 
           {/* Heading */}
           <header className="mb-8">
-            <h1 className="text-3xl md:text-4xl font-semibold text-slate-900">
-              Φόρμα Επικοινωνίας
-            </h1>
+            <h1 className="text-3xl md:text-4xl font-semibold text-slate-900">Φόρμα Επικοινωνίας</h1>
             <p className="mt-2 max-w-2xl text-slate-700">
               Πείτε μας πώς μπορούμε να βοηθήσουμε. Απαντάμε συνήθως εντός 1–2 εργάσιμων.
             </p>
@@ -78,52 +86,44 @@ export default function ContactFormPage() {
             <div className="md:col-span-3">
               <form
                 onSubmit={onSubmit}
-                className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5"
+                className="rounded-2xl bg-white p-6 shadow-[0_14px_30px_rgba(164,199,126,0.10)] ring-1 ring-accent/25"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">
-                      Ονοματεπώνυμο
-                    </label>
+                    <label className="block text-sm font-medium text-slate-700">Ονοματεπώνυμο</label>
                     <input
                       name="fullName"
                       required
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="mt-1 w-full rounded-xl ring-1 ring-accent/30 bg-white px-3 py-2 text-slate-900 outline-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
                       placeholder="π.χ. Νίκος Παπ."
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">
-                      Email
-                    </label>
+                    <label className="block text-sm font-medium text-slate-700">Email</label>
                     <input
                       type="email"
                       name="email"
                       required
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="mt-1 w-full rounded-xl ring-1 ring-accent/30 bg-white px-3 py-2 text-slate-900 outline-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
                       placeholder="name@email.com"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-slate-700">
-                      Θέμα
-                    </label>
+                    <label className="block text-sm font-medium text-slate-700">Θέμα</label>
                     <input
                       name="subject"
                       required
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="mt-1 w-full rounded-xl ring-1 ring-accent/30 bg-white px-3 py-2 text-slate-900 outline-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
                       placeholder="Σύντομος τίτλος μηνύματος"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-slate-700">
-                      Μήνυμα
-                    </label>
+                    <label className="block text-sm font-medium text-slate-700">Μήνυμα</label>
                     <textarea
                       name="message"
                       rows={5}
                       required
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="mt-1 w-full rounded-xl ring-1 ring-accent/30 bg-white px-3 py-2 text-slate-900 outline-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
                       placeholder="Πείτε μας περισσότερα…"
                     />
                   </div>
@@ -134,19 +134,22 @@ export default function ContactFormPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="inline-flex items-center rounded-xl bg-[#7a7ac4] px-4 py-2 text-white disabled:opacity-60 hover:bg-[#6b6bb6] transition"
+                    className="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-white disabled:opacity-60 transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
                   >
                     {loading ? "Αποστολή..." : "Αποστολή Μηνύματος"}
                   </button>
-                  <Link href="/contact/book" className="text-[#7a7ac4] hover:underline">
+                  <Link
+                    href="/contact/book"
+                    className="text-primary hover:text-accent underline decoration-primary/30 hover:decoration-accent/50 transition"
+                  >
                     Ή κλείστε ραντεβού →
                   </Link>
                 </div>
 
                 {/* Status */}
-                <div className="mt-4 min-h-[1.5rem]">
+                <div className="mt-2 min-h-[1.5rem]">
                   {ok && (
-                    <p className="text-sm text-emerald-700">
+                    <p className="text-sm text-primary">
                       Το μήνυμα στάλθηκε! Θα επικοινωνήσουμε σύντομα.
                     </p>
                   )}
@@ -161,12 +164,12 @@ export default function ContactFormPage() {
 
             {/* Side info */}
             <aside className="md:col-span-2">
-              <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+              <div className="rounded-2xl bg-white p-6 shadow-[0_14px_30px_rgba(164,199,126,0.10)] ring-1 ring-accent/25">
                 <h2 className="text-lg font-semibold text-slate-900">Στοιχεία Επικοινωνίας</h2>
-                <ul className="mt-3 space-y-2 text-sm text-slate-700">
-                  <li>• Email: info@example.gr</li>
-                  <li>• Τηλέφωνο: 2310 000000</li>
-                  <li>• Δευ–Παρ 10:00–18:00</li>
+                <ul className="mt-3 space-y-2 text-sm text-slate-700 marker:text-accent/80 list-disc pl-5">
+                  <li>Email: info@example.gr</li>
+                  <li>Τηλέφωνο: 2310 000000</li>
+                  <li>Δευ–Παρ 10:00–18:00</li>
                 </ul>
               </div>
             </aside>

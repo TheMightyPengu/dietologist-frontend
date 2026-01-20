@@ -66,17 +66,40 @@ export default function TopBar() {
   );
 
   return (
-    <div className="w-full bg-white/70 backdrop-blur sticky top-0 z-50 border-b border-[#7a7ac426] px-6">
+    <div
+      className={[
+        // keep neutral surface, use GREEN more in borders/dividers
+        "w-full sticky top-0 z-50 backdrop-blur",
+        "bg-white/70",
+        "border-b border-accent/25",
+        "px-6",
+      ].join(" ")}
+    >
       <div className="mx-auto flex max-w-7xl items-center justify-between py-2 text-sm">
         {/* Left: contact info */}
-        <div className="flex items-center gap-4 text-[13px] text-slate-700 whitespace-nowrap">
-          <a href="tel:+30-210-0000000" className="flex items-center gap-2 hover:text-[#7a7ac4]">
-            {Icon.Phone}
+        <div className="flex items-center gap-4 whitespace-nowrap text-[13px] text-slate-700">
+          <a
+            href="tel:+30-210-0000000"
+            className={[
+              "flex items-center gap-2 transition",
+              // links are purple, hover goes green (your rules)
+              "text-primary hover:text-accent",
+            ].join(" ")}
+          >
+            <span className="text-accent">{Icon.Phone}</span>
             <span className="hidden sm:inline">+30 210 0000000</span>
           </a>
-          <span className="hidden sm:inline text-slate-300">|</span>
-          <a href="mailto:hello@dietitian.gr" className="flex items-center gap-2 hover:text-[#7a7ac4]">
-            {Icon.Mail}
+
+          <span className="hidden sm:inline text-accent/30">|</span>
+
+          <a
+            href="mailto:hello@dietitian.gr"
+            className={[
+              "flex items-center gap-2 transition",
+              "text-primary hover:text-accent",
+            ].join(" ")}
+          >
+            <span className="text-accent">{Icon.Mail}</span>
             <span className="hidden md:inline">hello@dietitian.gr</span>
           </a>
         </div>
@@ -88,7 +111,15 @@ export default function TopBar() {
               key={s.label}
               href={s.href}
               aria-label={s.label}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-[#7a7ac4] ring-1 ring-[#7a7ac4]/20 hover:bg-[#7a7ac4] hover:text-white transition"
+              className={[
+                "flex h-7 w-7 items-center justify-center rounded-full transition",
+                // GREEN is the default accent (more usage)
+                "bg-white/80 text-accent ring-1 ring-accent/25",
+                // On hover, emphasize with PURPLE fill (rare but high-focus)
+                "hover:bg-primary hover:text-white hover:ring-primary/25",
+                // nice focus ring in purple
+                "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+              ].join(" ")}
             >
               {s.icon}
             </a>

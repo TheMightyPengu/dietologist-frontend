@@ -28,7 +28,7 @@ const NAV: MenuItem[] = [
   { label: "ΕΒΟΟΚ", href: "/ebook" },
   {
     label: "BLOG",
-    href: "/blog",
+    href: "/articles",
     children: [
       { label: "ΑΡΘΡΑ", href: "/articles" },
       { label: "ΣΥΝΤΑΓΕΣ", href: "/recipes" },
@@ -36,7 +36,7 @@ const NAV: MenuItem[] = [
   },
   {
     label: "ΕΠΙΚΟΙΝΩΝΙΑ",
-    href: "/contact",
+    href: "/contact/book",
     children: [
       { label: "ΚΛΕΙΣΤΕ ΡΑΝΤΕΒΟΥ", href: "/contact/book" },
       { label: "ΦΟΡΜΑ ΕΠΙΚΟΙΝΩΝΙΑΣ", href: "/contact/form" },
@@ -76,14 +76,23 @@ export default function Navbar() {
   };
 
   return (
-    <div className="w-full bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-[40px] sm:top-[40px] z-40 border-b border-slate-100 px-5">
+    <div
+      className={[
+        "w-full sticky top-[40px] sm:top-[40px] z-40 backdrop-blur",
+        "bg-white/80 supports-[backdrop-filter]:bg-white/60",
+        // GREEN used more for borders/dividers
+        "border-b border-accent/20",
+        "px-5",
+      ].join(" ")}
+    >
       <div ref={navRef} className="mx-auto max-w-7xl px-3">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2" onClick={closeAll}>
             <img
               src="/logo.svg"
               alt="Dietitian Logo"
-              className="h-9 w-9 rounded-full ring-2 ring-[#7a7ac4]/20"
+              // logo ring uses GREEN (more usage), purple reserved for key actions
+              className="h-9 w-9 rounded-full ring-2 ring-accent/25"
             />
             <span className="font-semibold tracking-tight text-slate-800">Dietitian</span>
           </Link>
@@ -102,23 +111,38 @@ export default function Navbar() {
                   onMouseLeave={() => hasChildren && setOpenIdx(null)}
                 >
                   <div className="group inline-flex items-center gap-1 rounded-md px-1">
-                    {/* Label always navigates */}
+                    {/* Label navigates */}
                     <Link
                       href={item.href || "#"}
-                      className="inline-flex items-center rounded-md px-3 py-2 text-[15px] font-medium text-slate-700 hover:text-[#7a7ac4] hover:bg-[#7a7ac4]/5"
+                      className={[
+                        "inline-flex items-center rounded-md px-3 py-2 text-[15px] font-medium transition navbar-link",
+                        // Links are purple default, green on hover
+                        "text-primary hover:text-accent",
+                        // Subtle hover background: green tint (use green more)
+                        "hover:bg-accent/10",
+                        // Focus ring for navbar links
+                        "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                      ].join(" ")}
                       onClick={closeAll}
                     >
                       {item.label}
                     </Link>
 
-                    {/* Separate chevron toggler (only if dropdown) */}
+                    {/* Chevron toggler (dropdown only) */}
                     {hasChildren && (
                       <button
                         type="button"
                         aria-haspopup="menu"
                         aria-expanded={isOpen}
                         aria-label={`${item.label} υπομενού`}
-                        className="inline-flex items-center rounded-md px-1.5 py-2 text-slate-600 hover:text-[#7a7ac4] hover:bg-[#7a7ac4]/10"
+                        className={[
+                          "inline-flex items-center rounded-md px-1.5 py-2 transition",
+                          "text-slate-600",
+                          // Green hover tint + green text on hover
+                          "hover:text-accent hover:bg-accent/10",
+                          // Focus ring in purple (high-focus)
+                          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                        ].join(" ")}
                         onClick={(e) => {
                           e.stopPropagation();
                           setOpenIdx(isOpen ? null : idx);
@@ -132,15 +156,28 @@ export default function Navbar() {
                   {hasChildren && isOpen && (
                     <div
                       role="menu"
-                      className="absolute left-0 w-64 rounded-xl border border-slate-150 bg-white p-2 shadow-xl"
+                      className={[
+                        "absolute left-0 w-64 rounded-xl p-2 shadow-xl",
+                        "bg-white",
+                        // green border (more usage)
+                        "border border-accent/20",
+                      ].join(" ")}
                     >
                       {item.children!.map((child) => (
                         <Link
                           key={child.href}
                           href={child.href}
-                          className="block rounded-lg px-3 py-2 text-[14px] text-slate-700 hover:bg-[#7a7ac4]/5 hover:text-[#7a7ac4]"
                           role="menuitem"
                           onClick={closeAll}
+                          className={[
+                            "block rounded-lg px-3 py-2 text-[14px] transition navbar-link",
+                            // keep readable, but follow link rules
+                            "text-slate-700 hover:text-accent",
+                            // green-tinted hover background
+                            "hover:bg-accent/10",
+                            // Focus ring for navbar links
+                            "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                          ].join(" ")}
                         >
                           <div className="font-medium">{child.label}</div>
                           {child.desc && <div className="text-xs text-slate-500">{child.desc}</div>}
@@ -153,11 +190,17 @@ export default function Navbar() {
             })}
           </nav>
 
-          {/* Right: CTA (desktop) */}
+          {/* Right: CTA (desktop) — Primary action stays PURPLE */}
           <div className="hidden md:flex">
             <Link
               href="/contact/book"
-              className="rounded-full bg-[#7a7ac4] px-4 py-2 text-sm font-medium text-white shadow hover:opacity-90"
+              className={[
+                "rounded-full px-4 py-2 text-sm font-medium text-white shadow transition",
+                // primary CTA = purple
+                "bg-primary hover:bg-primary/90",
+                // focus ring purple (consistent)
+                "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
+              ].join(" ")}
               onClick={closeAll}
             >
               Κλείστε ραντεβού
@@ -166,7 +209,13 @@ export default function Navbar() {
 
           {/* Mobile hamburger */}
           <button
-            className="md:hidden inline-flex items-center justify-center rounded-md p-2 text-slate-700 hover:bg-[#7a7ac4]/10"
+            className={[
+              "md:hidden inline-flex items-center justify-center rounded-md p-2 transition",
+              "text-slate-700",
+              // green hover background to increase green usage
+              "hover:bg-accent/10 hover:text-accent",
+              "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+            ].join(" ")}
             aria-label="Άνοιγμα μενού"
             onClick={() => setMobileOpen((s) => !s)}
           >
@@ -186,25 +235,35 @@ export default function Navbar() {
             {NAV.map((item, idx) => {
               const hasChildren = !!item.children?.length;
               const isOpen = openIdx === idx;
+
               return (
-                <div key={item.label} className="border-t border-slate-100">
+                <div key={item.label} className="border-t border-accent/15">
                   <div className="flex w-full items-stretch justify-between px-2 py-1">
-                    {/* Label always navigates on mobile too */}
                     <Link
                       href={item.href || "#"}
-                      className="flex-1 rounded-md px-2 py-2 text-[15px] font-medium text-slate-800"
-                      onClick={() => {
-                        closeAll();
-                      }}
+                      className={[
+                        "flex-1 rounded-md px-2 py-2 text-[15px] font-medium transition navbar-link",
+                        // purple default, green on hover
+                        "text-primary hover:text-accent hover:bg-accent/10",
+                        // Focus ring for navbar links
+                        "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                      ].join(" ")}
+                      onClick={closeAll}
                     >
                       {item.label}
                     </Link>
+
                     {hasChildren && (
                       <button
                         type="button"
                         aria-expanded={isOpen}
                         aria-label={`${item.label} υπομενού`}
-                        className="ml-1 rounded-md px-3 py-2 text-slate-700 hover:bg-[#7a7ac4]/10"
+                        className={[
+                          "ml-1 rounded-md px-3 py-2 transition",
+                          // green hover tint
+                          "text-slate-700 hover:text-accent hover:bg-accent/10",
+                          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                        ].join(" ")}
                         onClick={(e) => {
                           e.stopPropagation();
                           setOpenIdx(isOpen ? null : idx);
@@ -214,13 +273,17 @@ export default function Navbar() {
                       </button>
                     )}
                   </div>
+
                   {hasChildren && isOpen && (
                     <div className="px-2 pb-2">
                       {item.children!.map((child) => (
                         <Link
                           key={child.href}
                           href={child.href}
-                          className="block rounded-lg px-3 py-2 text-[14px] text-slate-700 hover:bg-[#7a7ac4]/10"
+                          className={[
+                            "block rounded-lg px-3 py-2 text-[14px] transition",
+                            "text-slate-700 hover:text-accent hover:bg-accent/10",
+                          ].join(" ")}
                           onClick={closeAll}
                         >
                           {child.label}
@@ -231,15 +294,33 @@ export default function Navbar() {
                 </div>
               );
             })}
+
             <div className="px-2 pt-3">
               <Link
                 href="/contact/book"
-                className="block w-full rounded-full bg-[#7a7ac4] px-4 py-2 text-center text-sm font-medium text-white"
+                className={[
+                  "block w-full rounded-full px-4 py-2 text-center text-sm font-medium text-white transition",
+                  // primary CTA = purple
+                  "bg-primary hover:bg-primary/90",
+                  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
+                ].join(" ")}
                 onClick={closeAll}
               >
                 Κλείστε ραντεβού
               </Link>
             </div>
+
+            {/* Optional secondary action (green) — uncomment if you want balance on mobile
+            <div className="px-2 pt-2">
+              <Link
+                href="/contact/form"
+                className="block w-full rounded-full border border-accent/40 bg-accent/10 px-4 py-2 text-center text-sm font-medium text-accent hover:bg-accent/15"
+                onClick={closeAll}
+              >
+                Φόρμα επικοινωνίας
+              </Link>
+            </div>
+            */}
           </div>
         )}
       </div>

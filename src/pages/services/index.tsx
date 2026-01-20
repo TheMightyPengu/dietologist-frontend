@@ -3,7 +3,17 @@ import Link from "next/link";
 
 type PillProps = { children: React.ReactNode };
 const Pill = ({ children }: PillProps) => (
-  <span className="inline-flex items-center rounded-full bg-white/70 dark:bg-white/10 ring-1 ring-[#7a7ac4]/30 px-3 py-1 text-sm leading-none">
+  <span
+    className={[
+      // bg must be white only
+      "inline-flex items-center rounded-full bg-white",
+      // stronger green presence: border + soft inner tint + gentle shadow
+      "ring-1 ring-accent/40",
+      "shadow-[0_1px_0_rgba(164,199,126,0.25)]",
+      // readable text
+      "px-3 py-1 text-sm leading-none text-slate-800",
+    ].join(" ")}
+  >
     {children}
   </span>
 );
@@ -12,11 +22,26 @@ const SectionCard: React.FC<
   React.PropsWithChildren<{ title: React.ReactNode; id?: string }>
 > = ({ title, id, children }) => (
   <section id={id} className="scroll-mt-28">
-    <div className="rounded-3xl bg-white/80 dark:bg-white/5 backdrop-blur ring-1 ring-[#7a7ac4]/20 shadow-sm p-6 sm:p-8 lg:p-10">
-      <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">
-        {title}
-      </h2>
-      <div className="mt-5 space-y-4 text-[15px] leading-relaxed">
+    <div
+      className={[
+        // bg must be white only
+        "rounded-3xl bg-white",
+        // more green tint via ring + subtle accent shadow
+        "ring-1 ring-accent/25",
+        "shadow-sm",
+        "shadow-[0_10px_25px_rgba(164,199,126,0.10)]",
+        "p-6 sm:p-8 lg:p-10",
+      ].join(" ")}
+    >
+      {/* tiny green divider under title for “more green” without changing bg */}
+      <div className="flex items-center gap-3">
+        <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">
+          {title}
+        </h2>
+        <span className="hidden sm:inline-block h-px w-16 bg-accent/40" />
+      </div>
+
+      <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-slate-700">
         {children}
       </div>
     </div>
@@ -39,7 +64,6 @@ export default function ServicesPage() {
 
       {/* Hero / Intro */}
       <div className="relative">
-        {/* decorative vine if you have it in /public/decor/vine.png */}
         <img
           src="/decor/vine.png"
           alt=""
@@ -49,10 +73,14 @@ export default function ServicesPage() {
 
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-10 pb-6">
           <header className="mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
               Υπηρεσίες Διατροφής
             </h1>
-            <p className="mt-2 text-[15px] leading-relaxed">
+
+            {/* green micro-accent line under intro */}
+            <div className="mt-2 h-px w-24 bg-accent/35" />
+
+            <p className="mt-3 text-[15px] leading-relaxed text-slate-700">
               Σε αυτή τη σελίδα θα βρείτε συγκεντρωμένες όλες τις υπηρεσίες που
               προσφέρονται, τόσο στο γραφείο στο κέντρο της Θεσσαλονίκης όσο και
               διαδικτυακά. Κάθε συνάντηση έχει σχεδιαστεί με γνώμονα την
@@ -62,10 +90,26 @@ export default function ServicesPage() {
 
           {/* Quick anchor pills */}
           <div className="flex flex-wrap gap-2">
-            <Link href="#one-to-one" className="focus:outline-none">
+            <Link
+              href="#one-to-one"
+              className={[
+                "rounded-full focus:outline-none",
+                "focus-visible:ring-4 focus-visible:ring-primary/20",
+                // more green on hover without changing bg away from white
+                "hover:shadow-[0_10px_25px_rgba(164,199,126,0.12)] transition",
+              ].join(" ")}
+            >
               <Pill>Ατομικές συνεδρίες (1:1)</Pill>
             </Link>
-            <Link href="#groups" className="focus:outline-none">
+
+            <Link
+              href="#groups"
+              className={[
+                "rounded-full focus:outline-none",
+                "focus-visible:ring-4 focus-visible:ring-primary/20",
+                "hover:shadow-[0_10px_25px_rgba(164,199,126,0.12)] transition",
+              ].join(" ")}
+            >
               <Pill>Ομαδικές συνεδρίες</Pill>
             </Link>
           </div>
@@ -74,36 +118,54 @@ export default function ServicesPage() {
 
       <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-20 space-y-12">
         {/* Contact stripe */}
-        <div className="rounded-3xl bg-white/80 dark:bg-white/5 backdrop-blur ring-1 ring-[#7a7ac4]/20 shadow-sm p-6 sm:p-8">
-          <p className="text-[15px] leading-relaxed">
-            Για να δεσμεύσετε ραντεβού, μπορείτε να επικοινωνήσετε μαζί μας
-            μέσω email, εκδηλώνοντας το ενδιαφέρον σας για την αντίστοιχη
-            συνεδρία. Επιλέξτε εκείνη που ανταποκρίνεται καλύτερα στις ανάγκες
-            σας.
+        <div
+          className={[
+            "rounded-3xl bg-white",
+            // more green “tint” via stronger ring + soft glow shadow
+            "ring-1 ring-accent/25",
+            "shadow-sm shadow-[0_12px_28px_rgba(164,199,126,0.10)]",
+            "p-6 sm:p-8",
+          ].join(" ")}
+        >
+          <p className="text-[15px] leading-relaxed text-slate-700">
+            Για να δεσμεύσετε ραντεβού, μπορείτε να επικοινωνήσετε μαζί μας μέσω
+            email, εκδηλώνοντας το ενδιαφέρον σας για την αντίστοιχη συνεδρία.
+            Επιλέξτε εκείνη που ανταποκρίνεται καλύτερα στις ανάγκες σας.
           </p>
-          <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
+
+          <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-slate-700">
             <div className="inline-flex items-center gap-2">
-              <span className="i">📍</span>
-              Πτολεμαίων 11, ΤΚ: 54630
+              <span className="text-accent">📍</span>
+              <span className="rounded-md px-2 py-1 ring-1 ring-accent/25">
+                Πτολεμαίων 11, ΤΚ: 54630
+              </span>
             </div>
             <div className="inline-flex items-center gap-2">
-              <span className="i">📞</span> 2311 219576
+              <span className="text-accent">📞</span>
+              <span className="rounded-md px-2 py-1 ring-1 ring-accent/25">
+                2311 219576
+              </span>
             </div>
             <div className="inline-flex items-center gap-2">
-              <span className="i">✉️</span> info@your-domain.gr
+              <span className="text-accent">✉️</span>
+              <span className="rounded-md px-2 py-1 ring-1 ring-accent/25">
+                info@your-domain.gr
+              </span>
             </div>
           </div>
         </div>
 
         {/* ============ ONE-TO-ONE ============ */}
         <div id="one-to-one" className="space-y-12 scroll-mt-28">
-          <h2 className="text-xl sm:text-2xl font-semibold">
-            Ατομικές συνεδρίες (1:1)
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl sm:text-2xl font-semibold text-slate-900">
+              Ατομικές συνεδρίες (1:1)
+            </h2>
+            <span className="h-px w-16 bg-accent/35" />
+          </div>
 
-          {/* 1. Παρακολούθηση & εκπαίδευση */}
           <SectionCard title="Συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης">
-            <ol className="list-decimal pl-5 space-y-2">
+            <ol className="list-decimal pl-5 space-y-2 marker:text-accent/80">
               <li>
                 <strong>Ανάλυση σύστασης σώματος (λιπομέτρηση)</strong>: αν
                 επιθυμείτε, ξεκινάμε με ολοκληρωμένη εικόνα του σώματος (λίπος,
@@ -132,10 +194,11 @@ export default function ServicesPage() {
               </li>
               <li>
                 <strong>Επόμενες συνεδρίες</strong> κάθε 1–2 εβδομάδες: (α) όπου
-                θέλετε, λιπομέτρηση & αξιολόγηση στόχων, (β) συζήτηση
-                δυσκολιών, (γ) αναπροσαρμογές, (δ) διατροφική εκπαίδευση.
+                θέλετε, λιπομέτρηση & αξιολόγηση στόχων, (β) συζήτηση δυσκολιών,
+                (γ) αναπροσαρμογές, (δ) διατροφική εκπαίδευση.
               </li>
             </ol>
+
             <div className="mt-5 flex flex-wrap gap-2">
               <Pill>Διάρκεια 1ης συνάντησης: 60’</Pill>
               <Pill>Κόστος 1ης συνάντησης: 50€ (με ΦΠΑ)</Pill>
@@ -144,13 +207,12 @@ export default function ServicesPage() {
             </div>
           </SectionCard>
 
-          {/* 2. Εστιασμένες στις διατροφικές διαταραχές */}
           <SectionCard title="Συνεδρίες εστιασμένες στις διατροφικές διαταραχές">
-            <ol className="list-decimal pl-5 space-y-2">
+            <ol className="list-decimal pl-5 space-y-2 marker:text-accent/80">
               <li>
                 <strong>Αρχική εκτίμηση</strong> της τρέχουσας κατάστασης. Ζύγιση
-                ή λιπομέτρηση μόνο αν κριθεί βοηθητική, με έμφαση στη σχέση με
-                το σώμα και όχι στους αριθμούς.
+                ή λιπομέτρηση μόνο αν κριθεί βοηθητική, με έμφαση στη σχέση με το
+                σώμα και όχι στους αριθμούς.
               </li>
               <li>
                 <strong>Ιατρικό/φαρμακευτικό ιστορικό</strong> για ασφάλεια και
@@ -171,10 +233,11 @@ export default function ServicesPage() {
               </li>
               <li>
                 <strong>Επόμενες συνεδρίες</strong> ανά 1–2 εβδομάδες: αξιολόγηση
-                προόδου, επεξεργασία σκέψεων/συναισθημάτων, εκπαίδευση με
-                έμφαση στη σχέση με το σώμα.
+                προόδου, επεξεργασία σκέψεων/συναισθημάτων, εκπαίδευση με έμφαση
+                στη σχέση με το σώμα.
               </li>
             </ol>
+
             <div className="mt-5 flex flex-wrap gap-2">
               <Pill>Διάρκεια 1ης συνάντησης: 60’</Pill>
               <Pill>Κόστος 1ης συνάντησης: 50€ (με ΦΠΑ)</Pill>
@@ -183,9 +246,8 @@ export default function ServicesPage() {
             </div>
           </SectionCard>
 
-          {/* 3. Διαισθητική διατροφή & mindful eating */}
           <SectionCard title="Συνεδρίες διαισθητικής διατροφής & mindful eating">
-            <ol className="list-decimal pl-5 space-y-2">
+            <ol className="list-decimal pl-5 space-y-2 marker:text-accent/80">
               <li>
                 <strong>Σύνδεση με το σώμα</strong> χωρίς απαραίτητα ζύγιση/
                 λιπομέτρηση, με πρακτικές παρατήρησης σημάτων πείνας-κορεσμού.
@@ -208,14 +270,15 @@ export default function ServicesPage() {
               </li>
               <li>
                 <strong>Υλικό & ασκήσεις</strong>: mindfulness & mindful eating,
-                πρακτικές αυτοφροντίδας, ιδέες γευμάτων, εργαλεία επικοινωνίας
-                με τον εαυτό.
+                πρακτικές αυτοφροντίδας, ιδέες γευμάτων, εργαλεία επικοινωνίας με
+                τον εαυτό.
               </li>
               <li>
                 <strong>Επόμενες συνεδρίες</strong>: συζήτηση εμπειριών,
                 αναγνώριση εμποδίων, σταδιακή ενσωμάτωση νέων συνηθειών.
               </li>
             </ol>
+
             <div className="mt-5 flex flex-wrap gap-2">
               <Pill>Διάρκεια 1ης συνάντησης: 60’</Pill>
               <Pill>Κόστος 1ης συνάντησης: 50€ (με ΦΠΑ)</Pill>
@@ -227,9 +290,13 @@ export default function ServicesPage() {
 
         {/* ============ GROUPS ============ */}
         <div id="groups" className="space-y-12 scroll-mt-28">
-          <h2 className="text-xl sm:text-2xl font-semibold">Ομαδικά</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl sm:text-2xl font-semibold text-slate-900">
+              Ομαδικά
+            </h2>
+            <span className="h-px w-16 bg-accent/35" />
+          </div>
 
-          {/* Group 1 */}
           <SectionCard title="Ομαδικές συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης">
             <p>
               Σκοπός είναι η σταδιακή εκπαίδευση στον τρόπο διατροφής που
@@ -237,8 +304,10 @@ export default function ServicesPage() {
               μέσα σε ασφαλές πλαίσιο. Μικρές ομάδες για αλληλεπίδραση και
               πρακτική εξάσκηση.
             </p>
-            <p className="font-semibold mt-2">Βασικές θεματικές ενότητες:</p>
-            <ul className="list-disc pl-5 space-y-1">
+            <p className="font-semibold mt-2 text-slate-900">
+              Βασικές θεματικές ενότητες:
+            </p>
+            <ul className="list-disc pl-5 space-y-1 marker:text-accent/80">
               <li>Γνωριμία με το σώμα μας</li>
               <li>Διατροφική εκπαίδευση & βασικές στρατηγικές</li>
               <li>Ανάγνωση ετικετών τροφίμων</li>
@@ -259,15 +328,16 @@ export default function ServicesPage() {
             </div>
           </SectionCard>
 
-          {/* Group 2 */}
           <SectionCard title='Ομάδα διαισθητικής διατροφής: "No diet project"'>
             <p>
-              Για άτομα που θέλουν να διερευνήσουν τη σχέση τους με το φαγητό,
-              να ρυθμίσουν το βάρος τους αργά και βιωματικά και να δημιουργήσουν
+              Για άτομα που θέλουν να διερευνήσουν τη σχέση τους με το φαγητό, να
+              ρυθμίσουν το βάρος τους αργά και βιωματικά και να δημιουργήσουν
               πιο υγιή, φροντιστική σχέση με το σώμα τους.
             </p>
-            <p className="font-semibold mt-2">Θεματικές που δουλεύουμε:</p>
-            <ul className="list-disc pl-5 space-y-1">
+            <p className="font-semibold mt-2 text-slate-900">
+              Θεματικές που δουλεύουμε:
+            </p>
+            <ul className="list-disc pl-5 space-y-1 marker:text-accent/80">
               <li>Από τη δίαιτα στη φροντίδα & αποκατάσταση σχέσης με το σώμα</li>
               <li>Σταματώ να πολεμάω την πείνα μου</li>
               <li>Διατροφική εκπαίδευση & τεχνικές βελτίωσης συμπεριφοράς</li>
@@ -291,24 +361,53 @@ export default function ServicesPage() {
         </div>
 
         {/* Bottom CTA */}
-        <div className="rounded-3xl bg-white/80 dark:bg-white/5 backdrop-blur ring-1 ring-[#7a7ac4]/20 shadow-sm p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
+        <div
+          className={[
+            "rounded-3xl bg-white",
+            "ring-1 ring-accent/25",
+            "shadow-sm shadow-[0_12px_28px_rgba(164,199,126,0.12)]",
+            "p-6 sm:p-8",
+            "flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between",
+          ].join(" ")}
+        >
           <div>
-            <h3 className="text-lg font-semibold">Κλείστε ραντεβού</h3>
-            <p className="text-[15px]">
+            <h3 className="text-lg font-semibold text-slate-900">Κλείστε ραντεβού</h3>
+            <p className="text-[15px] text-slate-700">
               Στείλτε μας email με το είδος της υπηρεσίας που σας ενδιαφέρει ή
               καλέστε μας για διαθεσιμότητα.
             </p>
           </div>
-          <div className="flex gap-2">
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            {/* Secondary action: white bg, lots of green tint; purple for focus */}
             <Link
               href="mailto:info@your-domain.gr?subject=Ενδιαφέρομαι για συνεδρία"
-              className="inline-flex items-center justify-center rounded-2xl bg-white/80 ring-1 ring-[#7a7ac4]/30 shadow-sm hover:shadow transition px-5 py-2 [box-shadow:1px_1px_4px_#7a7ac4] hover:[box-shadow:2px_2px_7px_#7a7ac4]"
+              className={[
+                "inline-flex items-center justify-center rounded-2xl px-5 py-2 transition",
+                "bg-white",
+                "ring-1 ring-accent/45",
+                "shadow-[0_10px_25px_rgba(164,199,126,0.10)]",
+                "hover:shadow-[0_12px_28px_rgba(164,199,126,0.18)]",
+                "hover:bg-accent/10",
+                "text-primary hover:text-accent",
+                "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+              ].join(" ")}
             >
               ✉️ Email
             </Link>
+
             <a
               href="tel:+302311219576"
-              className="inline-flex items-center justify-center rounded-2xl bg-white/80 ring-1 ring-[#7a7ac4]/30 shadow-sm hover:shadow transition px-5 py-2 [box-shadow:1px_1px_4px_#7a7ac4] hover:[box-shadow:2px_2px_7px_#7a7ac4]"
+              className={[
+                "inline-flex items-center justify-center rounded-2xl px-5 py-2 transition",
+                "bg-white",
+                "ring-1 ring-accent/45",
+                "shadow-[0_10px_25px_rgba(164,199,126,0.10)]",
+                "hover:shadow-[0_12px_28px_rgba(164,199,126,0.18)]",
+                "hover:bg-accent/10",
+                "text-primary hover:text-accent",
+                "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+              ].join(" ")}
             >
               📞 2311 219576
             </a>

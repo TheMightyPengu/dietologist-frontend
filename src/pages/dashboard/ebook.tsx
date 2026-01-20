@@ -106,7 +106,7 @@ export default function ManagementEbookPage() {
         <meta name="robots" content="noindex,nofollow" />
       </Head>
 
-      <div className="min-h-[70vh] bg-[#F7F7EF] text-slate-800">
+      <div className="min-h-[70vh] bg-[#fcfcfa] text-slate-800">
         <div className="mx-auto max-w-6xl px-4 md:px-6 lg:px-8 py-8 md:py-12">
           <div className="mb-6 flex items-center gap-3">
             <Link

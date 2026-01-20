@@ -313,7 +313,7 @@ export default function RecipeDetail() {
           <title>Συνταγή δεν βρέθηκε — NutriClinic</title>
           <link rel="canonical" href={`https://example.gr${asPath.split("?")[0]}`} />
         </Head>
-        <main className="bg-[#F7F7EF] text-slate-800">
+        <main className="bg-[#fcfcfa] text-slate-800">
           <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-12">
             <p className="mb-6 text-slate-700">Η συνταγή δεν βρέθηκε.</p>
             <Link href="/recipes" className="underline">
@@ -336,7 +336,7 @@ export default function RecipeDetail() {
         <link rel="canonical" href={`https://example.gr/recipes/${pretty}`} />
       </Head>
 
-      <main className="bg-[#F7F7EF] text-slate-800">
+      <main className="bg-[#fcfcfa] text-slate-800">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-10">
           <Link href="/recipes" className="text-sm underline">
             ← Πίσω στις συνταγές

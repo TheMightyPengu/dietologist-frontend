@@ -450,7 +450,7 @@ export default function RecipesIndex() {
         <link rel="canonical" href="https://example.gr/recipes" />
       </Head>
 
-      <main className="bg-[#F7F7EF] text-slate-800">
+      <main className="bg-[#fcfcfa] text-slate-800">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-24">
           <header className="py-6">
             <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">Συνταγές</h1>
@@ -577,7 +577,7 @@ export default function RecipesIndex() {
                       key={r.id}
                       href={{ pathname: "/recipes/[slug]", query: { slug: r.slug } }} // real route uses API slug
                       as={`/recipes/${pretty}`} // UI shows Greek pretty slug
-                      className="group rounded-2xl bg-white/90 ring-1 ring-black/5 p-3 shadow-sm hover:shadow transition block"
+                      className="group rounded-2xl bg-white/90 ring-1 ring-black/5 p-3 shadow-sm hover:shadow transition flex flex-col"
                     >
                       <div className="relative overflow-hidden rounded-xl">
                         <img
@@ -589,10 +589,10 @@ export default function RecipesIndex() {
                           <ClockIcon /> {formatMin(r.minutes)}
                         </div>
                       </div>
-                      <div className="pt-3 space-y-1">
+                      <div className="pt-3 flex flex-col flex-grow">
                         <div className="font-medium leading-snug line-clamp-2">{r.title}</div>
-                        <div className="text-xs text-slate-600">{CATEGORY_LABELS[r.category]}</div>
-                        <div className="flex flex-wrap gap-2 pt-1">
+                        <div className="text-xs text-slate-600 mt-1">{CATEGORY_LABELS[r.category]}</div>
+                        <div className="flex flex-wrap gap-2 mt-auto pt-1">
                           {r.tags.slice(0, 2).map((t) => (
                             <Chip key={t}>{t}</Chip>
                           ))}

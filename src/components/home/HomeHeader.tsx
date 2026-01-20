@@ -18,8 +18,8 @@ export default function HomeHero() {
           {/* Left column — Arch photo */}
           <div className="md:col-span-6 lg:col-span-5">
             <div className="relative mx-auto max-w-md">
-              {/* Arch frame */}
-              <div className="overflow-hidden rounded-t-[180px] rounded-b-none shadow-[0_10px_25px_rgba(0,0,0,0.10)] ring-1 ring-black/5">
+              {/* Arch frame (white bg only; accents via green borders) */}
+              <div className="overflow-hidden rounded-t-[180px] rounded-b-none bg-white shadow-[0_10px_25px_rgba(0,0,0,0.10)] ring-1 ring-accent/20">
                 <img
                   src="https://img.freepik.com/premium-photo/diet-healthy-nutrition-portrait-dietitian-s_118454-1331.jpg"
                   alt="Diet out of the Box — Διατροφή & Υγεία"
@@ -27,16 +27,20 @@ export default function HomeHero() {
                 />
               </div>
 
-              {/* Subtle base to anchor the arch visually */}
-              <div className="h-3 w-full mx-auto -mt-1 rounded-b-xl bg-white/80 ring-1 ring-black/5 backdrop-blur" />
+              {/* Base anchor (white bg only; green border) */}
+              <div className="mx-auto -mt-1 h-3 w-full rounded-b-xl bg-white ring-1 ring-accent/20" />
             </div>
           </div>
 
           {/* Right column — Welcome & intro */}
           <div className="md:col-span-6 md:col-start-7 lg:col-span-7 space-y-5">
-            <p className="text-sm tracking-[0.18em] text-[#7a7ac4] uppercase">
-              diet out of the box
-            </p>
+            {/* Brand eyebrow: purple text, subtle green divider */}
+            <div className="inline-flex items-center gap-3">
+              <p className="text-sm uppercase tracking-[0.18em] text-primary">
+                diet out of the box
+              </p>
+              <span className="hidden sm:inline-block h-px w-14 bg-accent/40" />
+            </div>
 
             <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight font-serif">
               Καλώς ήρθατε!
@@ -56,11 +60,14 @@ export default function HomeHero() {
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
+            <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center">
+              {/* Primary CTA stays purple (LeafBurstButton should use bg-primary internally) */}
               <LeafBurstButton text="ΖΗΤΗΣΤΕ ΕΝΑ ΡΑΝΤΕΒΟΥ" />
+
+              {/* Link rule: purple default, green hover */}
               <Link
                 href="#bio"
-                className="text-base underline underline-offset-4 decoration-[#7a7ac4]/40 hover:decoration-[#7a7ac4] text-slate-800"
+                className="text-base text-primary underline underline-offset-4 decoration-accent/50 hover:text-accent hover:decoration-accent transition"
               >
                 Διαβάστε περισσότερα εδώ
               </Link>
@@ -68,25 +75,39 @@ export default function HomeHero() {
           </div>
         </div>
 
-        {/* SERVICES TEASER (moved here from index.tsx) */}
+        {/* SERVICES TEASER */}
         <section className="py-12 md:py-16">
           <div className="grid gap-6 md:grid-cols-3">
             {[
-              { title: "1:1 Ραντεβού", href: "/services/one-to-one" },
-              { title: "Ομαδικές Συναντήσεις", href: "/services/group" },
+              { title: "1:1 Ραντεβού", href: "/services#one-to-one" },
+              { title: "Ομαδικές Συναντήσεις", href: "/services#groups" },
               { title: "Σεμινάρια", href: "/seminars" },
-            ].map((s) => (
+            ].map((s, i) => (
               <Link
                 key={s.title}
                 href={s.href}
-                className="block text-center self-center m-2 px-4 py-2
-                rounded-tl-full rounded-br-full rounded-2xl bg-white/80
-                ring-1 ring-black/5 text-white text-xs sm:text-sm md:text-base
-                font-medium shadow-sm hover:shadow transition-all duration-200
-                [box-shadow:1px_1px_4px_#7a7ac4] hover:[box-shadow:2px_2px_7px_#7a7ac4]
-                sm:px-5 sm:py-3 md:px-6 md:py-4"
+                className={[
+                  "block self-center m-2 rounded-tl-full rounded-br-full rounded-2xl",
+                  // bg must be white only
+                  "bg-white",
+                  // GREEN used more: border, ring, hover tint, iconography later if needed
+                  "ring-1 ring-accent/25",
+                  // readable text (no white text on white bg)
+                  "text-slate-800",
+                  "text-center font-medium shadow-sm transition-all duration-200 hover:shadow",
+                  "px-4 py-3 sm:px-5 sm:py-3 md:px-6 md:py-4",
+                  // subtle green lift on hover
+                  "hover:bg-accent/10",
+                  "no-hover-underline",
+                  // shadow accent: mostly green; occasional purple for one card to keep brand presence
+                  i === 0
+                    ? "shadow-[1px_1px_6px_rgba(164,199,126,0.55)] hover:shadow-[2px_2px_10px_rgba(164,199,126,0.65)]"
+                    : i === 1
+                    ? "shadow-[1px_1px_6px_rgba(164,199,126,0.45)] hover:shadow-[2px_2px_10px_rgba(164,199,126,0.60)]"
+                    : "shadow-[1px_1px_6px_rgba(122,122,196,0.35)] hover:shadow-[2px_2px_10px_rgba(122,122,196,0.50)]",
+                ].join(" ")}
               >
-                <h3 className="text-lg font-semibold">{s.title}</h3>
+                <h3 className="text-lg font-semibold text-primary">{s.title}</h3>
                 <p className="mt-2 text-sm text-slate-600">
                   Μάθετε περισσότερα για τον τρόπο που δουλεύουμε.
                 </p>

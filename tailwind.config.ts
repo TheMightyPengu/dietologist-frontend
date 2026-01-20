@@ -13,7 +13,10 @@ const config: Config = {
         ink: 'var(--ink)',
         brand: 'var(--brand)',
         sage: 'var(--sage)',
-        peach: 'var(--peach)'
+        peach: 'var(--peach)',
+        primary: "rgb(var(--primary) / <alpha-value>)",
+        accent: "rgb(var(--accent) / <alpha-value>)",
+        warm: "rgb(var(--warm) / <alpha-value>)",
       },
       borderRadius: {
         xl: 'var(--radius)'

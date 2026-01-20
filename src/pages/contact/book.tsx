@@ -206,22 +206,30 @@ export default function BookPage() {
         <link rel="canonical" href="https://example.gr/contact/book" />
       </Head>
 
-      <section className="bg-[#F7F7EF]">
+      <section className="bg-white">
         <div className="mx-auto max-w-5xl px-4 py-10 md:py-14">
           {/* Breadcrumbs */}
           <nav className="mb-6 text-sm text-slate-600">
-            <Link href="/" className="hover:underline">Αρχική</Link>
+            <Link
+              href="/"
+              className="text-primary hover:text-accent underline decoration-primary/30 hover:decoration-accent/50 transition"
+            >
+              Αρχική
+            </Link>
             <span className="mx-2">/</span>
-            <Link href="/contact" className="hover:underline">Επικοινωνία</Link>
+            <Link
+              href="/contact"
+              className="text-primary hover:text-accent underline decoration-primary/30 hover:decoration-accent/50 transition"
+            >
+              Επικοινωνία
+            </Link>
             <span className="mx-2">/</span>
             <span className="font-medium text-slate-800">Κλείστε Ραντεβού</span>
           </nav>
 
           {/* Heading */}
           <header className="mb-8">
-            <h1 className="text-3xl md:text-4xl font-semibold text-slate-900">
-              Κλείστε Ραντεβού
-            </h1>
+            <h1 className="text-3xl md:text-4xl font-semibold text-slate-900">Κλείστε Ραντεβού</h1>
             <p className="mt-2 max-w-2xl text-slate-700">
               Συμπληρώστε τη φόρμα και θα σας καλέσουμε για επιβεβαίωση.
             </p>
@@ -232,7 +240,7 @@ export default function BookPage() {
             <div className="md:col-span-3">
               <form
                 onSubmit={onSubmit}
-                className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5"
+                className="rounded-2xl bg-white p-6 shadow-[0_14px_30px_rgba(164,199,126,0.10)] ring-1 ring-accent/25"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Υπηρεσία */}
@@ -246,7 +254,7 @@ export default function BookPage() {
                       onChange={(e) => setSelectedService(e.target.value)}
                       required
                       disabled={servicesLoading}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-[#7a7ac4] disabled:opacity-60"
+                      className="mt-1 w-full rounded-xl ring-1 ring-accent/30 bg-white px-3 py-2 text-slate-900 outline-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 disabled:opacity-60"
                     >
                       <option value="" disabled>
                         {servicesLoading ? "Φόρτωση υπηρεσιών..." : "— Επιλέξτε υπηρεσία —"}
@@ -261,39 +269,33 @@ export default function BookPage() {
 
                   {/* Ονοματεπώνυμο */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">
-                      Ονοματεπώνυμο
-                    </label>
+                    <label className="block text-sm font-medium text-slate-700">Ονοματεπώνυμο</label>
                     <input
                       name="fullName"
                       required
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-[#7a7ac4]"
+                      className="mt-1 w-full rounded-xl ring-1 ring-accent/30 bg-white px-3 py-2 text-slate-900 outline-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
                       placeholder="π.χ. Μαρία Παπαδοπούλου"
                     />
                   </div>
 
                   {/* Τηλέφωνο */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">
-                      Τηλέφωνο
-                    </label>
+                    <label className="block text-sm font-medium text-slate-700">Τηλέφωνο</label>
                     <input
                       name="phone"
                       required
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-[#7a7ac4]"
+                      className="mt-1 w-full rounded-xl ring-1 ring-accent/30 bg-white px-3 py-2 text-slate-900 outline-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
                       placeholder="π.χ. 69XXXXXXXX"
                     />
                   </div>
 
                   {/* Email */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">
-                      Email
-                    </label>
+                    <label className="block text-sm font-medium text-slate-700">Email</label>
                     <input
                       type="email"
                       name="email"
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-[#7a7ac4]"
+                      className="mt-1 w-full rounded-xl ring-1 ring-accent/30 bg-white px-3 py-2 text-slate-900 outline-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
                       placeholder="π.χ. name@email.com"
                     />
                   </div>
@@ -302,28 +304,24 @@ export default function BookPage() {
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-3 md:col-span-2">
                     {/* CALENDAR */}
                     <div className="md:col-span-1">
-                      <label className="block text-sm font-medium text-slate-700">
-                        Ημερομηνία
-                      </label>
+                      <label className="block text-sm font-medium text-slate-700">Ημερομηνία</label>
 
-                      <div className="mt-1 rounded-xl border border-slate-300 bg-white p-3">
+                      <div className="mt-1 rounded-xl ring-1 ring-accent/30 bg-white p-3">
                         {/* Header */}
                         <div className="mb-3 flex items-center justify-between">
                           <button
                             type="button"
                             onClick={prevMonth}
-                            className="rounded-lg px-2 py-1 text-sm text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50"
+                            className="rounded-lg px-2 py-1 text-sm text-primary ring-1 ring-accent/30 hover:bg-accent/10 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
                             aria-label="Προηγούμενος μήνας"
                           >
                             ←
                           </button>
-                          <div className="text-sm font-medium text-slate-900 capitalize">
-                            {monthLabel}
-                          </div>
+                          <div className="text-sm font-medium text-slate-900 capitalize">{monthLabel}</div>
                           <button
                             type="button"
                             onClick={nextMonth}
-                            className="rounded-lg px-2 py-1 text-sm text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50"
+                            className="rounded-lg px-2 py-1 text-sm text-primary ring-1 ring-accent/30 hover:bg-accent/10 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
                             aria-label="Επόμενος μήνας"
                           >
                             →
@@ -333,7 +331,9 @@ export default function BookPage() {
                         {/* Weekdays */}
                         <div className="grid grid-cols-7 gap-1 text-center text-xs text-slate-500">
                           {["Δε", "Τρ", "Τε", "Πε", "Πα", "Σα", "Κυ"].map((w) => (
-                            <div key={w} className="py-1">{w}</div>
+                            <div key={w} className="py-1">
+                              {w}
+                            </div>
                           ))}
                         </div>
 
@@ -341,7 +341,7 @@ export default function BookPage() {
                         <div className="mt-1 grid grid-cols-7 gap-1">
                           {datesLoading
                             ? Array.from({ length: 42 }).map((_, i) => (
-                                <div key={i} className="h-9 animate-pulse rounded-lg bg-slate-200" />
+                                <div key={i} className="h-9 animate-pulse rounded-lg bg-white ring-1 ring-accent/20" />
                               ))
                             : gridDays.map((cell, i) => {
                                 if (!cell.dateStr) {
@@ -359,13 +359,11 @@ export default function BookPage() {
                                     disabled={disabled}
                                     onClick={() => selectDate(cell.dateStr!)}
                                     className={[
-                                      "h-9 w-full rounded-lg text-sm ring-1 transition",
+                                      "h-9 w-full rounded-lg text-sm ring-1 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
                                       disabled
-                                        ? "cursor-not-allowed bg-slate-100 text-slate-400 ring-slate-200"
-                                        : "bg-white text-slate-800 hover:bg-slate-50 ring-slate-300",
-                                      selected && !disabled
-                                        ? "bg-[#7a7ac4] text-white ring-[#7a7ac4] hover:bg-[#6b6bb6]"
-                                        : "",
+                                        ? "cursor-not-allowed bg-white text-slate-400 ring-accent/20"
+                                        : "bg-white text-slate-800 hover:bg-accent/10 ring-accent/30",
+                                      selected && !disabled ? "bg-primary text-white ring-primary hover:bg-accent/10 hover:text-slate-800" : "",
                                     ].join(" ")}
                                     title={
                                       taken
@@ -398,14 +396,12 @@ export default function BookPage() {
 
                     {/* TIME */}
                     <div className="md:col-span-1">
-                      <label className="block text-sm font-medium text-slate-700">
-                        Ώρα
-                      </label>
+                      <label className="block text-sm font-medium text-slate-700">Ώρα</label>
                       <input
                         type="time"
                         name="time"
                         required
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-[#7a7ac4]"
+                        className="mt-1 w-full rounded-xl ring-1 ring-accent/30 bg-white px-3 py-2 text-slate-900 outline-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
                       />
                     </div>
                   </div>
@@ -418,7 +414,7 @@ export default function BookPage() {
                     <textarea
                       name="message"
                       rows={4}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-[#7a7ac4]"
+                      className="mt-1 w-full rounded-xl ring-1 ring-accent/30 bg-white px-3 py-2 text-slate-900 outline-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
                       placeholder="Τυχόν απορίες ή προτιμήσεις."
                     />
                   </div>
@@ -436,11 +432,14 @@ export default function BookPage() {
                       takenDates.has(selectedDate) ||
                       isPast(selectedDate)
                     }
-                    className="inline-flex items-center rounded-xl bg-[#7a7ac4] px-4 py-2 text-white disabled:opacity-50 hover:bg-[#6b6bb6] transition"
+                    className="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-white disabled:opacity-50 transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
                   >
                     {loading ? "Αποστολή..." : "Αίτημα Ραντεβού"}
                   </button>
-                  <Link href="/contact/form" className="text-[#7a7ac4] hover:underline">
+                  <Link
+                    href="/contact/form"
+                    className="text-primary hover:text-accent underline decoration-primary/30 hover:decoration-accent/50 transition"
+                  >
                     Εναλλακτικά, Φόρμα Επικοινωνίας →
                   </Link>
                 </div>
@@ -448,7 +447,7 @@ export default function BookPage() {
                 {/* Status */}
                 <div className="mt-4 min-h-[1.5rem]">
                   {ok && (
-                    <p className="text-sm text-[#7a7ac4]">
+                    <p className="text-sm text-primary">
                       Το αίτημά σας υποβλήθηκε! Θα επικοινωνήσουμε σύντομα.
                     </p>
                   )}
@@ -463,13 +462,24 @@ export default function BookPage() {
 
             {/* Side info */}
             <aside className="md:col-span-2">
-              <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+              <div className="rounded-2xl bg-white p-6 shadow-[0_14px_30px_rgba(164,199,126,0.10)] ring-1 ring-accent/25">
                 <h2 className="text-lg font-semibold text-slate-900">Χρήσιμες Πληροφορίες</h2>
-                <ul className="mt-3 space-y-2 text-sm text-slate-700">
-                  <li>• Ώρες λειτουργίας: Δευ–Παρ 10:00–18:00</li>
-                  <li>• Το ραντεβού επιβεβαιώνεται τηλεφωνικά.</li>
-                  <li>• Ακύρωση/αλλαγή έως 24 ώρες πριν.</li>
+                <ul className="mt-3 space-y-2 text-sm text-slate-700 marker:text-accent/80 list-disc pl-5">
+                  <li>Ώρες λειτουργίας: Δευ–Παρ 10:00–18:00</li>
+                  <li>Το ραντεβού επιβεβαιώνεται τηλεφωνικά.</li>
+                  <li>Ακύρωση/αλλαγή έως 24 ώρες πριν.</li>
                 </ul>
+                <div className="mt-5 h-px bg-accent/35" />
+                <p className="mt-4 text-sm text-slate-600">
+                  Για απορίες, δείτε και την{" "}
+                  <Link
+                    href="/contact/form"
+                    className="text-primary hover:text-accent underline decoration-primary/30 hover:decoration-accent/50 transition"
+                  >
+                    φόρμα επικοινωνίας
+                  </Link>
+                  .
+                </p>
               </div>
             </aside>
           </div>
