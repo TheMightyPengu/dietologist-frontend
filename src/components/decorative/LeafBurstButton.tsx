@@ -1,5 +1,5 @@
 import Link from "next/link";
-import "../../styles/leafburst.scss";
+// import "../../styles/leafburst.scss";
 
 export default function LeafBurstButton({ text }: { text: string }) {
   return (
@@ -15,13 +15,12 @@ export default function LeafBurstButton({ text }: { text: string }) {
             <i className="tick ion-checkmark-round" />
           </span>
 
-          <div className="b_l_quad">
-            {Array.from({ length: 52 }).map((_, i) => (
-              <span className="button_spots" key={i} />
-            ))}
-          </div>
-        </Link>
-
+        <div className="b_l_quad">
+          {Array.from({ length: 52 }).map((_, i) => (
+            <span className="button_spots" key={i} />
+          ))}
+        </div>
+      </Link>
     </div>
   );
 }

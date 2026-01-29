@@ -2,6 +2,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useMemo } from "react";
 import type { GetStaticPaths, GetStaticProps } from "next";
+import Image from "next/image";
 
 /**
  * ΑΡΘΡΟ — Σελίδα λεπτομέρειας
@@ -271,7 +272,7 @@ export default function ArticlePage({
           </div>
 
           <div className="mt-5 overflow-hidden rounded-2xl">
-            <img
+            <Image
               src={article.hero}
               alt={article.title}
               className="w-full h-auto object-cover"
@@ -339,7 +340,7 @@ export default function ArticlePage({
                   className="block overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 transition hover:shadow-lg"
                 >
                   <div className="relative aspect-[16/10] overflow-hidden">
-                    <img
+                    <Image
                       src={a.hero}
                       alt={a.title}
                       className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"

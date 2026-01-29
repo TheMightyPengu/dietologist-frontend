@@ -1,12 +1,13 @@
 import Link from "next/link";
 import LeafBurstButton from "../decorative/LeafBurstButton";
+import Image from "next/image";
 
 export default function HomeHero() {
   return (
     <section className="relative">
       {/* Decorative vine (desktop only) */}
-      {/* <img
-        src="/decor/vine.png"
+      {/* <Image
+        src="/decorative/vines.png"
         alt=""
         aria-hidden="true"
         className="pointer-events-none select-none hidden md:block absolute -top-6 right-0 w-44 opacity-90"

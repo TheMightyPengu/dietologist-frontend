@@ -2,6 +2,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import Image from "next/image";
 
 /*
   Σελίδα λίστας συνταγών (UI στα ελληνικά).
@@ -330,20 +331,26 @@ function arrFromQuery(v: string | string[] | undefined): string[] {
   if (Array.isArray(v)) return v.flatMap((s) => s.split(",").filter(Boolean));
   return v.split(",").filter(Boolean);
 }
+type QueryInputValue = string | number | string[] | undefined;
+
 function setQuery(
-  _push: ReturnType<typeof useRouter>["push"],
   pathname: string,
-  q: Record<string, any>
+  q: Record<string, QueryInputValue>
 ) {
-  const query: Record<string, any> = {};
+  const query: Record<string, string | number> = {};
+
   Object.entries(q).forEach(([k, v]) => {
     if (v == null) return;
+
     if (Array.isArray(v)) {
-      if (v.length) query[k] = v.join(",");
-    } else if (v !== "" && !(typeof v === "number" && isNaN(v))) {
+      if (v.length) {
+        query[k] = v.join(",");
+      }
+    } else if (v !== "" && !(typeof v === "number" && Number.isNaN(v))) {
       query[k] = v;
     }
   });
+
   return { pathname, query } as const;
 }
 
@@ -416,7 +423,7 @@ export default function RecipesIndex() {
   const paged = filtered.slice((pageClamped - 1) * PER_PAGE, pageClamped * PER_PAGE);
 
   function applyFilters(nextPage = 1) {
-    const dest = setQuery(router.push, "/recipes", {
+    const dest = setQuery("/recipes", {
       q: search || undefined,
       cat: cats,
       free,
@@ -580,7 +587,7 @@ export default function RecipesIndex() {
                       className="group rounded-2xl bg-white/90 ring-1 ring-black/5 p-3 shadow-sm hover:shadow transition flex flex-col"
                     >
                       <div className="relative overflow-hidden rounded-xl">
-                        <img
+                        <Image
                           src={r.image}
                           alt={r.title}
                           className="h-44 w-full object-cover group-hover:scale-[1.02] transition"

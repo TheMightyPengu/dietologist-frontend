@@ -181,7 +181,7 @@ function ServiceEditorCard({
   const [draft, setDraft] = useState<Service>(svc);
   const [open, setOpen] = useState(true);
 
-  useEffect(() => setDraft(svc), [svc.id]); // reset when switching rows
+  useEffect(() => setDraft(svc), [svc]); // reset when row props change
 
   const addPoint = () => setDraft(d => ({ ...d, points: [...d.points, ""] }));
   const removePoint = (i: number) =>

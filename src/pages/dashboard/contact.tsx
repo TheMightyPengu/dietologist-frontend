@@ -2,14 +2,29 @@ import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
-  fetchBookings, createBooking, updateBooking, deleteBooking,
-  fetchMessageSettings, updateMessageSettings,
-  type Booking, type BookingStatus, type MessageSettings
+  fetchBookings,
+  createBooking,
+  updateBooking,
+  deleteBooking,
+  fetchMessageSettings,
+  updateMessageSettings,
+  type Booking,
+  type BookingStatus,
+  type MessageSettings,
 } from "@/lib/mgmtContactAPI";
 
-const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
-const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({ className, children }) => (
-  <div className={cx("rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-200/50", className)}>
+const cx = (...c: (string | false | null | undefined)[]) =>
+  c.filter(Boolean).join(" ");
+const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
+  className,
+  children,
+}) => (
+  <div
+    className={cx(
+      "rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-200/50",
+      className
+    )}
+  >
     {children}
   </div>
 );
@@ -35,7 +50,9 @@ export default function ManagementContactPage() {
             >
               ← Πίσω στο Dashboard
             </Link>
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">ΕΠΙΚΟΙΝΩΝΙΑ</h1>
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+              ΕΠΙΚΟΙΝΩΝΙΑ
+            </h1>
           </div>
 
           <Card className="p-4 md:p-5 mb-6">
@@ -43,13 +60,15 @@ export default function ManagementContactPage() {
               {[
                 { key: "bookings", label: "Ραντεβού" },
                 { key: "messages", label: "Μηνύματα" },
-              ].map(t => (
+              ].map((t) => (
                 <button
                   key={t.key}
                   onClick={() => setActive(t.key as Tab)}
                   className={cx(
                     "px-4 py-2 rounded-full text-sm font-medium transition",
-                    active === t.key ? "bg-[#7a7ac4] text-white" : "bg-white border border-slate-200 hover:border-[#7a7ac4]"
+                    active === t.key
+                      ? "bg-[#7a7ac4] text-white"
+                      : "bg-white border border-slate-200 hover:border-[#7a7ac4]"
                   )}
                 >
                   {t.label}
@@ -66,7 +85,6 @@ export default function ManagementContactPage() {
 }
 
 /* =============== ΡΑΝΤΕΒΟΥ =============== */
-const STATUS_OPTIONS: BookingStatus[] = ["pending", "confirmed", "cancelled"];
 
 function BookingsManager() {
   const [all, setAll] = useState<Booking[]>([]);
@@ -85,6 +103,7 @@ function BookingsManager() {
       setLoading(false);
     })();
   }, []);
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 1600);
@@ -93,8 +112,12 @@ function BookingsManager() {
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return all.filter(b => {
-      const matchesQ = !s || [b.name, b.email, b.phone, b.serviceLabel].some(t => t.toLowerCase().includes(s));
+    return all.filter((b) => {
+      const matchesQ =
+        !s ||
+        [b.name, b.email, b.phone, b.serviceLabel].some((t) =>
+          t.toLowerCase().includes(s)
+        );
       const matchesStatus = status === "all" || b.status === status;
       const matchesDate = !date || b.dateISO === date;
       return matchesQ && matchesStatus && matchesDate;
@@ -104,7 +127,11 @@ function BookingsManager() {
   async function handleCreate() {
     setCreating(true);
     const today = new Date();
-    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    const d = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() + 1
+    );
     const created = await createBooking({
       serviceId: null,
       serviceLabel: "Γενικό ραντεβού",
@@ -116,7 +143,7 @@ function BookingsManager() {
       notes: "",
       status: "pending",
     });
-    setAll(prev => [created, ...prev]);
+    setAll((prev) => [created, ...prev]);
     setCreating(false);
     setToast("Δημιουργήθηκε.");
   }
@@ -124,7 +151,7 @@ function BookingsManager() {
   async function handleSave(b: Booking) {
     setBusyId(b.id);
     const upd = await updateBooking(b);
-    setAll(prev => prev.map(x => (x.id === upd.id ? upd : x)));
+    setAll((prev) => prev.map((x) => (x.id === upd.id ? upd : x)));
     setBusyId(null);
     setToast("Αποθηκεύτηκε.");
   }
@@ -133,7 +160,7 @@ function BookingsManager() {
     if (!confirm("Διαγραφή ραντεβού;")) return;
     setBusyId(id);
     await deleteBooking(id);
-    setAll(prev => prev.filter(x => x.id !== id));
+    setAll((prev) => prev.filter((x) => x.id !== id));
     setBusyId(null);
     setToast("Διαγράφηκε.");
   }
@@ -144,13 +171,15 @@ function BookingsManager() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <input
             value={q}
-            onChange={e => setQ(e.target.value)}
+            onChange={(e) => setQ(e.target.value)}
             placeholder="Αναζήτηση (όνομα, email, τηλέφωνο, υπηρεσία)…"
             className="rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
           />
           <select
             value={status}
-            onChange={e => setStatus(e.target.value as any)}
+            onChange={(e) =>
+              setStatus(e.target.value as BookingStatus | "all")
+            }
             className="rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
           >
             <option value="all">Όλες οι καταστάσεις</option>
@@ -161,48 +190,67 @@ function BookingsManager() {
           <input
             type="date"
             value={date}
-            onChange={e => setDate(e.target.value)}
+            onChange={(e) => setDate(e.target.value)}
             className="rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
           />
           <button
             onClick={handleCreate}
-            disabled={creating}
+            disabled={creating || loading}
             className={cx(
               "rounded-full px-4 py-2 text-sm font-semibold transition",
-              creating ? "bg-[#7a7ac4]/70 text-white cursor-wait" : "bg-[#7a7ac4] text-white hover:shadow"
+              creating || loading
+                ? "bg-[#7a7ac4]/70 text-white cursor-wait"
+                : "bg-[#7a7ac4] text-white hover:shadow"
             )}
           >
-            {creating ? "Δημιουργία…" : "Νέο ραντεβού"}
+            {creating || loading ? "Δημιουργία…" : "Νέο ραντεβού"}
           </button>
         </div>
       </Card>
 
       <Card className="p-0 overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-600">
-            <tr>
-              <th className="px-4 py-3 text-left">Κατάσταση</th>
-              <th className="px-4 py-3 text-left">Ημ/νία</th>
-              <th className="px-4 py-3 text-left">Ώρα</th>
-              <th className="px-4 py-3 text-left">Υπηρεσία</th>
-              <th className="px-4 py-3 text-left">Όνομα</th>
-              <th className="px-4 py-3 text-left">Τηλέφωνο</th>
-              <th className="px-4 py-3 text-left">Email</th>
-              <th className="px-4 py-3 text-left">Σημειώσεις</th>
-              <th className="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(b => (
-              <Row key={b.id} row={b} busy={busyId === b.id} onSave={handleSave} onDelete={handleDelete} />
-            ))}
-            {filtered.length === 0 && (
+        {loading ? (
+          <div className="px-4 py-6 text-center text-slate-500 text-sm">
+            Φόρτωση ραντεβού…
+          </div>
+        ) : (
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-50 text-slate-600">
               <tr>
-                <td colSpan={9} className="px-4 py-6 text-center text-slate-500">Καμία εγγραφή.</td>
+                <th className="px-4 py-3 text-left">Κατάσταση</th>
+                <th className="px-4 py-3 text-left">Ημ/νία</th>
+                <th className="px-4 py-3 text-left">Ώρα</th>
+                <th className="px-4 py-3 text-left">Υπηρεσία</th>
+                <th className="px-4 py-3 text-left">Όνομα</th>
+                <th className="px-4 py-3 text-left">Τηλέφωνο</th>
+                <th className="px-4 py-3 text-left">Email</th>
+                <th className="px-4 py-3 text-left">Σημειώσεις</th>
+                <th className="px-4 py-3"></th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.map((b) => (
+                <Row
+                  key={b.id}
+                  row={b}
+                  busy={busyId === b.id}
+                  onSave={handleSave}
+                  onDelete={handleDelete}
+                />
+              ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={9}
+                    className="px-4 py-6 text-center text-slate-500"
+                  >
+                    Καμία εγγραφή.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
       </Card>
 
       {toast && (
@@ -215,21 +263,37 @@ function BookingsManager() {
 }
 
 function StatusPill({ s }: { s: BookingStatus }) {
-  const label = s === "pending" ? "Εκκρεμεί" : s === "confirmed" ? "Επιβεβαιωμένο" : "Ακυρωμένο";
+  const label =
+    s === "pending"
+      ? "Εκκρεμεί"
+      : s === "confirmed"
+      ? "Επιβεβαιωμένο"
+      : "Ακυρωμένο";
   const cls =
     s === "pending"
       ? "bg-amber-100 text-amber-800"
       : s === "confirmed"
       ? "bg-emerald-100 text-emerald-800"
       : "bg-rose-100 text-rose-800";
-  return <span className={`rounded-full px-2 py-0.5 text-xs ${cls}`}>{label}</span>;
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-xs ${cls}`}>{label}</span>
+  );
 }
 
 function Row({
-  row, busy, onSave, onDelete,
-}: { row: Booking; busy: boolean; onSave: (b: Booking)=>void; onDelete:(id:string)=>void }) {
+  row,
+  busy,
+  onSave,
+  onDelete,
+}: {
+  row: Booking;
+  busy: boolean;
+  onSave: (b: Booking) => void;
+  onDelete: (id: string) => void;
+}) {
   const [b, setB] = useState<Booking>(row);
-  useEffect(() => setB(row), [row.id]);
+
+  useEffect(() => setB(row), [row]);
 
   const quick = {
     confirm: () => onSave({ ...b, status: "confirmed" as const }),
@@ -244,7 +308,9 @@ function Row({
           <StatusPill s={b.status} />
           <select
             value={b.status}
-            onChange={e => setB(d => ({ ...d, status: e.target.value as any }))}
+            onChange={(e) =>
+              setB((d) => ({ ...d, status: e.target.value as BookingStatus }))
+            }
             className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs outline-none"
           >
             <option value="pending">Εκκρεμεί</option>
@@ -257,14 +323,14 @@ function Row({
         <input
           type="date"
           value={b.dateISO}
-          onChange={e => setB(d => ({ ...d, dateISO: e.target.value }))}
+          onChange={(e) => setB((d) => ({ ...d, dateISO: e.target.value }))}
           className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs outline-none"
         />
       </td>
       <td className="px-4 py-3 align-top">
         <input
           value={b.time}
-          onChange={e => setB(d => ({ ...d, time: e.target.value }))}
+          onChange={(e) => setB((d) => ({ ...d, time: e.target.value }))}
           placeholder="--:--"
           className="w-20 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs outline-none"
         />
@@ -272,28 +338,30 @@ function Row({
       <td className="px-4 py-3 align-top">
         <input
           value={b.serviceLabel}
-          onChange={e => setB(d => ({ ...d, serviceLabel: e.target.value }))}
+          onChange={(e) =>
+            setB((d) => ({ ...d, serviceLabel: e.target.value }))
+          }
           className="w-56 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs outline-none"
         />
       </td>
       <td className="px-4 py-3 align-top">
         <input
           value={b.name}
-          onChange={e => setB(d => ({ ...d, name: e.target.value }))}
+          onChange={(e) => setB((d) => ({ ...d, name: e.target.value }))}
           className="w-48 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs outline-none"
         />
       </td>
       <td className="px-4 py-3 align-top">
         <input
           value={b.phone}
-          onChange={e => setB(d => ({ ...d, phone: e.target.value }))}
+          onChange={(e) => setB((d) => ({ ...d, phone: e.target.value }))}
           className="w-36 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs outline-none"
         />
       </td>
       <td className="px-4 py-3 align-top">
         <input
           value={b.email}
-          onChange={e => setB(d => ({ ...d, email: e.target.value }))}
+          onChange={(e) => setB((d) => ({ ...d, email: e.target.value }))}
           className="w-52 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs outline-none"
         />
       </td>
@@ -301,7 +369,7 @@ function Row({
         <textarea
           rows={2}
           value={b.notes ?? ""}
-          onChange={e => setB(d => ({ ...d, notes: e.target.value }))}
+          onChange={(e) => setB((d) => ({ ...d, notes: e.target.value }))}
           className="w-64 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs outline-none"
         />
       </td>
@@ -312,15 +380,32 @@ function Row({
             disabled={busy}
             className={cx(
               "rounded-full px-3 py-1 text-xs font-semibold",
-              busy ? "bg-[#7a7ac4]/70 text-white cursor-wait" : "bg-[#7a7ac4] text-white"
+              busy
+                ? "bg-[#7a7ac4]/70 text-white cursor-wait"
+                : "bg-[#7a7ac4] text-white"
             )}
           >
             {busy ? "Αποθήκευση…" : "Αποθήκευση"}
           </button>
           <div className="flex gap-1">
-            <button onClick={quick.confirm} className="rounded-full border border-emerald-200 bg-white px-2 py-1 text-[11px] text-emerald-700">Επιβεβαίωση</button>
-            <button onClick={quick.cancel} className="rounded-full border border-rose-200 bg-white px-2 py-1 text-[11px] text-rose-700">Ακύρωση</button>
-            <button onClick={quick.pending} className="rounded-full border border-amber-200 bg-white px-2 py-1 text-[11px] text-amber-700">Εκκρεμεί</button>
+            <button
+              onClick={quick.confirm}
+              className="rounded-full border border-emerald-200 bg-white px-2 py-1 text-[11px] text-emerald-700"
+            >
+              Επιβεβαίωση
+            </button>
+            <button
+              onClick={quick.cancel}
+              className="rounded-full border border-rose-200 bg-white px-2 py-1 text-[11px] text-rose-700"
+            >
+              Ακύρωση
+            </button>
+            <button
+              onClick={quick.pending}
+              className="rounded-full border border-amber-200 bg-white px-2 py-1 text-[11px] text-amber-700"
+            >
+              Εκκρεμεί
+            </button>
           </div>
           <button
             onClick={() => onDelete(b.id)}
@@ -344,6 +429,7 @@ function MessagesSettings() {
   useEffect(() => {
     (async () => setS(await fetchMessageSettings()))();
   }, []);
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 1600);
@@ -365,16 +451,24 @@ function MessagesSettings() {
       <Card className="p-6">
         <h2 className="text-lg font-semibold">Παραλήπτης Μηνυμάτων</h2>
         <p className="mt-1 text-slate-600 text-sm">
-          Η διεύθυνση email που θα λαμβάνει τα μηνύματα από τη φόρμα επικοινωνίας.
+          Η διεύθυνση email που θα λαμβάνει τα μηνύματα από τη φόρμα
+          επικοινωνίας.
         </p>
 
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700">Email παραλήπτη</label>
+            <label className="block text-sm font-medium text-slate-700">
+              Email παραλήπτη
+            </label>
             <input
               type="email"
               value={s.destinationEmail}
-              onChange={e => setS({ ...s, destinationEmail: e.target.value })}
+              onChange={(e) =>
+                setS({
+                  ...s,
+                  destinationEmail: e.target.value,
+                })
+              }
               className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
             />
             <p className="text-xs text-slate-500 mt-1">
@@ -389,7 +483,9 @@ function MessagesSettings() {
             disabled={saving}
             className={cx(
               "rounded-full px-4 py-2 text-sm font-semibold",
-              saving ? "bg-[#7a7ac4]/70 text-white cursor-wait" : "bg-[#7a7ac4] text-white"
+              saving
+                ? "bg-[#7a7ac4]/70 text-white cursor-wait"
+                : "bg-[#7a7ac4] text-white"
             )}
           >
             {saving ? "Αποθήκευση…" : "Αποθήκευση"}

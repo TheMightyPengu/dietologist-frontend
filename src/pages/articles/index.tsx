@@ -1,5 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
+
 import Head from "next/head";
 import Link from "next/link";
+import Image from "next/image";
 import { useMemo, useState } from "react";
 
 /**
@@ -120,8 +123,8 @@ type Props = {
 export async function getStaticProps() {
   const articles = mockFetchArticles();
   const categories = Array.from(new Set(articles.map((a) => a.category)));
-  const tags = Array.from(new Set(articles.flatMap((a) => a.tags))).sort(
-    (a, b) => a.localeCompare(b, "el")
+  const tags = Array.from(new Set(articles.flatMap((a) => a.tags))).sort((a, b) =>
+    a.localeCompare(b, "el"),
   );
   const readMinutesAll = articles.map((a) => a.readMinutes);
   const minRead = Math.min(...readMinutesAll);
@@ -134,7 +137,10 @@ type DatePreset = "all" | "30d" | "6m" | "12m";
 
 export default function ArticlesIndex(props: Props) {
   // Safe defaults to avoid .map on undefined
-  const articles = props.articles ?? [];
+  const articles = useMemo(
+    () => props.articles ?? [],
+    [props.articles],
+  );
   const categories = props.categories ?? [];
   const tags = props.tags ?? [];
   const minRead = props.minRead ?? 0;
@@ -148,10 +154,7 @@ export default function ArticlesIndex(props: Props) {
   const [tagSet, setTagSet] = useState<Set<string>>(new Set());
 
   // Χρόνος ανάγνωσης (εύρος)
-  const [readRange, setReadRange] = useState<[number, number]>([
-    minRead,
-    maxRead,
-  ]);
+  const [readRange, setReadRange] = useState<[number, number]>([minRead, maxRead]);
 
   // Ημερομηνία (προκαθορισμένα)
   const [datePreset, setDatePreset] = useState<DatePreset>("all");
@@ -183,7 +186,7 @@ export default function ArticlesIndex(props: Props) {
     setSortKey("newest");
   };
 
-  // Υπολογισμός φίλτρων
+  // Υπολογισμός φίλτρων & ταξινόμησης
   const filteredSorted = useMemo(() => {
     const q = query.trim().toLowerCase();
     const now = new Date();
@@ -271,7 +274,7 @@ export default function ArticlesIndex(props: Props) {
         {/* Layout: Sidebar + Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-[280px,1fr] gap-6">
           {/* Sidebar φίλτρων */}
-          <aside className="rounded-2xl bg-white ring-1 ring-slate-200 p-5 h-fit sticky top-24 self-start">
+            <aside className="rounded-2xl bg-white ring-1 ring-slate-200 p-5 h-fit sticky top-24 self-start">
             {/* Αναζήτηση */}
             <div className="mb-5">
               <label htmlFor="q" className="block text-sm font-medium text-slate-700 mb-2">
@@ -290,7 +293,7 @@ export default function ArticlesIndex(props: Props) {
             <fieldset className="mb-5">
               <legend className="text-sm font-medium text-slate-700 mb-2">Κατηγορίες</legend>
               <div className="flex flex-col gap-2">
-                {categories?.map((c) => (
+                {categories.map((c) => (
                   <label key={c} className="inline-flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -309,7 +312,7 @@ export default function ArticlesIndex(props: Props) {
               <legend className="text-sm font-medium text-slate-700 mb-2">Ετικέτες</legend>
               <div className="max-h-40 overflow-auto rounded-lg border border-slate-200 p-2">
                 <div className="grid grid-cols-1 gap-2">
-                  {tags?.map((t) => (
+                  {tags.map((t) => (
                     <label key={t} className="inline-flex items-center gap-2">
                       <input
                         type="checkbox"
@@ -443,11 +446,12 @@ export default function ArticlesIndex(props: Props) {
                       className="flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 transition hover:shadow-lg"
                     >
                       <div className="relative aspect-[16/10] overflow-hidden">
-                        <img
+                        <Image
                           src={a.hero}
                           alt={a.title}
-                          className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-                          loading="lazy"
+                          fill
+                          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                          className="object-cover transition duration-300 group-hover:scale-[1.03]"
                         />
                         <span className="absolute left-3 top-3 inline-flex items-center rounded-full bg-[#7a7ac4] px-3 py-1 text-xs font-medium text-white/95">
                           {a.category}
@@ -455,13 +459,9 @@ export default function ArticlesIndex(props: Props) {
                       </div>
 
                       <div className="p-5 flex flex-col gap-3 grow">
-                        <h3 className="text-lg font-semibold leading-snug">
-                          {a.title}
-                        </h3>
+                        <h3 className="text-lg font-semibold leading-snug">{a.title}</h3>
 
-                        <p className="text-sm text-slate-600 line-clamp-3">
-                          {a.excerpt}
-                        </p>
+                        <p className="text-sm text-slate-600 line-clamp-3">{a.excerpt}</p>
 
                         <div className="mt-auto">
                           <div className="flex items-center justify-between text-sm text-slate-500">

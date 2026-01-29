@@ -19,7 +19,9 @@ export default function useHideOnScroll({
         else if (dy < -upDelay) setHidden(false);       // scrolling up
 
         lastY.current = y;
-        raf.current && cancelAnimationFrame(raf.current);
+        if (raf.current !== null) {
+          cancelAnimationFrame(raf.current);
+        }
         raf.current = null;
       });
     };

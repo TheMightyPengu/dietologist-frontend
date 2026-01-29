@@ -1,5 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
+import Image from "next/image";
 
 type PillProps = { children: React.ReactNode };
 const Pill = ({ children }: PillProps) => (
@@ -68,7 +69,9 @@ export default function ServicesPage() {
           src="/decor/vine.png"
           alt=""
           aria-hidden="true"
-          className="hidden md:block pointer-events-none select-none absolute -top-6 right-0 w-40 opacity-90"
+          width={160}
+          height={160}
+          className="w-full h-auto"
         />
 
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-10 pb-6">

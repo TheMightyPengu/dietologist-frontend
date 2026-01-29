@@ -9,18 +9,15 @@ import {
   type Seminar,
   type SeminarMode,
 } from "@/lib/mgmtSeminarsAPI";
+import Image from "next/image";
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
+
 const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({ className, children }) => (
   <div className={cx("rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-200/50", className)}>
     {children}
   </div>
 );
-
-const MODE_OPTIONS: { value: SeminarMode; label: string }[] = [
-  { value: "online", label: "Online" },
-  { value: "in_person", label: "Δια ζώσης" },
-];
 
 function fmtDateHuman(iso: string) {
   try {
@@ -63,9 +60,7 @@ export default function ManagementSeminarsPage() {
   const filtered = useMemo(() => {
     if (!query.trim()) return all;
     const q = query.toLowerCase();
-    return all.filter(s =>
-      [s.title, s.excerpt].some(t => t.toLowerCase().includes(q))
-    );
+    return all.filter((s) => [s.title, s.excerpt].some((t) => t.toLowerCase().includes(q)));
   }, [all, query]);
 
   async function handleCreate() {
@@ -83,7 +78,7 @@ export default function ManagementSeminarsPage() {
       published: false,
     };
     const created = await createSeminar(empty);
-    setAll(prev => [created, ...prev]);
+    setAll((prev) => [created, ...prev]);
     setCreating(false);
     setToast("Δημιουργήθηκε.");
   }
@@ -91,7 +86,7 @@ export default function ManagementSeminarsPage() {
   async function handleSave(sem: Seminar) {
     setBusyId(sem.id);
     const updated = await updateSeminar(sem);
-    setAll(prev => prev.map(x => (x.id === updated.id ? updated : x)));
+    setAll((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
     setBusyId(null);
     setToast("Αποθηκεύτηκε.");
   }
@@ -100,7 +95,7 @@ export default function ManagementSeminarsPage() {
     if (!confirm("Διαγραφή σεμιναρίου;")) return;
     setBusyId(id);
     await deleteSeminar(id);
-    setAll(prev => prev.filter(x => x.id !== id));
+    setAll((prev) => prev.filter((x) => x.id !== id));
     setBusyId(null);
     setToast("Διαγράφηκε.");
   }
@@ -128,7 +123,7 @@ export default function ManagementSeminarsPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <input
                 value={query}
-                onChange={e => setQuery(e.target.value)}
+                onChange={(e) => setQuery(e.target.value)}
                 placeholder="Αναζήτηση σεμιναρίων…"
                 className="w-full md:w-80 rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
               />
@@ -146,12 +141,14 @@ export default function ManagementSeminarsPage() {
           </Card>
 
           {loading ? (
-            <Card className="p-6"><p>Φόρτωση…</p></Card>
+            <Card className="p-6">
+              <p>Φόρτωση…</p>
+            </Card>
           ) : filtered.length === 0 ? (
             <Card className="p-6 text-slate-600">Καμία εγγραφή.</Card>
           ) : (
             <div className="space-y-6">
-              {filtered.map(sem => (
+              {filtered.map((sem) => (
                 <SeminarEditorCard
                   key={sem.id}
                   sem={sem}
@@ -189,7 +186,10 @@ function SeminarEditorCard({
   const [draft, setDraft] = useState<Seminar>(sem);
   const [open, setOpen] = useState(true);
 
-  useEffect(() => setDraft(sem), [sem.id]); // reset when switching rows
+  // reset when row changes
+  useEffect(() => {
+    setDraft(sem);
+  }, [sem]);
 
   const priceText = draft.priceEuro === null ? "ΔΩΡΕΑΝ" : `${draft.priceEuro}€`;
 
@@ -200,12 +200,13 @@ function SeminarEditorCard({
         <div>
           <h3 className="text-lg font-semibold">{draft.title || "(Χωρίς τίτλο)"}</h3>
           <p className="text-xs text-slate-500 mt-1">
-            {draft.published ? "Δημοσιευμένο" : "Προσχέδιο"} • {draft.mode === "online" ? "Online" : "Δια ζώσης"} • {fmtDateHuman(draft.dateISO)}
+            {draft.published ? "Δημοσιευμένο" : "Προσχέδιο"} • {draft.mode === "online" ? "Online" : "Δια ζώσης"} •{" "}
+            {fmtDateHuman(draft.dateISO)}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setOpen(o => !o)}
+            onClick={() => setOpen((o) => !o)}
             className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
           >
             {open ? "Σύμπτυξη" : "Επέκταση"}
@@ -228,7 +229,7 @@ function SeminarEditorCard({
               <label className="block text-sm font-medium text-slate-700">Τίτλος</label>
               <input
                 value={draft.title}
-                onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}
+                onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
                 className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
               />
             </div>
@@ -238,7 +239,7 @@ function SeminarEditorCard({
               <textarea
                 rows={3}
                 value={draft.excerpt}
-                onChange={e => setDraft(d => ({ ...d, excerpt: e.target.value }))}
+                onChange={(e) => setDraft((d) => ({ ...d, excerpt: e.target.value }))}
                 className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
               />
             </div>
@@ -248,7 +249,7 @@ function SeminarEditorCard({
                 <label className="block text-sm font-medium text-slate-700">Τρόπος</label>
                 <select
                   value={draft.mode}
-                  onChange={e => setDraft(d => ({ ...d, mode: e.target.value as SeminarMode }))}
+                  onChange={(e) => setDraft((d) => ({ ...d, mode: e.target.value as SeminarMode }))}
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
                 >
                   <option value="online">Online</option>
@@ -260,10 +261,10 @@ function SeminarEditorCard({
                 <input
                   type="datetime-local"
                   value={draft.dateISO.slice(0, 16)}
-                  onChange={e => {
+                  onChange={(e) => {
                     // keep timezone offset if any: declare as local and convert to ISO
                     const local = new Date(e.target.value);
-                    setDraft(d => ({ ...d, dateISO: local.toISOString() }));
+                    setDraft((d) => ({ ...d, dateISO: local.toISOString() }));
                   }}
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
                 />
@@ -275,7 +276,7 @@ function SeminarEditorCard({
                   min={15}
                   step={15}
                   value={draft.durationMin}
-                  onChange={e => setDraft(d => ({ ...d, durationMin: Number(e.target.value) }))}
+                  onChange={(e) => setDraft((d) => ({ ...d, durationMin: Number(e.target.value) }))}
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
                 />
               </div>
@@ -288,8 +289,8 @@ function SeminarEditorCard({
                   type="number"
                   min={0}
                   value={draft.priceEuro ?? ""}
-                  onChange={e =>
-                    setDraft(d => ({
+                  onChange={(e) =>
+                    setDraft((d) => ({
                       ...d,
                       priceEuro: e.target.value === "" ? null : Number(e.target.value),
                     }))
@@ -301,7 +302,7 @@ function SeminarEditorCard({
                 <label className="block text-sm font-medium text-slate-700">CTA κείμενο</label>
                 <input
                   value={draft.ctaLabel}
-                  onChange={e => setDraft(d => ({ ...d, ctaLabel: e.target.value }))}
+                  onChange={(e) => setDraft((d) => ({ ...d, ctaLabel: e.target.value }))}
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
                 />
               </div>
@@ -309,7 +310,7 @@ function SeminarEditorCard({
                 <label className="block text-sm font-medium text-slate-700">CTA σύνδεσμος</label>
                 <input
                   value={draft.ctaUrl}
-                  onChange={e => setDraft(d => ({ ...d, ctaUrl: e.target.value }))}
+                  onChange={(e) => setDraft((d) => ({ ...d, ctaUrl: e.target.value }))}
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
                 />
               </div>
@@ -319,7 +320,7 @@ function SeminarEditorCard({
               <label className="block text-sm font-medium text-slate-700">Εικόνα (URL)</label>
               <input
                 value={draft.imageUrl}
-                onChange={e => setDraft(d => ({ ...d, imageUrl: e.target.value }))}
+                onChange={(e) => setDraft((d) => ({ ...d, imageUrl: e.target.value }))}
                 placeholder="https://..."
                 className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
               />
@@ -330,7 +331,7 @@ function SeminarEditorCard({
                 id={`published-${draft.id}`}
                 type="checkbox"
                 checked={draft.published}
-                onChange={e => setDraft(d => ({ ...d, published: e.target.checked }))}
+                onChange={(e) => setDraft((d) => ({ ...d, published: e.target.checked }))}
               />
               <label htmlFor={`published-${draft.id}`} className="text-sm">
                 Δημοσιευμένο
@@ -369,9 +370,10 @@ function SeminarEditorCard({
           <div className="lg:col-span-1">
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
               <div className="aspect-[16/10] bg-slate-100">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 {draft.imageUrl ? (
-                  <img src={draft.imageUrl} alt="" className="h-full w-full object-cover" />
+                  <>
+                    <Image src={draft.imageUrl} alt="" className="h-full w-full object-cover" />
+                  </>
                 ) : (
                   <div className="h-full w-full grid place-items-center text-slate-400 text-sm">
                     Προσθέστε εικόνα (URL)
@@ -391,9 +393,7 @@ function SeminarEditorCard({
                 <h4 className="mt-2 text-base font-semibold">{draft.title || "Τίτλος"}</h4>
                 <p className="mt-1 text-sm text-slate-600">{draft.excerpt}</p>
                 <div className="mt-3 flex items-center justify-between">
-                  <span className="text-sm font-semibold">
-                    {priceText}
-                  </span>
+                  <span className="text-sm font-semibold">{priceText}</span>
                   <button className="rounded-full bg-[#7a7ac4] text-white text-xs px-3 py-1.5">
                     {draft.ctaLabel || "Κράτηση θέσης"}
                   </button>
