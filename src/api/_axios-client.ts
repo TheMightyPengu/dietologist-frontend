@@ -1,5 +1,9 @@
 import axios, { AxiosError } from 'axios';
 
+// To test if it's actually connected, you can visit
+// http://localhost:3000/dev/api-smoke
+// (after running npm run dev) to see which endpoints are working.
+
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL, // http://localhost:5000/api
   headers: { 'Content-Type': 'application/json' },

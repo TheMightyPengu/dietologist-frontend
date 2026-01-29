@@ -232,7 +232,6 @@ export default function BookPage() {
           {/* Heading */}
           <header className="mb-8">
             <h1 className="text-3xl md:text-4xl font-semibold text-slate-900">Κλείστε Ραντεβού</h1>
-            <h1 className="text-3xl md:text-4xl font-semibold text-slate-900">Κλείστε Ραντεβού</h1>
             <p className="mt-2 max-w-2xl text-slate-700">
               Συμπληρώστε τη φόρμα και θα σας καλέσουμε για επιβεβαίωση.
             </p>

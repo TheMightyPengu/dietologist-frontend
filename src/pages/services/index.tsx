@@ -65,14 +65,14 @@ export default function ServicesPage() {
 
       {/* Hero / Intro */}
       <div className="relative">
-        <img
+        {/* <img
           src="/decor/vine.png"
           alt=""
           aria-hidden="true"
           width={160}
           height={160}
           className="w-full h-auto"
-        />
+        /> */}
 
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-10 pb-6">
           <header className="mb-6">
