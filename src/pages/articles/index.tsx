@@ -260,7 +260,7 @@ export default function ArticlesIndex(props: Props) {
 
       <section className="mx-auto max-w-6xl px-4 md:px-6 lg:px-8 py-10">
         {/* Hero */}
-        <div className="mb-8 rounded-2xl bg-[#e5efe5] p-6 md:p-10">
+        <div className="mb-8 rounded-2xl bg-accent/10 p-6 md:p-10">
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mb-3">
             Άρθρα
           </h1>
@@ -285,7 +285,7 @@ export default function ArticlesIndex(props: Props) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Αναζήτηση άρθρων..."
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none focus:ring-4 focus:ring-[#8484d1]/20"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none focus:ring-4 focus:ring-primary/20"
               />
             </div>
 
@@ -297,7 +297,7 @@ export default function ArticlesIndex(props: Props) {
                   <label key={c} className="inline-flex items-center gap-2">
                     <input
                       type="checkbox"
-                      className="rounded border-slate-300 text-[#8484d1] focus:ring-[#8484d1]"
+                      className="rounded border-slate-300 text-primary focus:ring-primary"
                       checked={catSet.has(c)}
                       onChange={() => toggleCat(c)}
                     />
@@ -424,7 +424,7 @@ export default function ArticlesIndex(props: Props) {
               <button
                 type="button"
                 onClick={resetAll}
-                className="w-full rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-700 hover:bg-slate-200 transition"
+                className="w-full rounded-xl bg-primary/10 px-3 py-2 text-sm text-primary hover:bg-primary/20 transition font-medium"
               >
                 Επαναφορά φίλτρων
               </button>
@@ -453,11 +453,11 @@ export default function ArticlesIndex(props: Props) {
                         <Image
                           src={a.hero}
                           alt={a.title}
-                          fill
-                          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                          className="object-cover transition duration-300 group-hover:scale-[1.03]"
+                          width={400}
+                          height={250}
+                          className="object-cover transition duration-300 group-hover:scale-[1.03] h-full w-full"
                         />
-                        <span className={`absolute left-3 top-3 inline-flex items-center rounded-full ${idx === 0 ? 'bg-warm text-slate-800' : 'bg-[#8484d1] text-white/95'} px-3 py-1 text-xs font-medium`}>
+                        <span className={`absolute left-3 top-3 inline-flex items-center rounded-full ${idx === 0 ? 'bg-warm text-slate-800' : 'bg-primary text-white/95'} px-3 py-1 text-xs font-medium`}>
                           {a.category}
                         </span>
                         {idx === 0 && (
@@ -488,7 +488,7 @@ export default function ArticlesIndex(props: Props) {
                             {a.tags.slice(0, 3).map((t) => (
                               <span
                                 key={t}
-                                className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600"
+                                className="rounded-full bg-primary/10 px-2.5 py-1 text-xs text-primary font-medium"
                               >
                                 #{t}
                               </span>
@@ -525,7 +525,7 @@ function RadioRow({
       <input
         type="radio"
         name={name}
-        className="border-slate-300 text-[#8484d1] focus:ring-[#8484d1]"
+        className="border-slate-300 text-primary focus:ring-primary"
         checked={checked}
         onChange={onChange}
       />

@@ -17,8 +17,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Navbar />
       </header>
 
-      {/* Header is ~104px tall (40 + 64). Adjust as needed. */}
-      <main className="pt-[104px]">{children}</main>
+      {/* Header is ~0px tall (40 + 64). Adjust as needed. */}
+      <main className="pt-[0px]">{children}</main>
     </div>
   );
 }

@@ -258,7 +258,7 @@ export default function ArticlePage({
 
         {/* Hero + metadata */}
         <header className="mb-6">
-          <span className="inline-flex items-center rounded-full bg-[#8484d1] px-3 py-1 text-xs font-medium text-white/95">
+          <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-medium text-white/95">
             {article.category}
           </span>
           <h1 className="mt-3 text-3xl md:text-4xl font-semibold tracking-tight">
@@ -271,10 +271,12 @@ export default function ArticlePage({
             <span>⏱ {article.readMinutes}′ ανάγνωση</span>
           </div>
 
-          <div className="mt-5 overflow-hidden rounded-2xl">
+          <div className="mt-5 overflow-hidden rounded-2xl max-h-48">
             <Image
               src={article.hero}
               alt={article.title}
+              width={800}
+              height={192}
               className="w-full h-auto object-cover"
             />
           </div>
@@ -343,10 +345,12 @@ export default function ArticlePage({
                     <Image
                       src={a.hero}
                       alt={a.title}
+                      width={400}
+                      height={250}
                       className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
                       loading="lazy"
                     />
-                    <span className="absolute left-3 top-3 inline-flex items-center rounded-full bg-[#8484d1] px-3 py-1 text-xs font-medium text-white/95">
+                    <span className="absolute left-3 top-3 inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-medium text-white/95">
                       {a.category}
                     </span>
                   </div>

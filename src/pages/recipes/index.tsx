@@ -357,7 +357,7 @@ function setQuery(
 // -------------------- UI Primitives --------------------
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 px-3 py-1 text-xs font-medium">
+    <span className="inline-flex items-center rounded-full bg-accent/10 text-accent ring-1 ring-accent/30 px-3 py-1 text-xs font-medium">
       {children}
     </span>
   );
@@ -477,7 +477,7 @@ export default function RecipesIndex() {
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && applyFilters(1)}
                   placeholder="όνομα ή υλικό…"
-                  className="w-full rounded-xl ring-1 ring-slate-200 bg-white px-3 py-2 text-sm outline-none"
+                  className="w-full rounded-xl ring-1 ring-primary/30 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
@@ -489,7 +489,7 @@ export default function RecipesIndex() {
                     <label key={c} className="inline-flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
-                        className="rounded border-slate-300"
+                        className="rounded border-primary text-primary focus:ring-primary"
                         checked={cats.includes(c)}
                         onChange={(e) =>
                           setCats((prev) =>
@@ -509,7 +509,7 @@ export default function RecipesIndex() {
                 <select
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
-                  className="w-full rounded-xl ring-1 ring-slate-200 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-xl ring-1 ring-primary/30 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-primary text-slate-800"
                 >
                   <option value="">Όλοι</option>
                   <option value="t15">≤ 15 λεπτά</option>
@@ -531,8 +531,8 @@ export default function RecipesIndex() {
                       }
                       className={`px-3 py-1 rounded-full text-xs ring-1 ${
                         free.includes(a)
-                          ? "bg-sky-600 text-white ring-sky-600"
-                          : "bg-sky-50 text-sky-700 ring-sky-200"
+                          ? "bg-primary text-white ring-primary"
+                          : "bg-primary/10 text-primary ring-primary/30"
                       }`}
                     >
                       {ALLERGEN_LABELS[a]}
@@ -566,7 +566,7 @@ export default function RecipesIndex() {
                   <select
                     value={sort}
                     onChange={(e) => setSort(e.target.value)}
-                    className="rounded-xl ring-1 ring-slate-200 bg-white px-3 py-2 text-sm"
+                    className="rounded-xl ring-1 ring-primary/30 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-primary text-slate-800"
                   >
                     <option value="new">Νεότερα</option>
                     <option value="az">Αλφαβητικά (A–Z)</option>
@@ -590,6 +590,8 @@ export default function RecipesIndex() {
                         <Image
                           src={r.image}
                           alt={r.title}
+                          width={400}
+                          height={176}
                           className="h-44 w-full object-cover group-hover:scale-[1.02] transition"
                         />
                         <div className={`absolute top-2 left-2 inline-flex items-center gap-2 rounded-full ${idx === 0 ? 'bg-warm/90 text-slate-800' : 'bg-white/90 text-slate-700'} px-3 py-1 text-xs ring-1 ${idx === 0 ? 'ring-warm/40' : 'ring-black/5'}`}>
@@ -597,7 +599,7 @@ export default function RecipesIndex() {
                         </div>
                         {idx === 0 && (
                           <span className="absolute top-2 right-2 inline-flex items-center rounded-full bg-warm/30 border border-warm/60 px-2.5 py-1 text-xs font-medium text-slate-800">
-                            ✨ Δημοφιλής
+                            ✨ Δημοφιλές
                           </span>
                         )}
                       </div>
@@ -674,9 +676,9 @@ function TagInput({
             if (e.key === "Enter") addTagFromText();
           }}
           placeholder={placeholder}
-          className="w-full rounded-xl ring-1 ring-slate-200 bg-white px-3 py-2 text-sm outline-none"
+          className="w-full rounded-xl ring-1 ring-primary/30 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
         />
-        <button onClick={addTagFromText} className="rounded-xl bg-white ring-1 ring-slate-200 px-3 text-sm">
+        <button onClick={addTagFromText} className="rounded-xl bg-primary/10 text-primary ring-1 ring-primary/30 px-3 text-sm font-medium hover:bg-primary/20 transition">
           Προσθήκη
         </button>
       </div>
@@ -685,10 +687,10 @@ function TagInput({
           {value.map((t) => (
             <span
               key={t}
-              className="inline-flex items-center gap-2 rounded-full bg-slate-100 ring-1 ring-slate-200 px-3 py-1 text-xs"
+              className="inline-flex items-center gap-2 rounded-full bg-primary/10 ring-1 ring-primary/30 px-3 py-1 text-xs text-primary font-medium"
             >
               {t}
-              <button onClick={() => setValue(value.filter((x) => x !== t))} className="text-slate-500">
+              <button onClick={() => setValue(value.filter((x) => x !== t))} className="text-primary/60 hover:text-primary transition">
                 ×
               </button>
             </span>

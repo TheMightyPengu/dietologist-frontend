@@ -350,16 +350,15 @@ export default function RecipeDetail() {
             <span className="font-medium">{recipe.rating.toFixed(1)}</span>
           </div>
 
-          <div className="mt-6 rounded-2xl overflow-hidden ring-1 ring-black/5 bg-white/90">
-            <div className="relative w-full h-80">
-              <Image
-                src={recipe.image}
-                alt={recipe.title}
-                fill
-                className="object-cover"
-                sizes="(min-width: 1024px) 768px, 100vw"
-              />
-            </div>
+          <div className="mt-6 rounded-2xl overflow-hidden ring-1 ring-black/5 bg-white/90 max-h-96 grid place-content-center">
+            <Image
+              src={recipe.image}
+              alt={recipe.title}
+              width={800}
+              height={524}
+              className="w-full h-auto object-cover"
+              priority={false}
+            />
           </div>
 
           <section className="mt-8">
