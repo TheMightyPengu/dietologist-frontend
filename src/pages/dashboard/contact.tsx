@@ -46,7 +46,7 @@ export default function ManagementContactPage() {
           <div className="mb-6 flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
             >
               ← Πίσω στο Dashboard
             </Link>
@@ -67,8 +67,8 @@ export default function ManagementContactPage() {
                   className={cx(
                     "px-4 py-2 rounded-full text-sm font-medium transition",
                     active === t.key
-                      ? "bg-[#7a7ac4] text-white"
-                      : "bg-white border border-slate-200 hover:border-[#7a7ac4]"
+                      ? "bg-[#8484d1] text-white"
+                      : "bg-white border border-slate-200 hover:border-[#8484d1]"
                   )}
                 >
                   {t.label}
@@ -173,14 +173,14 @@ function BookingsManager() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Αναζήτηση (όνομα, email, τηλέφωνο, υπηρεσία)…"
-            className="rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
           />
           <select
             value={status}
             onChange={(e) =>
               setStatus(e.target.value as BookingStatus | "all")
             }
-            className="rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
           >
             <option value="all">Όλες οι καταστάσεις</option>
             <option value="pending">Σε εκκρεμότητα</option>
@@ -191,7 +191,7 @@ function BookingsManager() {
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
           />
           <button
             onClick={handleCreate}
@@ -199,8 +199,8 @@ function BookingsManager() {
             className={cx(
               "rounded-full px-4 py-2 text-sm font-semibold transition",
               creating || loading
-                ? "bg-[#7a7ac4]/70 text-white cursor-wait"
-                : "bg-[#7a7ac4] text-white hover:shadow"
+                ? "bg-[#8484d1]/70 text-white cursor-wait"
+                : "bg-[#8484d1] text-white hover:shadow"
             )}
           >
             {creating || loading ? "Δημιουργία…" : "Νέο ραντεβού"}
@@ -381,8 +381,8 @@ function Row({
             className={cx(
               "rounded-full px-3 py-1 text-xs font-semibold",
               busy
-                ? "bg-[#7a7ac4]/70 text-white cursor-wait"
-                : "bg-[#7a7ac4] text-white"
+                ? "bg-[#8484d1]/70 text-white cursor-wait"
+                : "bg-[#8484d1] text-white"
             )}
           >
             {busy ? "Αποθήκευση…" : "Αποθήκευση"}
@@ -469,7 +469,7 @@ function MessagesSettings() {
                   destinationEmail: e.target.value,
                 })
               }
-              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
             />
             <p className="text-xs text-slate-500 mt-1">
               Παράδειγμα: <code>hello@yourdomain.gr</code>
@@ -484,8 +484,8 @@ function MessagesSettings() {
             className={cx(
               "rounded-full px-4 py-2 text-sm font-semibold",
               saving
-                ? "bg-[#7a7ac4]/70 text-white cursor-wait"
-                : "bg-[#7a7ac4] text-white"
+                ? "bg-[#8484d1]/70 text-white cursor-wait"
+                : "bg-[#8484d1] text-white"
             )}
           >
             {saving ? "Αποθήκευση…" : "Αποθήκευση"}

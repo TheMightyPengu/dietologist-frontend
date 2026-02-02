@@ -112,7 +112,7 @@ export default function ManagementSeminarsPage() {
           <div className="mb-6 flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
             >
               ← Πίσω στο Dashboard
             </Link>
@@ -125,14 +125,14 @@ export default function ManagementSeminarsPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Αναζήτηση σεμιναρίων…"
-                className="w-full md:w-80 rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                className="w-full md:w-80 rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
               <button
                 onClick={handleCreate}
                 disabled={creating}
                 className={cx(
                   "rounded-full px-4 py-2 text-sm font-semibold transition",
-                  creating ? "bg-[#7a7ac4]/70 text-white cursor-wait" : "bg-[#7a7ac4] text-white hover:shadow"
+                  creating ? "bg-[#8484d1]/70 text-white cursor-wait" : "bg-[#8484d1] text-white hover:shadow"
                 )}
               >
                 {creating ? "Δημιουργία…" : "Νέο σεμινάριο"}
@@ -207,7 +207,7 @@ function SeminarEditorCard({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setOpen((o) => !o)}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
           >
             {open ? "Σύμπτυξη" : "Επέκταση"}
           </button>
@@ -230,7 +230,7 @@ function SeminarEditorCard({
               <input
                 value={draft.title}
                 onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
             </div>
 
@@ -240,7 +240,7 @@ function SeminarEditorCard({
                 rows={3}
                 value={draft.excerpt}
                 onChange={(e) => setDraft((d) => ({ ...d, excerpt: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
             </div>
 
@@ -250,7 +250,7 @@ function SeminarEditorCard({
                 <select
                   value={draft.mode}
                   onChange={(e) => setDraft((d) => ({ ...d, mode: e.target.value as SeminarMode }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 >
                   <option value="online">Online</option>
                   <option value="in_person">Δια ζώσης</option>
@@ -266,7 +266,7 @@ function SeminarEditorCard({
                     const local = new Date(e.target.value);
                     setDraft((d) => ({ ...d, dateISO: local.toISOString() }));
                   }}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
               <div>
@@ -277,7 +277,7 @@ function SeminarEditorCard({
                   step={15}
                   value={draft.durationMin}
                   onChange={(e) => setDraft((d) => ({ ...d, durationMin: Number(e.target.value) }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
             </div>
@@ -295,7 +295,7 @@ function SeminarEditorCard({
                       priceEuro: e.target.value === "" ? null : Number(e.target.value),
                     }))
                   }
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
               <div>
@@ -303,7 +303,7 @@ function SeminarEditorCard({
                 <input
                   value={draft.ctaLabel}
                   onChange={(e) => setDraft((d) => ({ ...d, ctaLabel: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
               <div>
@@ -311,7 +311,7 @@ function SeminarEditorCard({
                 <input
                   value={draft.ctaUrl}
                   onChange={(e) => setDraft((d) => ({ ...d, ctaUrl: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
             </div>
@@ -322,7 +322,7 @@ function SeminarEditorCard({
                 value={draft.imageUrl}
                 onChange={(e) => setDraft((d) => ({ ...d, imageUrl: e.target.value }))}
                 placeholder="https://..."
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
             </div>
 
@@ -345,14 +345,14 @@ function SeminarEditorCard({
                 disabled={busy}
                 className={cx(
                   "rounded-full px-4 py-2 text-sm font-semibold transition",
-                  busy ? "bg-[#7a7ac4]/70 text-white cursor-wait" : "bg-[#7a7ac4] text-white hover:shadow"
+                  busy ? "bg-[#8484d1]/70 text-white cursor-wait" : "bg-[#8484d1] text-white hover:shadow"
                 )}
               >
                 {busy ? "Αποθήκευση…" : "Αποθήκευση"}
               </button>
               <button
                 onClick={() => setDraft(sem)}
-                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[#7a7ac4]"
+                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[#8484d1]"
               >
                 Επαναφορά αλλαγών
               </button>
@@ -394,7 +394,7 @@ function SeminarEditorCard({
                 <p className="mt-1 text-sm text-slate-600">{draft.excerpt}</p>
                 <div className="mt-3 flex items-center justify-between">
                   <span className="text-sm font-semibold">{priceText}</span>
-                  <button className="rounded-full bg-[#7a7ac4] text-white text-xs px-3 py-1.5">
+                  <button className="rounded-full bg-[#8484d1] text-white text-xs px-3 py-1.5">
                     {draft.ctaLabel || "Κράτηση θέσης"}
                   </button>
                 </div>

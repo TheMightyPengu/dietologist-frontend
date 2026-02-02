@@ -96,7 +96,7 @@ export default function ManagementServicesPage() {
           <div className="mb-6 flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
             >
               ← Πίσω στο Dashboard
             </Link>
@@ -115,7 +115,7 @@ export default function ManagementServicesPage() {
                       onClick={() => setActiveCat(c.key)}
                       className={cx(
                         "px-3 md:px-4 py-2 rounded-full text-sm font-medium transition",
-                        sel ? "bg-[#7a7ac4] text-white" : "bg-white border border-slate-200 hover:border-[#7a7ac4]"
+                        sel ? "bg-[#8484d1] text-white" : "bg-white border border-slate-200 hover:border-[#8484d1]"
                       )}
                     >
                       {c.label}
@@ -128,7 +128,7 @@ export default function ManagementServicesPage() {
                 disabled={creating}
                 className={cx(
                   "rounded-full px-4 py-2 text-sm font-semibold transition",
-                  creating ? "bg-[#7a7ac4]/70 text-white cursor-wait" : "bg-[#7a7ac4] text-white hover:shadow"
+                  creating ? "bg-[#8484d1]/70 text-white cursor-wait" : "bg-[#8484d1] text-white hover:shadow"
                 )}
               >
                 {creating ? "Δημιουργία…" : "Νέα υπηρεσία"}
@@ -209,7 +209,7 @@ function ServiceEditorCard({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setOpen(o => !o)}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
           >
             {open ? "Σύμπτυξη" : "Επέκταση"}
           </button>
@@ -233,7 +233,7 @@ function ServiceEditorCard({
                 type="text"
                 value={draft.title}
                 onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
             </div>
             <div>
@@ -244,7 +244,7 @@ function ServiceEditorCard({
                 rows={3}
                 value={draft.intro || ""}
                 onChange={e => setDraft(d => ({ ...d, intro: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
             </div>
           </div>
@@ -257,7 +257,7 @@ function ServiceEditorCard({
               </label>
               <button
                 onClick={addPoint}
-                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
               >
                 + Προσθήκη σημείου
               </button>
@@ -276,7 +276,7 @@ function ServiceEditorCard({
                         return { ...d, points: pts };
                       })
                     }
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                   />
                   <button
                     onClick={() => removePoint(i)}
@@ -300,7 +300,7 @@ function ServiceEditorCard({
               </label>
               <button
                 onClick={addChip}
-                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
               >
                 + Προσθήκη ετικέτας
               </button>
@@ -312,13 +312,13 @@ function ServiceEditorCard({
                     placeholder="Ετικέτα (π.χ. Διάρκεια)"
                     value={ch.label}
                     onChange={e => updateChip(ch.id, { label: e.target.value })}
-                    className="md:col-span-2 rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                    className="md:col-span-2 rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                   />
                   <input
                     placeholder="Τιμή (π.χ. 60’)"
                     value={ch.value}
                     onChange={e => updateChip(ch.id, { value: e.target.value })}
-                    className="md:col-span-2 rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                    className="md:col-span-2 rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                   />
                   <div className="flex items-center justify-end">
                     <button
@@ -351,14 +351,14 @@ function ServiceEditorCard({
               disabled={busy}
               className={cx(
                 "rounded-full px-4 py-2 text-sm font-semibold transition",
-                busy ? "bg-[#7a7ac4]/70 text-white cursor-wait" : "bg-[#7a7ac4] text-white hover:shadow"
+                busy ? "bg-[#8484d1]/70 text-white cursor-wait" : "bg-[#8484d1] text-white hover:shadow"
               )}
             >
               {busy ? "Αποθήκευση…" : "Αποθήκευση"}
             </button>
             <button
               onClick={() => setDraft(svc)}
-              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[#7a7ac4]"
+              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[#8484d1]"
             >
               Επαναφορά αλλαγών
             </button>

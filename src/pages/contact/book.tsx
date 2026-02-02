@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 /**
  * ΚΛΕΙΣΤΕ ΡΑΝΤΕΒΟΥ — Booking form
  * - Calendar-only επιλογή ημερομηνίας με disabled κατειλημμένες μέρες
- * - Ελληνικό UI, 60-30-10 με accent #7a7ac4
+ * - Ελληνικό UI, 60-30-10 με accent #8484d1
  * - Mock "API" για υπηρεσίες & κατειλημμένες ημερομηνίες
  */
 
@@ -242,7 +242,7 @@ export default function BookPage() {
             <div className="md:col-span-3">
               <form
                 onSubmit={onSubmit}
-                className="rounded-2xl bg-white p-6 shadow-[0_14px_30px_rgba(164,199,126,0.10)] ring-1 ring-accent/25"
+                className="rounded-2xl bg-white p-6 shadow-[0_14px_30px_rgba(255,230,150,0.08)] ring-2 ring-warm/40"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Υπηρεσία */}

@@ -2,9 +2,9 @@
 
 :root {
   /* Brand palette (Tailwind-friendly RGB for alpha support) */
-  --primary: 122 122 196; /* #7A7AC4 (Purple) */
-  --accent: 164 199 126;  /* #A4C77E (Green) */
-  --warm: 199 157 126;    /* #C79D7E (Warm sand) */
+  --primary: 132 132 209; /* #8484d1 (Purple) */
+  --accent: 126 199 186;  /* #7ec7ba (Light Blue) */
+  --warm: 230 200 108;    /* #e6c86c (Warm yellow-brown) */
 
   /* Neutrals (also RGB so you can use opacity if needed) */
   --bg: 252 252 253;      /* #FCFCFD */
@@ -29,6 +29,11 @@
 /* Smooth typography & layout defaults */
 html {
   scroll-behavior: smooth;
+}
+
+/* Fix Greek combining mark spacing issue */
+:lang(el) {
+  letter-spacing: 0 !important;
 }
 
 /* Basic reset-ish */
@@ -141,6 +146,69 @@ input:focus, textarea:focus, select:focus {
 
 .card-warm {
   border-left-color: rgba(var(--warm), 0.9); /* rare decorative */
+}
+
+/* Warm accent divider for special sections */
+.divider-warm {
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    rgba(var(--warm), 0),
+    rgba(var(--warm), 0.8),
+    rgba(var(--warm), 0)
+  );
+  border: none;
+  margin: 1.5rem 0;
+}
+
+/* Callout for special alerts/highlights (warm background) */
+.callout-warm {
+  background: rgba(var(--warm), 0.12);
+  border: 1px solid rgba(var(--warm), 0.4);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+}
+
+/* Button warm state (accent/warm toggle for CTAs) */
+button.btn-warm,
+a.btn-warm {
+  background: rgba(var(--warm), 0.9);
+  color: rgb(var(--ink));
+  border: none;
+  padding: 0.65rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+button.btn-warm:hover,
+a.btn-warm:hover {
+  background: rgba(var(--warm), 1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(var(--warm), 0.3);
+}
+
+/* Warm icon accent */
+.icon-warm {
+  color: rgba(var(--warm), 0.85);
+}
+
+/* Highlight text with warm accent (underline) */
+.highlight-warm {
+  position: relative;
+  padding-bottom: 2px;
+}
+
+.highlight-warm::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(var(--warm), 0.7);
+  border-radius: 1px;
 }
 
 /* Soft panels / callouts */

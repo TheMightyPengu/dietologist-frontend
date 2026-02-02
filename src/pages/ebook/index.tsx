@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from "react";
  * - Ελληνικό UI
  * - Μοντέρνο hero + features + preview + CTA
  * - Skeletons, loading, error state
- * - Accent: #7a7ac4 (60-30-10 rule)
+ * - Accent: #8484d1 (60-30-10 rule)
  */
 
 type Ebook = {
@@ -145,7 +145,7 @@ export default function EbookPage() {
                   {ebook.sampleUrl && (
                     <a
                       href={ebook.sampleUrl}
-                      className="inline-flex items-center gap-2 rounded-xl border border-[#7a7ac4]/20 bg-white text-[#7a7ac4] px-4 py-2 font-medium shadow hover:bg-[#7a7ac4]/5 transition"
+                      className="inline-flex items-center gap-2 rounded-xl border border-[#8484d1]/20 bg-white text-[#8484d1] px-4 py-2 font-medium shadow hover:bg-[#8484d1]/5 transition"
                     >
                       Προεπισκόπηση
                       <span aria-hidden>→</span>
@@ -153,7 +153,7 @@ export default function EbookPage() {
                   )}
                   <Link
                     href={ebook.buyUrl || "/contact"}
-                    className="inline-flex items-center gap-2 rounded-xl border border-[#7a7ac4]/20 bg-[#7a7ac4] text-white px-4 py-2 font-medium shadow hover:opacity-95 transition"
+                    className="inline-flex items-center gap-2 rounded-xl border border-[#8484d1]/20 bg-[#8484d1] text-white px-4 py-2 font-medium shadow hover:opacity-95 transition"
                   >
                     {ebook.priceEUR ? `Αγορά — ${ebook.priceEUR}€` : "Κατέβασμα"}
                   </Link>
@@ -195,7 +195,7 @@ export default function EbookPage() {
 
         {/* TOC + CTA (accent band ~10%) */}
         {!loading && !error && ebook && (
-          <div className="bg-[#7a7ac4] text-white">
+          <div className="bg-[#8484d1] text-white">
             <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10">
               <div className="grid md:grid-cols-2 gap-8 items-start">
                 <div>
@@ -215,7 +215,7 @@ export default function EbookPage() {
                 <div className="md:justify-self-end">
                   <Link
                     href={ebook.buyUrl || "/contact"}
-                    className="inline-flex items-center gap-2 rounded-xl bg-white text-[#7a7ac4] px-5 py-3 font-semibold shadow hover:opacity-90 transition"
+                    className="inline-flex items-center gap-2 rounded-xl bg-white text-[#8484d1] px-5 py-3 font-semibold shadow hover:opacity-90 transition"
                   >
                     {ebook.priceEUR ? `Αγορά τώρα — ${ebook.priceEUR}€` : "Κατέβασμα τώρα"}
                     <span aria-hidden>→</span>

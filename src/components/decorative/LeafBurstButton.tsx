@@ -3,11 +3,11 @@ import Link from "next/link";
 
 export default function LeafBurstButton({ text }: { text: string }) {
   return (
-    <div className="button">
+    <div className="button group">
 
         <Link
           href="/contact/book"
-          className="button_inner q inline-flex items-center rounded-2xl bg-[#7a7ac4] px-6 py-3 text-white text-lg font-medium shadow hover:opacity-90 focus:outline-none no-hover-underline"
+          className="button_inner q inline-flex items-center rounded-2xl bg-[#8484d1] px-6 py-3 text-white text-lg font-medium shadow hover:opacity-90 focus:outline-none no-hover-underline transition-all duration-300 group-hover:shadow-lg group-hover:shadow-[rgba(255,230,150,0.3)]"
         >
           <i className="l ion-log-in" />
           <span className="t">{text}</span>

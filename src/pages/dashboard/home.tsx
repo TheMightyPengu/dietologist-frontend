@@ -76,7 +76,7 @@ export default function ManagementHomePage() {
           <div className="mb-6 flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
             >
               ← Πίσω στο Dashboard
             </Link>
@@ -100,10 +100,10 @@ export default function ManagementHomePage() {
                       placeholder="https://..."
                       value={data.heroImageUrl}
                       onChange={e => setData(s => ({ ...s, heroImageUrl: e.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                     />
                     <div className="mt-3 flex items-center gap-3">
-                      <label className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm cursor-pointer hover:border-[#7a7ac4]">
+                      <label className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm cursor-pointer hover:border-[#8484d1]">
                         <input
                           type="file"
                           accept="image/*"
@@ -135,7 +135,7 @@ export default function ManagementHomePage() {
                         type="text"
                         value={data.welcomeTitle}
                         onChange={e => setData(s => ({ ...s, welcomeTitle: e.target.value }))}
-                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                       />
                     </div>
                     <div>
@@ -144,7 +144,7 @@ export default function ManagementHomePage() {
                         rows={3}
                         value={data.welcomeParagraph}
                         onChange={e => setData(s => ({ ...s, welcomeParagraph: e.target.value }))}
-                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                       />
                     </div>
                   </div>
@@ -156,7 +156,7 @@ export default function ManagementHomePage() {
                       rows={4}
                       value={data.bioParagraph}
                       onChange={e => setData(s => ({ ...s, bioParagraph: e.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                     />
                   </div>
 
@@ -167,7 +167,7 @@ export default function ManagementHomePage() {
                       rows={4}
                       value={data.philosophyParagraph}
                       onChange={e => setData(s => ({ ...s, philosophyParagraph: e.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                     />
                   </div>
 
@@ -178,7 +178,7 @@ export default function ManagementHomePage() {
                       disabled={saving}
                       className={cx(
                         "inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition",
-                        saving ? "bg-[#7a7ac4]/70 text-white cursor-wait" : "bg-[#7a7ac4] text-white hover:shadow"
+                        saving ? "bg-[#8484d1]/70 text-white cursor-wait" : "bg-[#8484d1] text-white hover:shadow"
                       )}
                     >
                       {saving ? "ΑΠΟΘΗΚΕΥΣΗ…" : "ΑΠΟΘΗΚΕΥΣΗ"}
@@ -186,7 +186,7 @@ export default function ManagementHomePage() {
 
                     <button
                       onClick={onReloadFromApi}
-                      className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[#7a7ac4] transition"
+                      className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[#8484d1] transition"
                     >
                       Φόρτωση από API
                     </button>

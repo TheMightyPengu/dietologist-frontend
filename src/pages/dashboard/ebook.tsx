@@ -112,7 +112,7 @@ export default function ManagementEbookPage() {
           <div className="mb-6 flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
             >
               ← Πίσω στο Dashboard
             </Link>
@@ -125,14 +125,14 @@ export default function ManagementEbookPage() {
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder="Αναζήτηση ebooks…"
-                className="w-full md:w-80 rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                className="w-full md:w-80 rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
               <button
                 onClick={handleCreate}
                 disabled={creating}
                 className={cx(
                   "rounded-full px-4 py-2 text-sm font-semibold transition",
-                  creating ? "bg-[#7a7ac4]/70 text-white cursor-wait" : "bg-[#7a7ac4] text-white hover:shadow"
+                  creating ? "bg-[#8484d1]/70 text-white cursor-wait" : "bg-[#8484d1] text-white hover:shadow"
                 )}
               >
                 {creating ? "Δημιουργία…" : "Νέο ebook"}
@@ -209,7 +209,7 @@ function EbookEditorCard({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setOpen(o => !o)}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
           >
             {open ? "Σύμπτυξη" : "Επέκταση"}
           </button>
@@ -233,7 +233,7 @@ function EbookEditorCard({
                 <input
                   value={draft.title}
                   onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
               <div>
@@ -241,7 +241,7 @@ function EbookEditorCard({
                 <input
                   value={draft.subtitle ?? ""}
                   onChange={e => setDraft(d => ({ ...d, subtitle: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
             </div>
@@ -252,7 +252,7 @@ function EbookEditorCard({
                 rows={3}
                 value={draft.description}
                 onChange={e => setDraft(d => ({ ...d, description: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
             </div>
 
@@ -264,7 +264,7 @@ function EbookEditorCard({
                   min={1}
                   value={draft.pages}
                   onChange={e => setDraft(d => ({ ...d, pages: Number(e.target.value) }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
               <div>
@@ -272,7 +272,7 @@ function EbookEditorCard({
                 <input
                   value={draft.format}
                   onChange={e => setDraft(d => ({ ...d, format: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
               <div>
@@ -284,7 +284,7 @@ function EbookEditorCard({
                     const dt = new Date(e.target.value);
                     setDraft(d => ({ ...d, lastUpdatedISO: dt.toISOString() }));
                   }}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
               <div>
@@ -295,7 +295,7 @@ function EbookEditorCard({
                   step={1}
                   value={draft.priceEuro}
                   onChange={e => setDraft(d => ({ ...d, priceEuro: Number(e.target.value) }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
             </div>
@@ -306,7 +306,7 @@ function EbookEditorCard({
                 <input
                   value={draft.previewUrl}
                   onChange={e => setDraft(d => ({ ...d, previewUrl: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -315,7 +315,7 @@ function EbookEditorCard({
                   <input
                     value={draft.previewCta ?? "Προεπισκόπηση"}
                     onChange={e => setDraft(d => ({ ...d, previewCta: e.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                   />
                 </div>
                 <div>
@@ -323,7 +323,7 @@ function EbookEditorCard({
                   <input
                     value={draft.buyCta ?? "Αγορά"}
                     onChange={e => setDraft(d => ({ ...d, buyCta: e.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                   />
                 </div>
               </div>
@@ -335,7 +335,7 @@ function EbookEditorCard({
                 <input
                   value={draft.buyUrl}
                   onChange={e => setDraft(d => ({ ...d, buyUrl: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
               <div className="flex items-end gap-3">
@@ -355,7 +355,7 @@ function EbookEditorCard({
                 <label className="block text-sm font-semibold text-slate-700">Κάρτες χαρακτηριστικών</label>
                 <button
                   onClick={addFeature}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
                 >
                   + Προσθήκη κάρτας
                 </button>
@@ -367,13 +367,13 @@ function EbookEditorCard({
                       placeholder="Τίτλος"
                       value={f.title}
                       onChange={e => updateFeature(f.id, { title: e.target.value })}
-                      className="md:col-span-2 rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                      className="md:col-span-2 rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                     />
                     <input
                       placeholder="Περιγραφή"
                       value={f.desc}
                       onChange={e => updateFeature(f.id, { desc: e.target.value })}
-                      className="md:col-span-3 rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                      className="md:col-span-3 rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                     />
                     <div className="md:col-span-5 flex justify-end">
                       <button
@@ -397,7 +397,7 @@ function EbookEditorCard({
                 <label className="block text-sm font-semibold text-slate-700">Τι θα βρείτε μέσα (bullets)</label>
                 <button
                   onClick={addContent}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
                 >
                   + Προσθήκη στοιχείου
                 </button>
@@ -414,7 +414,7 @@ function EbookEditorCard({
                         arr[i] = e.target.value;
                         return { ...d, contents: arr };
                       })}
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                     />
                     <button
                       onClick={() => removeContent(i)}
@@ -437,14 +437,14 @@ function EbookEditorCard({
                 disabled={busy}
                 className={cx(
                   "rounded-full px-4 py-2 text-sm font-semibold transition",
-                  busy ? "bg-[#7a7ac4]/70 text-white cursor-wait" : "bg-[#7a7ac4] text-white hover:shadow"
+                  busy ? "bg-[#8484d1]/70 text-white cursor-wait" : "bg-[#8484d1] text-white hover:shadow"
                 )}
               >
                 {busy ? "Αποθήκευση…" : "Αποθήκευση"}
               </button>
               <button
                 onClick={() => setDraft(eb)}
-                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[#7a7ac4]"
+                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[#8484d1]"
               >
                 Επαναφορά αλλαγών
               </button>
@@ -492,7 +492,7 @@ function EbookEditorCard({
                 <a className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm">
                   {draft.previewCta || "Προεπισκόπηση"} →
                 </a>
-                <a className="rounded-full bg-[#7a7ac4] text-white px-3 py-1.5 text-sm">
+                <a className="rounded-full bg-[#8484d1] text-white px-3 py-1.5 text-sm">
                   {(draft.buyCta || "Αγορά") + ` — ${draft.priceEuro}€`}
                 </a>
               </div>
@@ -507,7 +507,7 @@ function EbookEditorCard({
               ))}
             </div>
 
-            <div className="mt-4 rounded-2xl bg-[#7a7ac4] text-white p-4">
+            <div className="mt-4 rounded-2xl bg-[#8484d1] text-white p-4">
               <div className="flex items-center justify-between">
                 <div className="font-semibold">Τι θα βρείτε μέσα</div>
                 <div className="rounded-full bg-white/20 px-3 py-1 text-sm">

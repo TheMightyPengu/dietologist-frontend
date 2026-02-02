@@ -20,26 +20,27 @@ const Pill = ({ children }: PillProps) => (
 );
 
 const SectionCard: React.FC<
-  React.PropsWithChildren<{ title: React.ReactNode; id?: string }>
-> = ({ title, id, children }) => (
+  React.PropsWithChildren<{ title: React.ReactNode; id?: string; featured?: boolean }>
+> = ({ title, id, featured = false, children }) => (
   <section id={id} className="scroll-mt-28">
     <div
       className={[
         // bg must be white only
         "rounded-3xl bg-white",
-        // more green tint via ring + subtle accent shadow
-        "ring-1 ring-accent/25",
+        // warm accent for featured sections (10% rule), green for standard
+        featured 
+          ? "ring-2 ring-warm/50 shadow-[0_10px_25px_rgba(255,230,150,0.12)]"
+          : "ring-1 ring-accent/25 shadow-[0_10px_25px_rgba(164,199,126,0.10)]",
         "shadow-sm",
-        "shadow-[0_10px_25px_rgba(164,199,126,0.10)]",
         "p-6 sm:p-8 lg:p-10",
       ].join(" ")}
     >
-      {/* tiny green divider under title for “more green” without changing bg */}
+      {/* tiny divider under title - warm for featured, green otherwise */}
       <div className="flex items-center gap-3">
         <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">
           {title}
         </h2>
-        <span className="hidden sm:inline-block h-px w-16 bg-accent/40" />
+        <span className={`hidden sm:inline-block h-px w-16 ${featured ? 'bg-warm/50' : 'bg-accent/40'}`} />
       </div>
 
       <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-slate-700">
@@ -167,7 +168,7 @@ export default function ServicesPage() {
             <span className="h-px w-16 bg-accent/35" />
           </div>
 
-          <SectionCard title="Συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης">
+          <SectionCard title="Συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης" featured={true}>
             <ol className="list-decimal pl-5 space-y-2 marker:text-accent/80">
               <li>
                 <strong>Ανάλυση σύστασης σώματος (λιπομέτρηση)</strong>: αν

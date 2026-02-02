@@ -42,7 +42,7 @@ export default function ManagementBlogPage() {
           <div className="mb-6 flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
             >
               ← Πίσω στο Dashboard
             </Link>
@@ -60,7 +60,7 @@ export default function ManagementBlogPage() {
                   onClick={() => setActive(t.key as Tab)}
                   className={cx(
                     "px-4 py-2 rounded-full text-sm font-medium transition",
-                    active === t.key ? "bg-[#7a7ac4] text-white" : "bg-white border border-slate-200 hover:border-[#7a7ac4]"
+                    active === t.key ? "bg-[#8484d1] text-white" : "bg-white border border-slate-200 hover:border-[#8484d1]"
                   )}
                 >
                   {t.label}
@@ -151,14 +151,14 @@ function ArticlesManager() {
             value={q}
             onChange={e => setQ(e.target.value)}
             placeholder="Αναζήτηση άρθρων…"
-            className="w-full md:w-80 rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+            className="w-full md:w-80 rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
           />
           <button
             onClick={onCreate}
             disabled={creating}
             className={cx(
               "rounded-full px-4 py-2 text-sm font-semibold transition",
-              creating ? "bg-[#7a7ac4]/70 text-white cursor-wait" : "bg-[#7a7ac4] text-white hover:shadow"
+              creating ? "bg-[#8484d1]/70 text-white cursor-wait" : "bg-[#8484d1] text-white hover:shadow"
             )}
           >
             {creating ? "Δημιουργία…" : "Νέο άρθρο"}
@@ -223,7 +223,7 @@ function ArticleEditorCard({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setOpen(o => !o)}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
           >
             {open ? "Σύμπτυξη" : "Επέκταση"}
           </button>
@@ -247,7 +247,7 @@ function ArticleEditorCard({
                 <input
                   value={draft.title}
                   onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
               <div>
@@ -255,7 +255,7 @@ function ArticleEditorCard({
                 <input
                   value={draft.slug}
                   onChange={e => setDraft(d => ({ ...d, slug: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
             </div>
@@ -266,7 +266,7 @@ function ArticleEditorCard({
                 value={draft.imageUrl}
                 onChange={e => setDraft(d => ({ ...d, imageUrl: e.target.value }))}
                 placeholder="https://..."
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
             </div>
 
@@ -276,7 +276,7 @@ function ArticleEditorCard({
                 <select
                   value={draft.category}
                   onChange={e => setDraft(d => ({ ...d, category: e.target.value as ArticleCategory }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 >
                   {CAT_OPTIONS.map(c => <option key={c}>{c}</option>)}
                 </select>
@@ -287,7 +287,7 @@ function ArticleEditorCard({
                   type="date"
                   value={draft.dateISO.slice(0,10)}
                   onChange={e => setDraft(d => ({ ...d, dateISO: new Date(e.target.value).toISOString() }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
               <div>
@@ -297,7 +297,7 @@ function ArticleEditorCard({
                   min={1}
                   value={draft.readingMin}
                   onChange={e => setDraft(d => ({ ...d, readingMin: Number(e.target.value) }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
               <div className="flex items-end gap-2">
@@ -317,7 +317,7 @@ function ArticleEditorCard({
                 rows={3}
                 value={draft.excerpt}
                 onChange={e => setDraft(d => ({ ...d, excerpt: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
             </div>
 
@@ -326,9 +326,9 @@ function ArticleEditorCard({
               <div className="flex items-center justify-between">
                 <div className="text-sm font-semibold">Περιεχόμενο</div>
                 <div className="flex gap-2">
-                  <button onClick={() => addBlock("h3")} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]">+ H3</button>
-                  <button onClick={() => addBlock("p")}  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]">+ Παράγραφος</button>
-                  <button onClick={() => addBlock("ul")} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]">+ Λίστα</button>
+                  <button onClick={() => addBlock("h3")} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]">+ H3</button>
+                  <button onClick={() => addBlock("p")}  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]">+ Παράγραφος</button>
+                  <button onClick={() => addBlock("ul")} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]">+ Λίστα</button>
                 </div>
               </div>
               <div className="mt-3 space-y-3">
@@ -342,7 +342,7 @@ function ArticleEditorCard({
                       <input
                         value={b.text}
                         onChange={e => updateBlock(i, { type: "h3", text: e.target.value })}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                       />
                     )}
                     {b.type === "p" && (
@@ -350,7 +350,7 @@ function ArticleEditorCard({
                         rows={3}
                         value={b.text}
                         onChange={e => updateBlock(i, { type: "p", text: e.target.value })}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                       />
                     )}
                     {b.type === "ul" && (
@@ -365,7 +365,7 @@ function ArticleEditorCard({
                                 items[j] = e.target.value;
                                 updateBlock(i, { type: "ul", items });
                               }}
-                              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                             />
                             <button
                               onClick={() => {
@@ -380,7 +380,7 @@ function ArticleEditorCard({
                         ))}
                         <button
                           onClick={() => updateBlock(i, { type: "ul", items: [...b.items, ""] })}
-                          className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+                          className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
                         >
                           + στοιχείο
                         </button>
@@ -398,7 +398,7 @@ function ArticleEditorCard({
             <div>
               <div className="flex items-center justify-between">
                 <label className="block text-sm font-semibold text-slate-700">Ετικέτες</label>
-                <button onClick={addTag} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]">
+                <button onClick={addTag} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]">
                   + Προσθήκη ετικέτας
                 </button>
               </div>
@@ -420,14 +420,14 @@ function ArticleEditorCard({
                 disabled={busy}
                 className={cx(
                   "rounded-full px-4 py-2 text-sm font-semibold transition",
-                  busy ? "bg-[#7a7ac4]/70 text-white cursor-wait" : "bg-[#7a7ac4] text-white hover:shadow"
+                  busy ? "bg-[#8484d1]/70 text-white cursor-wait" : "bg-[#8484d1] text-white hover:shadow"
                 )}
               >
                 {busy ? "Αποθήκευση…" : "Αποθήκευση"}
               </button>
               <button
                 onClick={() => setDraft(row)}
-                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[#7a7ac4]"
+                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[#8484d1]"
               >
                 Επαναφορά αλλαγών
               </button>
@@ -441,7 +441,7 @@ function ArticleEditorCard({
                 {draft.imageUrl ? <Image src={draft.imageUrl} alt="" className="h-full w-full object-cover" /> : null}
               </div>
               <div className="px-4 py-3">
-                <span className="inline-block text-[11px] rounded-full bg-[#7a7ac4]/15 text-[#2b2b6f] px-2 py-0.5 mb-2">{draft.category}</span>
+                <span className="inline-block text-[11px] rounded-full bg-[#8484d1]/15 text-[#2b2b6f] px-2 py-0.5 mb-2">{draft.category}</span>
                 <h4 className="text-base font-semibold">{draft.title}</h4>
                 <p className="mt-1 text-sm text-slate-600 line-clamp-3">{draft.excerpt}</p>
                 <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
@@ -534,14 +534,14 @@ function RecipesManager() {
             value={q}
             onChange={e => setQ(e.target.value)}
             placeholder="Αναζήτηση συνταγών…"
-            className="w-full md:w-80 rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+            className="w-full md:w-80 rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
           />
           <button
             onClick={onCreate}
             disabled={creating}
             className={cx(
               "rounded-full px-4 py-2 text-sm font-semibold transition",
-              creating ? "bg-[#7a7ac4]/70 text-white cursor-wait" : "bg-[#7a7ac4] text-white hover:shadow"
+              creating ? "bg-[#8484d1]/70 text-white cursor-wait" : "bg-[#8484d1] text-white hover:shadow"
             )}
           >
             {creating ? "Δημιουργία…" : "Νέα συνταγή"}
@@ -604,7 +604,7 @@ function RecipeEditorCard({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setOpen(o => !o)}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
           >
             {open ? "Σύμπτυξη" : "Επέκταση"}
           </button>
@@ -628,7 +628,7 @@ function RecipeEditorCard({
                 <input
                   value={draft.title}
                   onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
               <div>
@@ -636,7 +636,7 @@ function RecipeEditorCard({
                 <input
                   value={draft.slug}
                   onChange={e => setDraft(d => ({ ...d, slug: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
             </div>
@@ -647,7 +647,7 @@ function RecipeEditorCard({
                 value={draft.hero}
                 onChange={e => setDraft(d => ({ ...d, hero: e.target.value }))}
                 placeholder="https://..."
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
             </div>
 
@@ -657,7 +657,7 @@ function RecipeEditorCard({
                 <select
                   value={draft.category}
                   onChange={e => setDraft(d => ({ ...d, category: e.target.value as RecipeCategory }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 >
                   {REC_CATS.map(c => <option key={c}>{c}</option>)}
                 </select>
@@ -669,7 +669,7 @@ function RecipeEditorCard({
                   min={0}
                   value={draft.minutes}
                   onChange={e => setDraft(d => ({ ...d, minutes: Number(e.target.value) }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
               <div>
@@ -681,7 +681,7 @@ function RecipeEditorCard({
                   max={5}
                   value={draft.rating ?? ""}
                   onChange={e => setDraft(d => ({ ...d, rating: e.target.value === "" ? undefined : Number(e.target.value) }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
               <div className="flex items-end gap-2">
@@ -701,7 +701,7 @@ function RecipeEditorCard({
                 <label className="block text-sm font-semibold text-slate-700">Υλικά</label>
                 <button
                   onClick={addIngredient}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
                 >
                   + Υλικό
                 </button>
@@ -715,7 +715,7 @@ function RecipeEditorCard({
                       onChange={e => setDraft(d => {
                         const arr = [...d.ingredients]; arr[i] = e.target.value; return { ...d, ingredients: arr };
                       })}
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                     />
                     <button
                       onClick={() => removeIngredient(i)}
@@ -735,7 +735,7 @@ function RecipeEditorCard({
                 <label className="block text-sm font-semibold text-slate-700">Βήματα (προαιρετικά)</label>
                 <button
                   onClick={addStep}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
                 >
                   + Βήμα
                 </button>
@@ -750,7 +750,7 @@ function RecipeEditorCard({
                       onChange={e => setDraft(d => {
                         const arr = [...d.steps]; arr[i] = e.target.value; return { ...d, steps: arr };
                       })}
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#7a7ac4]"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                     />
                     <button
                       onClick={() => removeStep(i)}
@@ -770,7 +770,7 @@ function RecipeEditorCard({
                 <label className="block text-sm font-semibold text-slate-700">Ετικέτες</label>
                 <button
                   onClick={addTag}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#7a7ac4]"
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
                 >
                   + Ετικέτα
                 </button>
@@ -793,14 +793,14 @@ function RecipeEditorCard({
                 disabled={busy}
                 className={cx(
                   "rounded-full px-4 py-2 text-sm font-semibold transition",
-                  busy ? "bg-[#7a7ac4]/70 text-white cursor-wait" : "bg-[#7a7ac4] text-white hover:shadow"
+                  busy ? "bg-[#8484d1]/70 text-white cursor-wait" : "bg-[#8484d1] text-white hover:shadow"
                 )}
               >
                 {busy ? "Αποθήκευση…" : "Αποθήκευση"}
               </button>
               <button
                 onClick={() => setDraft(row)}
-                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[#7a7ac4]"
+                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[#8484d1]"
               >
                 Επαναφορά αλλαγών
               </button>

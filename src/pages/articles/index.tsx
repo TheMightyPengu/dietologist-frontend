@@ -285,7 +285,7 @@ export default function ArticlesIndex(props: Props) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Αναζήτηση άρθρων..."
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none focus:ring-4 focus:ring-[#7a7ac4]/20"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none focus:ring-4 focus:ring-[#8484d1]/20"
               />
             </div>
 
@@ -297,7 +297,7 @@ export default function ArticlesIndex(props: Props) {
                   <label key={c} className="inline-flex items-center gap-2">
                     <input
                       type="checkbox"
-                      className="rounded border-slate-300 text-[#7a7ac4] focus:ring-[#7a7ac4]"
+                      className="rounded border-slate-300 text-[#8484d1] focus:ring-[#8484d1]"
                       checked={catSet.has(c)}
                       onChange={() => toggleCat(c)}
                     />
@@ -316,7 +316,7 @@ export default function ArticlesIndex(props: Props) {
                     <label key={t} className="inline-flex items-center gap-2">
                       <input
                         type="checkbox"
-                        className="rounded border-slate-300 text-[#7a7ac4] focus:ring-[#7a7ac4]"
+                        className="rounded border-slate-300 text-[#8484d1] focus:ring-[#8484d1]"
                         checked={tagSet.has(t)}
                         onChange={() => toggleTag(t)}
                       />
@@ -439,11 +439,15 @@ export default function ArticlesIndex(props: Props) {
               </div>
             ) : (
               <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
-                {filteredSorted.map((a) => (
+                {filteredSorted.map((a, idx) => (
                   <li key={a.id} className="group h-full">
                     <Link
                       href={`/articles/${encodeURIComponent(a.slug)}`}
-                      className="flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 transition hover:shadow-lg"
+                      className={`flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm transition hover:shadow-lg ${
+                        idx === 0 
+                          ? 'ring-2 ring-warm/50 hover:shadow-[0_10px_25px_rgba(255,230,150,0.12)]' 
+                          : 'ring-1 ring-slate-200'
+                      }`}
                     >
                       <div className="relative aspect-[16/10] overflow-hidden">
                         <Image
@@ -453,9 +457,14 @@ export default function ArticlesIndex(props: Props) {
                           sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                           className="object-cover transition duration-300 group-hover:scale-[1.03]"
                         />
-                        <span className="absolute left-3 top-3 inline-flex items-center rounded-full bg-[#7a7ac4] px-3 py-1 text-xs font-medium text-white/95">
+                        <span className={`absolute left-3 top-3 inline-flex items-center rounded-full ${idx === 0 ? 'bg-warm text-slate-800' : 'bg-[#8484d1] text-white/95'} px-3 py-1 text-xs font-medium`}>
                           {a.category}
                         </span>
+                        {idx === 0 && (
+                          <span className="absolute right-3 top-3 inline-flex items-center rounded-full bg-warm/30 border border-warm/60 px-2.5 py-1 text-xs font-medium text-slate-800">
+                            ⭐ Προτεινόμενο
+                          </span>
+                        )}
                       </div>
 
                       <div className="p-5 flex flex-col gap-3 grow">
@@ -516,7 +525,7 @@ function RadioRow({
       <input
         type="radio"
         name={name}
-        className="border-slate-300 text-[#7a7ac4] focus:ring-[#7a7ac4]"
+        className="border-slate-300 text-[#8484d1] focus:ring-[#8484d1]"
         checked={checked}
         onChange={onChange}
       />

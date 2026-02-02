@@ -196,7 +196,7 @@ export default function SeminarsPage() {
             <p className="text-slate-600">Δεν βρέθηκαν αποτελέσματα.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filtered.map((s) => {
+              {filtered.map((s, idx) => {
                 const date = new Date(s.dateISO);
                 const niceDate = isNaN(date.getTime())
                   ? "Ημερομηνία σύντομα"
@@ -215,26 +215,32 @@ export default function SeminarsPage() {
                       "group rounded-2xl overflow-hidden h-full flex flex-col transition",
                       // bg must be white only
                       "bg-white",
-                      // more green tints: ring + green glow on hover
-                      "ring-1 ring-accent/20",
-                      "shadow-sm shadow-[0_12px_28px_rgba(164,199,126,0.10)]",
-                      "hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)]",
+                      // warm accent for first seminar (10% rule), green for others
+                      idx === 0
+                        ? "ring-2 ring-warm/50 shadow-[0_12px_28px_rgba(255,230,150,0.12)] hover:shadow-[0_18px_38px_rgba(255,230,150,0.18)]"
+                        : "ring-1 ring-accent/20 shadow-[0_12px_28px_rgba(164,199,126,0.10)] hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)]",
                     ].join(" ")}
                   >
                     <div
-                      className="h-40 bg-cover bg-center"
+                      className="h-40 bg-cover bg-center relative"
                       style={{ backgroundImage: `url(${s.cover})` }}
-                    />
+                    >
+                      {idx === 0 && (
+                        <span className="absolute top-2 right-2 inline-flex items-center rounded-full bg-warm/80 border border-warm/60 px-2.5 py-1 text-xs font-medium text-slate-800">
+                          🔥 Δημοφιλές
+                        </span>
+                      )}
+                    </div>
 
                     <div className="p-5 flex flex-col grow">
                       <div className="flex items-center gap-2 text-xs text-slate-600">
-                        {/* Chip: white bg, green ring, green hover tint */}
-                        <span className="inline-flex items-center rounded-full bg-white px-2 py-1 ring-1 ring-accent/30">
+                        {/* Chip: white bg, warm ring for featured, green for others */}
+                        <span className={`inline-flex items-center rounded-full px-2 py-1 ${idx === 0 ? 'bg-warm/20 ring-1 ring-warm/40' : 'bg-white ring-1 ring-accent/30'}`}>
                           {s.mode}
                         </span>
-                        <span className="text-accent/70">•</span>
+                        <span className={idx === 0 ? 'text-warm/70' : 'text-accent/70'}>•</span>
                         <span>{niceDate}</span>
-                        <span className="text-accent/70">•</span>
+                        <span className={idx === 0 ? 'text-warm/70' : 'text-accent/70'}>•</span>
                         <span>{s.durationMin}′</span>
                       </div>
 
@@ -246,11 +252,11 @@ export default function SeminarsPage() {
 
                       {/* Sticky-to-bottom footer */}
                       <div className="mt-auto flex items-center justify-between pt-3">
-                        <span className="text-accent font-semibold">
+                        <span className={`font-semibold ${idx === 0 ? 'text-warm' : 'text-accent'}`}>
                           {s.priceEUR ? `${s.priceEUR}€` : "ΔΩΡΕΑΝ"}
                         </span>
 
-                        {/* Primary CTA = purple, green hover tint on container */}
+                        {/* Primary CTA = purple, warm hover for featured */}
                         <Link
                           href={`/seminars/${s.slug}`}
                           className={[
@@ -258,8 +264,10 @@ export default function SeminarsPage() {
                             // purple as primary action
                             "bg-primary text-white",
                             "ring-1 ring-primary/20",
-                            // green hover glow without changing bg away from purple
-                            "hover:shadow-[0_12px_28px_rgba(164,199,126,0.18)]",
+                            // warm hover glow for featured, green for others
+                            idx === 0
+                              ? "hover:shadow-[0_12px_28px_rgba(255,230,150,0.18)]"
+                              : "hover:shadow-[0_12px_28px_rgba(164,199,126,0.18)]",
                             "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
                           ].join(" ")}
                         >

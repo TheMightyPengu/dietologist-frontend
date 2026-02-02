@@ -258,7 +258,7 @@ export default function ArticlePage({
 
         {/* Hero + metadata */}
         <header className="mb-6">
-          <span className="inline-flex items-center rounded-full bg-[#7a7ac4] px-3 py-1 text-xs font-medium text-white/95">
+          <span className="inline-flex items-center rounded-full bg-[#8484d1] px-3 py-1 text-xs font-medium text-white/95">
             {article.category}
           </span>
           <h1 className="mt-3 text-3xl md:text-4xl font-semibold tracking-tight">
@@ -346,7 +346,7 @@ export default function ArticlePage({
                       className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
                       loading="lazy"
                     />
-                    <span className="absolute left-3 top-3 inline-flex items-center rounded-full bg-[#7a7ac4] px-3 py-1 text-xs font-medium text-white/95">
+                    <span className="absolute left-3 top-3 inline-flex items-center rounded-full bg-[#8484d1] px-3 py-1 text-xs font-medium text-white/95">
                       {a.category}
                     </span>
                   </div>

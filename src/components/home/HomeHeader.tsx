@@ -37,10 +37,10 @@ export default function HomeHero() {
           <div className="md:col-span-6 md:col-start-7 lg:col-span-7 space-y-5">
             {/* Brand eyebrow: purple text, subtle green divider */}
             <div className="inline-flex items-center gap-3">
-              <p className="text-sm uppercase tracking-[0.18em] text-primary">
+              <p className="text-sm uppercase tracking-[0.18em] text-accent">
                 diet out of the box
               </p>
-              <span className="hidden sm:inline-block h-px w-14 bg-accent/40" />
+              <span className="hidden sm:inline-block h-px w-14 bg-accent" />
             </div>
 
             <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight font-serif">
@@ -63,14 +63,20 @@ export default function HomeHero() {
 
             <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center">
               {/* Primary CTA stays purple (LeafBurstButton should use bg-primary internally) */}
-              <LeafBurstButton text="ΖΗΤΗΣΤΕ ΕΝΑ ΡΑΝΤΕΒΟΥ" />
+              <div className="relative group">
+                <LeafBurstButton text="ΖΗΤΗΣΤΕ ΕΝΑ ΡΑΝΤΕΒΟΥ" />
+                {/* Warm accent glow around button */}
+                <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-lg" style={{ background: 'rgba(255,230,150,0.2)' }} />
+              </div>
 
-              {/* Link rule: purple default, green hover */}
+              {/* Link rule: purple default, green hover, with accent underline */}
               <Link
                 href="#bio"
-                className="text-base text-primary underline underline-offset-4 decoration-accent/50 hover:text-accent hover:decoration-accent transition"
+                className="text-base text-primary underline underline-offset-4 decoration-accent/50 hover:text-accent hover:decoration-accent transition-all relative group/link"
               >
                 Διαβάστε περισσότερα εδώ
+                {/* Accent underline on hover */}
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-accent group-hover/link:w-full transition-all duration-300" />
               </Link>
             </div>
           </div>

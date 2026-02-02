@@ -41,8 +41,11 @@ export default function HomePage() {
         className="scroll-mt-28 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-12 md:pt-16 pb-8"
       >
         <div className="prose prose-slate max-w-none">
-          <h2>ΒΙΟΓΡΑΦΙΚΟ</h2>
-          <h3 className="mt-0">Σχετικά με εμένα</h3>
+          <div className="flex items-center gap-3 mb-2">
+            <h2 className="m-0">ΒΙΟΓΡΑΦΙΚΟ</h2>
+            <span className="hidden sm:inline-block h-px w-12 bg-gradient-to-r from-warm/60 to-warm/0" />
+          </div>
+          <h3 className="mt-3 text-warm">Σχετικά με εμένα</h3>
 
           <p className="lead">
             Ονομάζομαι <strong>Βασιλική Χύτα</strong> και είμαι Διαιτολόγος – Διατροφολόγος.
@@ -88,8 +91,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* subtle divider */}
-      <hr className="mx-auto max-w-7xl border-black/10" />
+      {/* subtle warm accent divider */}
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-1">
+        <div className="h-[2px] bg-gradient-to-r from-transparent via-warm/60 to-transparent" />
+      </div>
 
       {/* ΦΙΛΟΣΟΦΙΑ (after bio, with bullets preserved) */}
       <section
@@ -97,7 +102,10 @@ export default function HomePage() {
         className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 md:pt-12 pb-12 md:pb-16"
       >
         <div className="prose prose-slate max-w-none">
-          <h2>ΦΙΛΟΣΟΦΙΑ</h2>
+          <div className="flex items-center gap-3 mb-2">
+            <h2 className="m-0">ΦΙΛΟΣΟΦΙΑ</h2>
+            <span className="hidden sm:inline-block h-px w-12 bg-gradient-to-r from-warm/60 to-warm/0" />
+          </div>
 
           <p className="lead">
             Η φιλοσοφία μου στηρίζεται στο <em>βιοψυχοκοινωνικό</em> μοντέλο της
@@ -152,7 +160,7 @@ export default function HomePage() {
             <h2 className="text-2xl md:text-3xl font-semibold">Πρόσφατα από το Blog</h2>
             <Link
               href="/blog"
-              className="text-sm font-medium text-[#7a7ac4] hover:opacity-90"
+              className="text-sm font-medium text-[#8484d1] hover:opacity-90"
             >
               Δείτε όλα →
             </Link>
@@ -162,12 +170,18 @@ export default function HomePage() {
             {[1, 2, 3].map((i) => (
               <article
                 key={i}
-                className="rounded-2xl bg-white ring-1 ring-black/5 p-5 shadow-sm"
+                className={`rounded-2xl bg-white ${i === 1 ? 'ring-2 ring-warm/50 shadow-[0_10px_25px_rgba(255,230,150,0.12)]' : 'ring-1 ring-black/5 shadow-sm'} p-5`}
               >
-                <div className="aspect-[16/9] w-full overflow-hidden rounded-xl bg-slate-100 mb-4" />
-                <h3 className="font-medium">Τίτλος άρθρου #{i}</h3>
-                <p className="mt-2 text-sm text-slate-600">
-                  Σύντομη περιγραφή άρθρου για προεπισκόπηση.
+                <div className={`aspect-[16/9] w-full overflow-hidden rounded-xl ${i === 1 ? 'bg-warm/10' : 'bg-slate-100'} mb-4 relative`}>
+                  {i === 1 && (
+                    <span className="absolute top-2 right-2 inline-flex items-center rounded-full bg-warm/70 px-2 py-1 text-xs font-medium text-slate-800">
+                      ✨ Προτεινόμενο
+                    </span>
+                  )}
+                </div>
+                <h3 className="font-medium">{i === 1 ? 'Ενημερωμένο άρθρο' : `Τίτλος άρθρου #${i}`}</h3>
+                <p className={`mt-2 text-sm ${i === 1 ? 'text-warm font-medium' : 'text-slate-600'}`}>
+                  {i === 1 ? 'Προτεινόμενη ανάγνωση για εσάς.' : 'Σύντομη περιγραφή άρθρου για προεπισκόπηση.'}
                 </p>
                 <Link
                   href="/blog/articles/sample"
@@ -183,14 +197,14 @@ export default function HomePage() {
 
       {/* Big CTA */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
-        <div className="rounded-3xl bg-[#7a7ac4] text-white px-6 py-10 md:px-12 md:py-14 shadow">
+        <div className="rounded-3xl bg-[#8484d1] text-white px-6 py-10 md:px-12 md:py-14 shadow">
           <h2 className="text-2xl md:text-3xl font-semibold">Έτοιμοι να ξεκινήσουμε;</h2>
           <p className="mt-2 max-w-2xl text-white/90">
             Κλείστε ραντεβού για την πρώτη μας συνάντηση — από κοντά ή online.
           </p>
           <Link
             href="/contact/book"
-            className="mt-6 inline-flex items-center rounded-2xl bg-white px-6 py-3 text-[#7a7ac4] font-medium hover:opacity-90"
+            className="mt-6 inline-flex items-center rounded-2xl bg-white px-6 py-3 text-[#8484d1] font-medium hover:opacity-90"
           >
             Ζητήστε ένα ραντεβού
           </Link>

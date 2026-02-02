@@ -577,14 +577,14 @@ export default function RecipesIndex() {
 
               {/* Grid */}
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {paged.map((r) => {
+                {paged.map((r, idx) => {
                   const pretty = toGreekSlug(r.title);
                   return (
                     <Link
                       key={r.id}
                       href={{ pathname: "/recipes/[slug]", query: { slug: r.slug } }} // real route uses API slug
                       as={`/recipes/${pretty}`} // UI shows Greek pretty slug
-                      className="group rounded-2xl bg-white/90 ring-1 ring-black/5 p-3 shadow-sm hover:shadow transition flex flex-col"
+                      className={`group rounded-2xl ${idx === 0 ? 'ring-2 ring-warm/50 hover:shadow-[0_10px_25px_rgba(255,230,150,0.12)]' : 'ring-1 ring-black/5'} bg-white/90 p-3 shadow-sm hover:shadow transition flex flex-col`}
                     >
                       <div className="relative overflow-hidden rounded-xl">
                         <Image
@@ -592,9 +592,14 @@ export default function RecipesIndex() {
                           alt={r.title}
                           className="h-44 w-full object-cover group-hover:scale-[1.02] transition"
                         />
-                        <div className="absolute top-2 left-2 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-xs ring-1 ring-black/5">
+                        <div className={`absolute top-2 left-2 inline-flex items-center gap-2 rounded-full ${idx === 0 ? 'bg-warm/90 text-slate-800' : 'bg-white/90 text-slate-700'} px-3 py-1 text-xs ring-1 ${idx === 0 ? 'ring-warm/40' : 'ring-black/5'}`}>
                           <ClockIcon /> {formatMin(r.minutes)}
                         </div>
+                        {idx === 0 && (
+                          <span className="absolute top-2 right-2 inline-flex items-center rounded-full bg-warm/30 border border-warm/60 px-2.5 py-1 text-xs font-medium text-slate-800">
+                            ✨ Δημοφιλής
+                          </span>
+                        )}
                       </div>
                       <div className="pt-3 flex flex-col flex-grow">
                         <div className="font-medium leading-snug line-clamp-2">{r.title}</div>
