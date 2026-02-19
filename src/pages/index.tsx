@@ -44,11 +44,10 @@ export default function HomePage() {
           {/* Left: text */}
           <div className="md:col-span-7">
             <div className="prose prose-slate max-w-none">
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 mb-6">
                 <h2 className="m-0">ΒΙΟΓΡΑΦΙΚΟ</h2>
                 <span className="hidden sm:inline-block h-px w-12 bg-gradient-to-r from-warm/60 to-warm/0" />
               </div>
-              <h3 className="mt-3 text-warm">Σχετικά με εμένα</h3>
 
               <p className="lead">
                 Ονομάζομαι <strong>Βασιλική Χύτα</strong> και είμαι Διαιτολόγος
@@ -126,7 +125,7 @@ export default function HomePage() {
         className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 md:pt-12 pb-12 md:pb-16"
       >
         <div className="prose prose-slate max-w-none">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-6">
             <h2 className="m-0">ΦΙΛΟΣΟΦΙΑ</h2>
             <span className="hidden sm:inline-block h-px w-12 bg-gradient-to-r from-warm/60 to-warm/0" />
           </div>

@@ -95,7 +95,7 @@ export default function Navbar() {
               width={44}
               height={44}
               // slightly larger logo for more presence
-              className="h-9 w-9 md:h-14 md:w-14 rounded-full ring-2 ring-accent/25"
+              className="h-9 w-9 md:h-14 md:w-14 rounded-full ring-2 ring-accent/25 bg-white/90"
             />
             <span className="text-sm md:text-lg font-semibold tracking-tight text-slate-800">Dietitian</span>
           </Link>

@@ -8,6 +8,8 @@ export type Service = {
   intro?: string;          // small paragraph above points
   points: string[];        // numbered/bulleted items
   chips: ServiceChip[];    // pill-like meta (label + value)
+
+  imageUrl?: string;
 };
 
 const KEY = "api:services";
@@ -35,6 +37,8 @@ const DEFAULT_SERVICES: Service[] = [
       { id: "c3", label: "Επόμενες συναντήσεις", value: "45’" },
       { id: "c4", label: "Κόστος επόμενων", value: "40€ (με ΦΠΑ)" },
     ],
+    imageUrl:
+      "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1600&q=80",
   },
   {
     id: "svc-2",
@@ -59,6 +63,8 @@ const DEFAULT_SERVICES: Service[] = [
       { id: "g5", label: "Αριθμός συναντήσεων", value: "10" },
       { id: "g6", label: "Κόστος/συνάντηση", value: "25€ (με ΦΠΑ)" },
     ],
+    imageUrl:
+      "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1600&q=80",
   },
 ];
 

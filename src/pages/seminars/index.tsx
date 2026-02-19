@@ -32,6 +32,27 @@ export default function SeminarsPage() {
   const [items, setItems] = useState<Seminar[]>([]);
   const [q, setQ] = useState("");
 
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState<Seminar | null>(null);
+
+  function openModal(s: Seminar) {
+    setActive(s);
+    setOpen(true);
+  }
+  function closeModal() {
+    setOpen(false);
+    setActive(null);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeModal();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
   // --- Mock "API call"
   useEffect(() => {
     let active = true;
@@ -99,7 +120,7 @@ export default function SeminarsPage() {
       (s) =>
         s.title.toLowerCase().includes(term) ||
         s.excerpt.toLowerCase().includes(term) ||
-        s.mode.toLowerCase().includes(term)
+        s.mode.toLowerCase().includes(term),
     );
   }, [items, q]);
 
@@ -235,12 +256,26 @@ export default function SeminarsPage() {
                     <div className="p-5 flex flex-col grow">
                       <div className="flex items-center gap-2 text-xs text-slate-600">
                         {/* Chip: white bg, warm ring for featured, green for others */}
-                        <span className={`inline-flex items-center rounded-full px-2 py-1 ${idx === 0 ? 'bg-warm/20 ring-1 ring-warm/40' : 'bg-white ring-1 ring-accent/30'}`}>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-1 ${idx === 0 ? "bg-warm/20 ring-1 ring-warm/40" : "bg-white ring-1 ring-accent/30"}`}
+                        >
                           {s.mode}
                         </span>
-                        <span className={idx === 0 ? 'text-warm/70' : 'text-accent/70'}>•</span>
+                        <span
+                          className={
+                            idx === 0 ? "text-warm/70" : "text-accent/70"
+                          }
+                        >
+                          •
+                        </span>
                         <span>{niceDate}</span>
-                        <span className={idx === 0 ? 'text-warm/70' : 'text-accent/70'}>•</span>
+                        <span
+                          className={
+                            idx === 0 ? "text-warm/70" : "text-accent/70"
+                          }
+                        >
+                          •
+                        </span>
                         <span>{s.durationMin}′</span>
                       </div>
 
@@ -252,28 +287,29 @@ export default function SeminarsPage() {
 
                       {/* Sticky-to-bottom footer */}
                       <div className="mt-auto flex items-center justify-between pt-3">
-                        <span className={`font-semibold ${idx === 0 ? 'text-warm' : 'text-accent'}`}>
+                        <span
+                          className={`font-semibold ${idx === 0 ? "text-warm" : "text-accent"}`}
+                        >
                           {s.priceEUR ? `${s.priceEUR}€` : "ΔΩΡΕΑΝ"}
                         </span>
 
                         {/* Primary CTA = purple, warm hover for featured */}
-                        <Link
-                          href={`/seminars/${s.slug}`}
+                        <button
+                          type="button"
+                          onClick={() => openModal(s)}
                           className={[
                             "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm shadow transition",
-                            // purple as primary action
                             "bg-primary text-white",
                             "ring-1 ring-primary/20",
-                            // warm hover glow for featured, green for others
                             idx === 0
                               ? "hover:shadow-[0_12px_28px_rgba(255,230,150,0.18)]"
                               : "hover:shadow-[0_12px_28px_rgba(164,199,126,0.18)]",
                             "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
                           ].join(" ")}
                         >
-                          Κράτηση θέσης
+                          Μάθε περισσότερα
                           <span aria-hidden>→</span>
-                        </Link>
+                        </button>
                       </div>
                     </div>
                   </article>
@@ -317,6 +353,79 @@ export default function SeminarsPage() {
             </div>
           </div>
         </div>
+        {open && active && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center px-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Λεπτομέρειες σεμιναρίου"
+          >
+            {/* backdrop */}
+            <button
+              type="button"
+              onClick={closeModal}
+              className="absolute inset-0 bg-slate-900/40"
+              aria-label="Κλείσιμο"
+            />
+
+            {/* panel */}
+            <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-accent/25">
+              <div
+                className="h-44 bg-cover bg-center"
+                style={{ backgroundImage: `url(${active.cover})` }}
+              />
+
+              <div className="p-6 sm:p-7">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-xl sm:text-2xl font-semibold text-slate-900">
+                      {active.title}
+                    </h3>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-600">
+                      <span className="inline-flex items-center rounded-full bg-white px-2 py-1 ring-1 ring-accent/30">
+                        {active.mode}
+                      </span>
+                      <span className="text-accent/70">•</span>
+                      <span>{active.durationMin}′</span>
+                      <span className="text-accent/70">•</span>
+                      <span className="font-semibold text-accent">
+                        {active.priceEUR ? `${active.priceEUR}€` : "ΔΩΡΕΑΝ"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="mt-4 text-slate-700 leading-relaxed">
+                  {active.excerpt}
+                </p>
+
+                {/* actions */}
+                <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-end">
+                  <Link
+                    href="/contact/book"
+                    className={[
+                      "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 text-sm font-semibold transition",
+                      "bg-primary text-white",
+                      "ring-1 ring-primary/20",
+                      "hover:shadow-[0_12px_28px_rgba(164,199,126,0.18)]",
+                      "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
+                    ].join(" ")}
+                  >
+                    Κράτηση θέσης
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="inline-flex items-center justify-center rounded-2xl px-5 py-2.5 text-sm font-medium bg-white ring-1 ring-accent/40 hover:bg-accent/10"
+                  >
+                    Κλείσιμο
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
     </>
   );

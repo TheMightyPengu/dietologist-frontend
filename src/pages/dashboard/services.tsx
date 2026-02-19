@@ -13,8 +13,16 @@ import {
 
 const cx = (...c: (string | false | null | undefined)[]) =>
   c.filter(Boolean).join(" ");
-const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({ className, children }) => (
-  <div className={cx("rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-200/50", className)}>
+const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
+  className,
+  children,
+}) => (
+  <div
+    className={cx(
+      "rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-200/50",
+      className,
+    )}
+  >
     {children}
   </div>
 );
@@ -48,21 +56,25 @@ export default function ManagementServicesPage() {
   }, [toast]);
 
   const list = useMemo(
-    () => all.filter(s => s.category === activeCat),
-    [all, activeCat]
+    () => all.filter((s) => s.category === activeCat),
+    [all, activeCat],
   );
 
   async function handleCreate() {
     setCreating(true);
     const empty: Omit<Service, "id"> = {
       category: activeCat,
-      title: activeCat === "individual" ? "Νέα ατομική υπηρεσία" : "Νέα ομαδική υπηρεσία",
+      title:
+        activeCat === "individual"
+          ? "Νέα ατομική υπηρεσία"
+          : "Νέα ομαδική υπηρεσία",
       intro: "",
       points: [],
       chips: [],
+      imageUrl: "",
     };
     const created = await createService(empty);
-    setAll(prev => [...prev, created]);
+    setAll((prev) => [...prev, created]);
     setCreating(false);
     setToast("Δημιουργήθηκε η υπηρεσία.");
   }
@@ -70,16 +82,17 @@ export default function ManagementServicesPage() {
   async function handleSave(svc: Service) {
     setBusyId(svc.id);
     const updated = await updateService(svc);
-    setAll(prev => prev.map(x => (x.id === updated.id ? updated : x)));
+    setAll((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
     setBusyId(null);
     setToast("Αποθηκεύτηκε.");
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Διαγραφή υπηρεσίας; Η ενέργεια δεν μπορεί να αναιρεθεί.")) return;
+    if (!confirm("Διαγραφή υπηρεσίας; Η ενέργεια δεν μπορεί να αναιρεθεί."))
+      return;
     setBusyId(id);
     await deleteService(id);
-    setAll(prev => prev.filter(x => x.id !== id));
+    setAll((prev) => prev.filter((x) => x.id !== id));
     setBusyId(null);
     setToast("Διαγράφηκε.");
   }
@@ -100,14 +113,16 @@ export default function ManagementServicesPage() {
             >
               ← Πίσω στο Dashboard
             </Link>
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">ΥΠΗΡΕΣΙΕΣ</h1>
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+              ΥΠΗΡΕΣΙΕΣ
+            </h1>
           </div>
 
           {/* Category tabs + create */}
           <Card className="p-4 md:p-5 mb-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap gap-2">
-                {CATEGORIES.map(c => {
+                {CATEGORIES.map((c) => {
                   const sel = c.key === activeCat;
                   return (
                     <button
@@ -115,7 +130,9 @@ export default function ManagementServicesPage() {
                       onClick={() => setActiveCat(c.key)}
                       className={cx(
                         "px-3 md:px-4 py-2 rounded-full text-sm font-medium transition",
-                        sel ? "bg-[#8484d1] text-white" : "bg-white border border-slate-200 hover:border-[#8484d1]"
+                        sel
+                          ? "bg-[#8484d1] text-white"
+                          : "bg-white border border-slate-200 hover:border-[#8484d1]",
                       )}
                     >
                       {c.label}
@@ -128,7 +145,9 @@ export default function ManagementServicesPage() {
                 disabled={creating}
                 className={cx(
                   "rounded-full px-4 py-2 text-sm font-semibold transition",
-                  creating ? "bg-[#8484d1]/70 text-white cursor-wait" : "bg-[#8484d1] text-white hover:shadow"
+                  creating
+                    ? "bg-[#8484d1]/70 text-white cursor-wait"
+                    : "bg-[#8484d1] text-white hover:shadow",
                 )}
               >
                 {creating ? "Δημιουργία…" : "Νέα υπηρεσία"}
@@ -138,12 +157,16 @@ export default function ManagementServicesPage() {
 
           {/* List */}
           {loading ? (
-            <Card className="p-6"><p>Φόρτωση…</p></Card>
+            <Card className="p-6">
+              <p>Φόρτωση…</p>
+            </Card>
           ) : list.length === 0 ? (
-            <Card className="p-6 text-slate-600">Δεν υπάρχουν υπηρεσίες σε αυτή την κατηγορία.</Card>
+            <Card className="p-6 text-slate-600">
+              Δεν υπάρχουν υπηρεσίες σε αυτή την κατηγορία.
+            </Card>
           ) : (
             <div className="space-y-6">
-              {list.map(svc => (
+              {list.map((svc) => (
                 <ServiceEditorCard
                   key={svc.id}
                   svc={svc}
@@ -183,32 +206,41 @@ function ServiceEditorCard({
 
   useEffect(() => setDraft(svc), [svc]); // reset when row props change
 
-  const addPoint = () => setDraft(d => ({ ...d, points: [...d.points, ""] }));
+  const addPoint = () => setDraft((d) => ({ ...d, points: [...d.points, ""] }));
   const removePoint = (i: number) =>
-    setDraft(d => ({ ...d, points: d.points.filter((_, idx) => idx !== i) }));
+    setDraft((d) => ({ ...d, points: d.points.filter((_, idx) => idx !== i) }));
 
   const addChip = () =>
-    setDraft(d => ({
+    setDraft((d) => ({
       ...d,
-      chips: [...d.chips, { id: `chip-${Date.now().toString(36)}`, label: "", value: "" }],
+      chips: [
+        ...d.chips,
+        { id: `chip-${Date.now().toString(36)}`, label: "", value: "" },
+      ],
     }));
   const updateChip = (id: string, patch: Partial<ServiceChip>) =>
-    setDraft(d => ({ ...d, chips: d.chips.map(c => (c.id === id ? { ...c, ...patch } : c)) }));
+    setDraft((d) => ({
+      ...d,
+      chips: d.chips.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+    }));
   const removeChip = (id: string) =>
-    setDraft(d => ({ ...d, chips: d.chips.filter(c => c.id !== id) }));
+    setDraft((d) => ({ ...d, chips: d.chips.filter((c) => c.id !== id) }));
 
   return (
     <Card className="p-5 md:p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold">{draft.title || "(Χωρίς τίτλο)"}</h3>
+          <h3 className="text-lg font-semibold">
+            {draft.title || "(Χωρίς τίτλο)"}
+          </h3>
           <p className="text-xs text-slate-500 mt-1">
-            Κατηγορία: {draft.category === "individual" ? "Ατομικές" : "Ομαδικές"}
+            Κατηγορία:{" "}
+            {draft.category === "individual" ? "Ατομικές" : "Ομαδικές"}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setOpen(o => !o)}
+            onClick={() => setOpen((o) => !o)}
             className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
           >
             {open ? "Σύμπτυξη" : "Επέκταση"}
@@ -228,11 +260,15 @@ function ServiceEditorCard({
           {/* Title & Intro */}
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700">Τίτλος</label>
+              <label className="block text-sm font-medium text-slate-700">
+                Τίτλος
+              </label>
               <input
                 type="text"
                 value={draft.title}
-                onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, title: e.target.value }))
+                }
                 className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
             </div>
@@ -243,9 +279,42 @@ function ServiceEditorCard({
               <textarea
                 rows={3}
                 value={draft.intro || ""}
-                onChange={e => setDraft(d => ({ ...d, intro: e.target.value }))}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, intro: e.target.value }))
+                }
                 className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700">
+                URL Εικόνας (προαιρετικό)
+              </label>
+              <input
+                type="url"
+                placeholder="https://images.unsplash.com/..."
+                value={draft.imageUrl || ""}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, imageUrl: e.target.value }))
+                }
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+              />
+
+              {draft.imageUrl ? (
+                <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                  <div className="aspect-[16/9] w-full">
+                    <img
+                      src={draft.imageUrl}
+                      alt="Preview"
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-slate-500">
+                  Δεν έχει οριστεί εικόνα.
+                </p>
+              )}
             </div>
           </div>
 
@@ -265,12 +334,14 @@ function ServiceEditorCard({
             <div className="mt-3 space-y-2">
               {draft.points.map((p, i) => (
                 <div key={i} className="flex items-start gap-2">
-                  <span className="mt-2 text-slate-500 select-none">{i + 1}.</span>
+                  <span className="mt-2 text-slate-500 select-none">
+                    {i + 1}.
+                  </span>
                   <textarea
                     rows={2}
                     value={p}
-                    onChange={e =>
-                      setDraft(d => {
+                    onChange={(e) =>
+                      setDraft((d) => {
                         const pts = [...d.points];
                         pts[i] = e.target.value;
                         return { ...d, points: pts };
@@ -287,7 +358,9 @@ function ServiceEditorCard({
                 </div>
               ))}
               {draft.points.length === 0 && (
-                <p className="text-sm text-slate-500">Καμία καταχώριση ακόμη.</p>
+                <p className="text-sm text-slate-500">
+                  Καμία καταχώριση ακόμη.
+                </p>
               )}
             </div>
           </div>
@@ -306,18 +379,25 @@ function ServiceEditorCard({
               </button>
             </div>
             <div className="mt-3 space-y-2">
-              {draft.chips.map(ch => (
-                <div key={ch.id} className="grid grid-cols-1 md:grid-cols-5 gap-2">
+              {draft.chips.map((ch) => (
+                <div
+                  key={ch.id}
+                  className="grid grid-cols-1 md:grid-cols-5 gap-2"
+                >
                   <input
                     placeholder="Ετικέτα (π.χ. Διάρκεια)"
                     value={ch.label}
-                    onChange={e => updateChip(ch.id, { label: e.target.value })}
+                    onChange={(e) =>
+                      updateChip(ch.id, { label: e.target.value })
+                    }
                     className="md:col-span-2 rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                   />
                   <input
                     placeholder="Τιμή (π.χ. 60’)"
                     value={ch.value}
-                    onChange={e => updateChip(ch.id, { value: e.target.value })}
+                    onChange={(e) =>
+                      updateChip(ch.id, { value: e.target.value })
+                    }
                     className="md:col-span-2 rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                   />
                   <div className="flex items-center justify-end">
@@ -338,7 +418,9 @@ function ServiceEditorCard({
 
           {/* Preview */}
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm text-slate-500 mb-2">Προεπισκόπηση JSON (για API):</p>
+            <p className="text-sm text-slate-500 mb-2">
+              Προεπισκόπηση JSON (για API):
+            </p>
             <pre className="text-xs whitespace-pre-wrap break-words">
               {JSON.stringify(draft, null, 2)}
             </pre>
@@ -351,7 +433,9 @@ function ServiceEditorCard({
               disabled={busy}
               className={cx(
                 "rounded-full px-4 py-2 text-sm font-semibold transition",
-                busy ? "bg-[#8484d1]/70 text-white cursor-wait" : "bg-[#8484d1] text-white hover:shadow"
+                busy
+                  ? "bg-[#8484d1]/70 text-white cursor-wait"
+                  : "bg-[#8484d1] text-white hover:shadow",
               )}
             >
               {busy ? "Αποθήκευση…" : "Αποθήκευση"}

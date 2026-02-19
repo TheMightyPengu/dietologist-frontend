@@ -1,6 +1,7 @@
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 type PillProps = { children: React.ReactNode };
 const Pill = ({ children }: PillProps) => (
@@ -20,30 +21,49 @@ const Pill = ({ children }: PillProps) => (
 );
 
 const SectionCard: React.FC<
-  React.PropsWithChildren<{ title: React.ReactNode; id?: string; featured?: boolean }>
-> = ({ title, id, featured = false, children }) => (
+  React.PropsWithChildren<{
+    title: React.ReactNode;
+    id?: string;
+    featured?: boolean;
+    imageUrl?: string;
+  }>
+> = ({ title, id, featured = false, children, imageUrl }) => (
   <section id={id} className="scroll-mt-28">
     <div
       className={[
-        // bg must be white only
         "rounded-3xl bg-white",
-        // warm accent for featured sections (10% rule), green for standard
-        featured 
+        featured
           ? "ring-2 ring-warm/50 shadow-[0_10px_25px_rgba(255,230,150,0.12)]"
           : "ring-1 ring-accent/25 shadow-[0_10px_25px_rgba(164,199,126,0.10)]",
         "shadow-sm",
         "p-6 sm:p-8 lg:p-10",
       ].join(" ")}
     >
-      {/* tiny divider under title - warm for featured, green otherwise */}
       <div className="flex items-center gap-3">
         <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">
           {title}
         </h2>
-        <span className={`hidden sm:inline-block h-px w-16 ${featured ? 'bg-warm/50' : 'bg-accent/40'}`} />
+        <span
+          className={`hidden sm:inline-block h-px w-16 ${featured ? "bg-warm/50" : "bg-accent/40"}`}
+        />
       </div>
 
-      <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-slate-700">
+      {/* IMAGE: placed right after title with safe spacing */}
+      {imageUrl ? (
+        <div className="mt-5 overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-accent/15">
+          <div className="aspect-[16/8] w-full">
+            <img
+              src={imageUrl}
+              alt={typeof title === "string" ? title : "Υπηρεσία"}
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {/* CONTENT: separated from image */}
+      <div className="mt-6 space-y-4 text-[15px] leading-relaxed text-slate-700">
         {children}
       </div>
     </div>
@@ -51,6 +71,36 @@ const SectionCard: React.FC<
 );
 
 export default function ServicesPage() {
+  const [serviceImages, setServiceImages] = useState<Record<string, string>>(
+    {},
+  );
+
+  // Dummy “API” that returns image URLs keyed by section title
+  async function fetchServiceImages(): Promise<Record<string, string>> {
+    // simulate latency
+    await new Promise((r) => setTimeout(r, 250));
+
+    return {
+      "Συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης":
+        "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1600&q=80",
+      "Συνεδρίες εστιασμένες στις διατροφικές διαταραχές":
+        "https://images.unsplash.com/photo-1526318896980-cf78c088247c?auto=format&fit=crop&w=1600&q=80",
+      "Συνεδρίες διαισθητικής διατροφής & mindful eating":
+        "https://images.unsplash.com/photo-1529059997568-3d847b1154f0?auto=format&fit=crop&w=1600&q=80",
+      "Ομαδικές συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης":
+        "https://images.unsplash.com/photo-1525097487452-6278ff080c31?auto=format&fit=crop&w=1600&q=80",
+      'Ομάδα διαισθητικής διατροφής: "No diet project"':
+        "https://images.unsplash.com/photo-1543362906-acfc16c67564?auto=format&fit=crop&w=1600&q=80",
+    };
+  }
+
+  useEffect(() => {
+    (async () => {
+      const imgs = await fetchServiceImages();
+      setServiceImages(imgs);
+    })();
+  }, []);
+
   const siteName = "Διαιτολογικό Κέντρο";
 
   return (
@@ -168,7 +218,15 @@ export default function ServicesPage() {
             <span className="h-px w-16 bg-accent/35" />
           </div>
 
-          <SectionCard title="Συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης" featured={true}>
+          <SectionCard
+            title="Συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης"
+            featured={true}
+            imageUrl={
+              serviceImages[
+                "Συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης"
+              ]
+            }
+          >
             <ol className="list-decimal pl-5 space-y-2 marker:text-accent/80">
               <li>
                 <strong>Ανάλυση σύστασης σώματος (λιπομέτρηση)</strong>: αν
@@ -181,12 +239,12 @@ export default function ServicesPage() {
               </li>
               <li>
                 <strong>Ιστορικό σωματικού βάρους</strong>: εξερευνούμε την
-                πορεία σας μέχρι σήμερα με στοιχεία από τη Γνωστική-Συμπεριφορική
-                προσέγγιση.
+                πορεία σας μέχρι σήμερα με στοιχεία από τη
+                Γνωστική-Συμπεριφορική προσέγγιση.
               </li>
               <li>
-                <strong>Διατροφικό ιστορικό & καθημερινότητα</strong>: συνήθειες,
-                προτιμήσεις, ρυθμοί ημέρας.
+                <strong>Διατροφικό ιστορικό & καθημερινότητα</strong>:
+                συνήθειες, προτιμήσεις, ρυθμοί ημέρας.
               </li>
               <li>
                 <strong>Καθορισμός στόχων</strong>: μικρά εφαρμόσιμα βήματα για
@@ -211,12 +269,19 @@ export default function ServicesPage() {
             </div>
           </SectionCard>
 
-          <SectionCard title="Συνεδρίες εστιασμένες στις διατροφικές διαταραχές">
+          <SectionCard
+            title="Συνεδρίες εστιασμένες στις διατροφικές διαταραχές"
+            imageUrl={
+              serviceImages[
+                "Συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης"
+              ]
+            }
+          >
             <ol className="list-decimal pl-5 space-y-2 marker:text-accent/80">
               <li>
-                <strong>Αρχική εκτίμηση</strong> της τρέχουσας κατάστασης. Ζύγιση
-                ή λιπομέτρηση μόνο αν κριθεί βοηθητική, με έμφαση στη σχέση με το
-                σώμα και όχι στους αριθμούς.
+                <strong>Αρχική εκτίμηση</strong> της τρέχουσας κατάστασης.
+                Ζύγιση ή λιπομέτρηση μόνο αν κριθεί βοηθητική, με έμφαση στη
+                σχέση με το σώμα και όχι στους αριθμούς.
               </li>
               <li>
                 <strong>Ιατρικό/φαρμακευτικό ιστορικό</strong> για ασφάλεια και
@@ -236,9 +301,9 @@ export default function ServicesPage() {
                 παρατήρησης σκέψεων, οδηγίες για ισορροπημένα γεύματα.
               </li>
               <li>
-                <strong>Επόμενες συνεδρίες</strong> ανά 1–2 εβδομάδες: αξιολόγηση
-                προόδου, επεξεργασία σκέψεων/συναισθημάτων, εκπαίδευση με έμφαση
-                στη σχέση με το σώμα.
+                <strong>Επόμενες συνεδρίες</strong> ανά 1–2 εβδομάδες:
+                αξιολόγηση προόδου, επεξεργασία σκέψεων/συναισθημάτων,
+                εκπαίδευση με έμφαση στη σχέση με το σώμα.
               </li>
             </ol>
 
@@ -250,7 +315,14 @@ export default function ServicesPage() {
             </div>
           </SectionCard>
 
-          <SectionCard title="Συνεδρίες διαισθητικής διατροφής & mindful eating">
+          <SectionCard
+            title="Συνεδρίες διαισθητικής διατροφής & mindful eating"
+            imageUrl={
+              serviceImages[
+                "Συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης"
+              ]
+            }
+          >
             <ol className="list-decimal pl-5 space-y-2 marker:text-accent/80">
               <li>
                 <strong>Σύνδεση με το σώμα</strong> χωρίς απαραίτητα ζύγιση/
@@ -274,8 +346,8 @@ export default function ServicesPage() {
               </li>
               <li>
                 <strong>Υλικό & ασκήσεις</strong>: mindfulness & mindful eating,
-                πρακτικές αυτοφροντίδας, ιδέες γευμάτων, εργαλεία επικοινωνίας με
-                τον εαυτό.
+                πρακτικές αυτοφροντίδας, ιδέες γευμάτων, εργαλεία επικοινωνίας
+                με τον εαυτό.
               </li>
               <li>
                 <strong>Επόμενες συνεδρίες</strong>: συζήτηση εμπειριών,
@@ -301,7 +373,14 @@ export default function ServicesPage() {
             <span className="h-px w-16 bg-accent/35" />
           </div>
 
-          <SectionCard title="Ομαδικές συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης">
+          <SectionCard
+            title="Ομαδικές συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης"
+            imageUrl={
+              serviceImages[
+                "Συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης"
+              ]
+            }
+          >
             <p>
               Σκοπός είναι η σταδιακή εκπαίδευση στον τρόπο διατροφής που
               ταιριάζει στις ανάγκες σας, ανταλλαγή εμπειριών και κοινών στόχων
@@ -332,17 +411,26 @@ export default function ServicesPage() {
             </div>
           </SectionCard>
 
-          <SectionCard title='Ομάδα διαισθητικής διατροφής: "No diet project"'>
+          <SectionCard
+            title='Ομάδα διαισθητικής διατροφής: "No diet project"'
+            imageUrl={
+              serviceImages[
+                "Συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης"
+              ]
+            }
+          >
             <p>
-              Για άτομα που θέλουν να διερευνήσουν τη σχέση τους με το φαγητό, να
-              ρυθμίσουν το βάρος τους αργά και βιωματικά και να δημιουργήσουν
+              Για άτομα που θέλουν να διερευνήσουν τη σχέση τους με το φαγητό,
+              να ρυθμίσουν το βάρος τους αργά και βιωματικά και να δημιουργήσουν
               πιο υγιή, φροντιστική σχέση με το σώμα τους.
             </p>
             <p className="font-semibold mt-2 text-slate-900">
               Θεματικές που δουλεύουμε:
             </p>
             <ul className="list-disc pl-5 space-y-1 marker:text-accent/80">
-              <li>Από τη δίαιτα στη φροντίδα & αποκατάσταση σχέσης με το σώμα</li>
+              <li>
+                Από τη δίαιτα στη φροντίδα & αποκατάσταση σχέσης με το σώμα
+              </li>
               <li>Σταματώ να πολεμάω την πείνα μου</li>
               <li>Διατροφική εκπαίδευση & τεχνικές βελτίωσης συμπεριφοράς</li>
               <li>Οργάνωση και απόλαυση γευμάτων</li>
@@ -375,7 +463,9 @@ export default function ServicesPage() {
           ].join(" ")}
         >
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">Κλείστε ραντεβού</h3>
+            <h3 className="text-lg font-semibold text-slate-900">
+              Κλείστε ραντεβού
+            </h3>
             <p className="text-[15px] text-slate-700">
               Στείλτε μας email με το είδος της υπηρεσίας που σας ενδιαφέρει ή
               καλέστε μας για διαθεσιμότητα.
