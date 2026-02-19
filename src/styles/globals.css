@@ -3,11 +3,11 @@
 :root {
   /* Brand palette (Tailwind-friendly RGB for alpha support) */
   --primary: 132 132 209; /* #8484d1 (Purple) */
-  --accent: 126 199 186;  /* #7ec7ba (Light Blue) */
+  --accent: 126 199 148;  /* #7ec7ba (Light Blue) */
   --warm: 230 200 108;    /* #e6c86c (Warm yellow-brown) */
 
   /* Neutrals (also RGB so you can use opacity if needed) */
-  --bg: 252 252 253;      /* #FCFCFD */
+  --bg: 236 255 230;      /* #FCFCFD */
   --surface: 255 255 255; /* #FFFFFF */
   --ink: 31 37 51;        /* #1F2533 */
   --muted: 91 91 102;     /* ~#5B5B66 */

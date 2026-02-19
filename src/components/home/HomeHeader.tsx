@@ -4,7 +4,7 @@ import Image from "next/image";
 
 export default function HomeHero() {
   return (
-    <section className="relative">
+    <section className="relative bg-bg">
       {/* Decorative vine (desktop only) */}
       {/* <Image
         src="/decorative/vines.png"
@@ -19,8 +19,8 @@ export default function HomeHero() {
           {/* Left column — Arch photo */}
           <div className="md:col-span-6 lg:col-span-5">
             <div className="relative mx-auto max-w-md">
-              {/* Arch frame (white bg only; accents via green borders) */}
-              <div className="overflow-hidden rounded-t-[180px] rounded-b-none bg-white shadow-[0_10px_25px_rgba(0,0,0,0.10)] ring-1 ring-accent/20">
+              {/* Arch frame (white bg only; now rectangular with small corners) */}
+              <div className="overflow-hidden rounded-sm bg-bg shadow-[0_10px_25px_rgba(0,0,0,0.10)] ring-1 ring-accent/20">
                 <img
                   src="https://img.freepik.com/premium-photo/diet-healthy-nutrition-portrait-dietitian-s_118454-1331.jpg"
                   alt="Diet out of the Box — Διατροφή & Υγεία"
@@ -29,7 +29,7 @@ export default function HomeHero() {
               </div>
 
               {/* Base anchor (white bg only; green border) */}
-              <div className="mx-auto -mt-1 h-3 w-full rounded-b-xl bg-white ring-1 ring-accent/20" />
+              <div className="mx-auto -mt-1 h-3 w-full rounded-sm bg-bg ring-1 ring-accent/20" />
             </div>
           </div>
 
@@ -37,17 +37,17 @@ export default function HomeHero() {
           <div className="md:col-span-6 md:col-start-7 lg:col-span-7 space-y-5">
             {/* Brand eyebrow: purple text, subtle green divider */}
             <div className="inline-flex items-center gap-3">
-              <p className="text-sm uppercase tracking-[0.18em] text-accent">
+              <p className="text-base uppercase tracking-[0.18em] text-accent saturate-150">
                 diet out of the box
               </p>
-              <span className="hidden sm:inline-block h-px w-14 bg-accent" />
+              <span className="hidden sm:inline-block h-px w-14 bg-accent saturate-150" />
             </div>
 
-            <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight font-serif">
+            <h1 className="text-5xl sm:text-6xl font-semibold tracking-tight font-serif">
               Καλώς ήρθατε!
             </h1>
 
-            <div className="text-[17px] leading-relaxed text-slate-700 font-serif/none">
+            <div className="text-lg leading-relaxed text-slate-700 font-serif/none">
               <p className="mb-3">
                 Είμαι η <span className="font-medium">Βασιλική Χύτα</span>,
                 Διαιτολόγος–Διατροφολόγος. Πιστεύω σε μια ήπια, ανθρωποκεντρική
@@ -95,30 +95,28 @@ export default function HomeHero() {
                 href={s.href}
                 className={[
                   "block self-center m-2 rounded-tl-full rounded-br-full rounded-2xl",
-                  // bg must be white only
-                  "bg-white",
-                  // GREEN used more: border, ring, hover tint, iconography later if needed
+                  // make green the default (previous hover)
+                  "bg-accent/50",
                   "ring-1 ring-accent/25",
-                  // readable text (no white text on white bg)
                   "text-slate-800",
                   "text-center font-medium shadow-sm transition-all duration-200 hover:shadow",
                   "px-4 py-3 sm:px-5 sm:py-3 md:px-6 md:py-4",
-                  // subtle green lift on hover
-                  "hover:bg-accent/10",
+                  // slightly stronger on hover
+                  "hover:bg-accent/75",
                   "no-hover-underline",
-                  // shadow accent: mostly green; occasional purple for one card to keep brand presence
                   i === 0
                     ? "shadow-[1px_1px_6px_rgba(164,199,126,0.55)] hover:shadow-[2px_2px_10px_rgba(164,199,126,0.65)]"
                     : i === 1
                     ? "shadow-[1px_1px_6px_rgba(164,199,126,0.45)] hover:shadow-[2px_2px_10px_rgba(164,199,126,0.60)]"
                     : "shadow-[1px_1px_6px_rgba(122,122,196,0.35)] hover:shadow-[2px_2px_10px_rgba(122,122,196,0.50)]",
                 ].join(" ")}
-              >
-                <h3 className="text-lg font-semibold text-primary">{s.title}</h3>
-                <p className="mt-2 text-sm text-slate-600">
+                >
+                <h3 className="text-lg font-semibold text-white">{s.title}</h3>
+                <p className="mt-2 text-sm text-slate-600 text-grey/60">
                   Μάθετε περισσότερα για τον τρόπο που δουλεύουμε.
                 </p>
               </Link>
+
             ))}
           </div>
         </section>

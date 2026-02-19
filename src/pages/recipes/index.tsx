@@ -457,7 +457,7 @@ export default function RecipesIndex() {
         <link rel="canonical" href="https://example.gr/recipes" />
       </Head>
 
-      <main className="bg-[#fcfcfa] text-slate-800">
+      <main className="bg-bg text-slate-800">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-24">
           <header className="py-6">
             <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">Συνταγές</h1>

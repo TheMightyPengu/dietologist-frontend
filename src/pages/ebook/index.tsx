@@ -92,7 +92,7 @@ export default function EbookPage() {
         />
       </Head>
 
-      <section className="bg-[#fcfcfa] text-slate-800">
+      <section className="bg-bg text-slate-800">
         {/* hero */}
         <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-14 md:pt-20 pb-10">
           {loading ? (

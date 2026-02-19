@@ -71,7 +71,7 @@ export default function ManagementHomePage() {
         <meta name="robots" content="noindex,nofollow" />
       </Head>
 
-      <div className="min-h-[70vh] bg-[#fcfcfa] text-slate-800">
+      <div className="min-h-[70vh] bg-bg text-slate-800">
         <div className="mx-auto max-w-6xl px-4 md:px-6 lg:px-8 py-8 md:py-12">
           <div className="mb-6 flex items-center gap-3">
             <Link
@@ -206,8 +206,8 @@ export default function ManagementHomePage() {
             <Card className="p-5 md:p-6">
               <h3 className="text-lg font-semibold">Ζωντανή Προεπισκόπηση</h3>
               <div className="mt-3 space-y-4">
-                <div className="aspect-[16/9] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
-                  <Image alt="Hero preview" src={previewSrc} className="h-full w-full object-cover" />
+              <div className="aspect-[16/9] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 relative">
+                  <Image alt="Hero preview" src={previewSrc} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" />
                 </div>
                 <div>
                   <h4 className="text-xl font-semibold">{data.welcomeTitle}</h4>

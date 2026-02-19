@@ -37,7 +37,7 @@ export default function ManagementBlogPage() {
         <meta name="robots" content="noindex,nofollow" />
       </Head>
 
-      <div className="min-h-[70vh] bg-[#fcfcfa] text-slate-800">
+      <div className="min-h-[70vh] bg-bg text-slate-800">
         <div className="mx-auto max-w-6xl px-4 md:px-6 lg:px-8 py-8 md:py-12">
           <div className="mb-6 flex items-center gap-3">
             <Link
@@ -437,8 +437,8 @@ function ArticleEditorCard({
           {/* Preview card */}
           <div className="lg:col-span-1">
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
-              <div className="aspect-[16/10] bg-slate-100">
-                {draft.imageUrl ? <Image src={draft.imageUrl} alt="" className="h-full w-full object-cover" /> : null}
+              <div className="aspect-[16/10] bg-slate-100 relative">
+                {draft.imageUrl ? <Image src={draft.imageUrl} alt="" fill className="object-cover" /> : null}
               </div>
               <div className="px-4 py-3">
                 <span className="inline-block text-[11px] rounded-full bg-[#8484d1]/15 text-[#2b2b6f] px-2 py-0.5 mb-2">{draft.category}</span>
@@ -810,8 +810,8 @@ function RecipeEditorCard({
           {/* Preview card */}
           <div className="lg:col-span-1">
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
-              <div className="aspect-[16/10] bg-slate-100">
-                {draft.hero ? <Image src={draft.hero} alt="" className="h-full w-full object-cover" /> : null}
+              <div className="aspect-[16/10] bg-slate-100 relative">
+                {draft.hero ? <Image src={draft.hero} alt="" fill className="object-cover" /> : null}
               </div>
               <div className="px-4 py-3">
                 <div className="flex items-center gap-2 text-xs text-slate-600">

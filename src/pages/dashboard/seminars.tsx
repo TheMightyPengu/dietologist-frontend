@@ -107,7 +107,7 @@ export default function ManagementSeminarsPage() {
         <meta name="robots" content="noindex,nofollow" />
       </Head>
 
-      <div className="min-h-[70vh] bg-[#fcfcfa] text-slate-800">
+      <div className="min-h-[70vh] bg-bg text-slate-800">
         <div className="mx-auto max-w-6xl px-4 md:px-6 lg:px-8 py-8 md:py-12">
           <div className="mb-6 flex items-center gap-3">
             <Link
@@ -369,10 +369,10 @@ function SeminarEditorCard({
           {/* Live preview card */}
           <div className="lg:col-span-1">
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
-              <div className="aspect-[16/10] bg-slate-100">
+              <div className="aspect-[16/10] bg-slate-100 relative">
                 {draft.imageUrl ? (
                   <>
-                    <Image src={draft.imageUrl} alt="" className="h-full w-full object-cover" />
+                    <Image src={draft.imageUrl} alt="" fill className="object-cover" />
                   </>
                 ) : (
                   <div className="h-full w-full grid place-items-center text-slate-400 text-sm">

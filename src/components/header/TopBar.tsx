@@ -70,7 +70,7 @@ export default function TopBar() {
       className={[
         // keep neutral surface, use GREEN more in borders/dividers
         "w-full sticky top-0 z-50 backdrop-blur",
-        "bg-white/70",
+        "bg-bg",
         "border-b border-accent/25",
         "px-6",
       ].join(" ")}

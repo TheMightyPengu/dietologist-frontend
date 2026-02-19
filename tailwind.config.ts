@@ -9,7 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: 'var(--bg)',
+        bg: 'rgb(var(--bg))',
         ink: 'var(--ink)',
         brand: 'var(--brand)',
         sage: 'var(--sage)',

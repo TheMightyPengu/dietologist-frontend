@@ -271,12 +271,12 @@ export default function ArticlePage({
             <span>⏱ {article.readMinutes}′ ανάγνωση</span>
           </div>
 
-          <div className="mt-5 overflow-hidden rounded-2xl max-h-48">
+          <div className="mt-6 rounded-2xl overflow-hidden ring-1 ring-black/5 bg-white/90 max-h-96 grid place-content-center">
             <Image
               src={article.hero}
               alt={article.title}
               width={800}
-              height={192}
+              height={524}
               className="w-full h-auto object-cover"
             />
           </div>

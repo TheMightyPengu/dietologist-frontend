@@ -80,24 +80,24 @@ export default function Navbar() {
     <div
       className={[
         "w-full sticky top-[40px] sm:top-[40px] z-40 backdrop-blur",
-        "bg-white/80 supports-[backdrop-filter]:bg-white/60",
+        "bg-bg supports-[backdrop-filter]:bg-bg/90",
         // GREEN used more for borders/dividers
         "border-b border-accent/20",
         "px-5",
       ].join(" ")}
     >
       <div ref={navRef} className="mx-auto max-w-7xl px-3">
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-16 md:h-20 items-center justify-between">
           <Link href="/" className="flex items-center gap-2" onClick={closeAll}>
             <Image
-                src="/logo.svg"
+              src="/logo.svg"
               alt="Dietitian Logo"
-              width={36}
-              height={36}
-              // logo ring uses GREEN (more usage), purple reserved for key actions
-              className="h-9 w-9 rounded-full ring-2 ring-accent/25"
+              width={44}
+              height={44}
+              // slightly larger logo for more presence
+              className="h-9 w-9 md:h-14 md:w-14 rounded-full ring-2 ring-accent/25"
             />
-            <span className="font-semibold tracking-tight text-slate-800">Dietitian</span>
+            <span className="text-sm md:text-lg font-semibold tracking-tight text-slate-800">Dietitian</span>
           </Link>
 
           {/* Desktop nav */}
@@ -117,8 +117,8 @@ export default function Navbar() {
                     {/* Label navigates */}
                     <Link
                       href={item.href || "#"}
-                      className={[
-                        "inline-flex items-center rounded-md px-3 py-2 text-[15px] font-medium transition navbar-link",
+                        className={[
+                        "inline-flex items-center rounded-md px-3 py-2 text-sm md:text-base font-medium transition navbar-link",
                         // Links are purple default, green on hover
                         "text-primary hover:text-accent",
                         // Subtle hover background: green tint (use green more)
@@ -172,8 +172,8 @@ export default function Navbar() {
                           href={child.href}
                           role="menuitem"
                           onClick={closeAll}
-                          className={[
-                            "block rounded-lg px-3 py-2 text-[14px] transition navbar-link",
+                              className={[
+                                "block rounded-lg px-3 py-2 text-sm md:text-sm transition navbar-link",
                             // keep readable, but follow link rules
                             "text-slate-700 hover:text-accent",
                             // green-tinted hover background
@@ -244,8 +244,8 @@ export default function Navbar() {
                   <div className="flex w-full items-stretch justify-between px-2 py-1">
                     <Link
                       href={item.href || "#"}
-                      className={[
-                        "flex-1 rounded-md px-2 py-2 text-[15px] font-medium transition navbar-link",
+                        className={[
+                        "flex-1 rounded-md px-2 py-2 text-sm md:text-base font-medium transition navbar-link",
                         // purple default, green on hover
                         "text-primary hover:text-accent hover:bg-accent/10",
                         // Focus ring for navbar links
@@ -284,7 +284,7 @@ export default function Navbar() {
                           key={child.href}
                           href={child.href}
                           className={[
-                            "block rounded-lg px-3 py-2 text-[14px] transition",
+                            "block rounded-lg px-3 py-2 text-xs md:text-sm transition",
                             "text-slate-700 hover:text-accent hover:bg-accent/10",
                           ].join(" ")}
                           onClick={closeAll}

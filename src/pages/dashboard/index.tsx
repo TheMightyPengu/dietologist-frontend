@@ -24,7 +24,7 @@ export default function ManagementDashboard() {
         <meta name="robots" content="noindex,nofollow" />
       </Head>
 
-      <div className="min-h-[70vh] bg-[#fcfcfa] text-slate-800">
+      <div className="min-h-[70vh] bg-bg text-slate-800">
         <div className="mx-auto max-w-6xl px-4 md:px-6 lg:px-8 py-8 md:py-12">
           <section className="mb-8">
             <div className="rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-200/50 p-6 md:p-8">

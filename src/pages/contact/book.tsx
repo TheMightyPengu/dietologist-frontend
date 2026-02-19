@@ -289,7 +289,7 @@ export default function BookPage() {
         <link rel="canonical" href="https://example.gr/contact/book" />
       </Head>
 
-      <section className="bg-white">
+      <section className="bg-bg">
         <div className="mx-auto max-w-5xl px-4 py-10 md:py-14">
           {/* Breadcrumbs */}
           <nav className="mb-6 text-sm text-slate-600">

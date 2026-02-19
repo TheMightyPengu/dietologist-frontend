@@ -107,7 +107,7 @@ export default function ManagementEbookPage() {
         <meta name="robots" content="noindex,nofollow" />
       </Head>
 
-      <div className="min-h-[70vh] bg-[#fcfcfa] text-slate-800">
+      <div className="min-h-[70vh] bg-bg text-slate-800">
         <div className="mx-auto max-w-6xl px-4 md:px-6 lg:px-8 py-8 md:py-12">
           <div className="mb-6 flex items-center gap-3">
             <Link
@@ -461,10 +461,10 @@ function EbookEditorCard({
           {/* Live preview (layout inspired by your screenshots) */}
           <div className="lg:col-span-1">
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
-              <div className="aspect-[4/5] bg-slate-100">
+              <div className="aspect-[4/5] bg-slate-100 relative">
                 {draft.coverUrl ? (
                   <>
-                    <Image src={draft.coverUrl} alt="" className="h-full w-full object-cover" />
+                    <Image src={draft.coverUrl} alt="" fill className="object-cover" />
                   </>
                 ) : (
                   <div className="h-full w-full grid place-items-center text-slate-400 text-sm">
