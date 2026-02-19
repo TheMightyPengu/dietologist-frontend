@@ -1,6 +1,9 @@
 import Head from "next/head";
 import Link from "next/link";
 import HomeHero from "@/components/home/HomeHeader";
+import { useEffect, useState } from "react";
+
+type NewsletterStep = { title: string; desc: string };
 
 export default function HomePage() {
   const siteName = "Διαιτολογικό Κέντρο";
@@ -16,6 +19,91 @@ export default function HomePage() {
       url: "https://your-domain.gr/",
     },
   };
+
+  const [openNewsletter, setOpenNewsletter] = useState(false);
+  const [nlStep, setNlStep] = useState<"form" | "verify" | "done">("form");
+  const [nlLoading, setNlLoading] = useState(false);
+  const [nlError, setNlError] = useState<string | null>(null);
+  const [nlForm, setNlForm] = useState({ name: "", email: "" });
+  const [nlCode, setNlCode] = useState("");
+
+  // Optional: close on Esc
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpenNewsletter(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  // dummy API helpers (inside component)
+  async function apiNewsletterStart(payload: { name: string; email: string }) {
+    await new Promise((r) => setTimeout(r, 650));
+    // pretend success and that we sent a code
+    return { ok: true };
+  }
+  async function apiNewsletterVerify(payload: { email: string; code: string }) {
+    await new Promise((r) => setTimeout(r, 650));
+    // for demo: accept 123456 only
+    if (payload.code.trim() !== "123456")
+      throw new Error("Λάθος κωδικός επιβεβαίωσης.");
+    return { ok: true };
+  }
+
+  // when opening modal, reset flow
+  function openNewsletterModal() {
+    setOpenNewsletter(true);
+    setNlStep("form");
+    setNlLoading(false);
+    setNlError(null);
+    setNlForm({ name: "", email: "" });
+    setNlCode("");
+  }
+
+  async function submitNewsletter(e: React.FormEvent) {
+    e.preventDefault();
+    setNlError(null);
+
+    const name = nlForm.name.trim();
+    const email = nlForm.email.trim();
+
+    if (!name) return setNlError("Γράψε ονοματεπώνυμο.");
+    if (!/^\S+@\S+\.\S+$/.test(email)) return setNlError("Γράψε έγκυρο email.");
+
+    setNlLoading(true);
+    try {
+      await apiNewsletterStart({ name, email });
+      setNlStep("verify");
+    } catch {
+      setNlError("Κάτι πήγε στραβά. Δοκίμασε ξανά.");
+    } finally {
+      setNlLoading(false);
+    }
+  }
+
+  async function submitVerify(e: React.FormEvent) {
+    e.preventDefault();
+    setNlError(null);
+
+    const email = nlForm.email.trim();
+    const code = nlCode.trim();
+
+    if (!code) return setNlError("Γράψε τον κωδικό επιβεβαίωσης.");
+
+    setNlLoading(true);
+    try {
+      await apiNewsletterVerify({ email, code });
+      setNlStep("done");
+    } catch (err: any) {
+      setNlError(err?.message || "Κάτι πήγε στραβά. Δοκίμασε ξανά.");
+    } finally {
+      setNlLoading(false);
+    }
+  }
+
+  function closeNewsletterModal() {
+    setOpenNewsletter(false);
+  }
 
   return (
     <>
@@ -286,23 +374,306 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Big CTA */}
+      {/* Newsletter (replaces Big CTA) */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
-        <div className="rounded-3xl bg-[#8484d1] text-white px-6 py-10 md:px-12 md:py-14 shadow">
-          <h2 className="text-2xl md:text-3xl font-semibold">
-            Έτοιμοι να ξεκινήσουμε;
-          </h2>
-          <p className="mt-2 max-w-2xl text-white/90">
-            Κλείστε ραντεβού για την πρώτη μας συνάντηση — από κοντά ή online.
-          </p>
-          <Link
-            href="/contact/book"
-            className="mt-6 inline-flex items-center rounded-2xl bg-white px-6 py-3 text-[#8484d1] font-medium hover:opacity-90"
-          >
-            Ζητήστε ένα ραντεβού
-          </Link>
+        <div
+          className={[
+            "rounded-3xl bg-white",
+            "ring-1 ring-accent/25 shadow-[0_16px_34px_rgba(164,199,126,0.12)]",
+            "px-6 py-10 md:px-12 md:py-12",
+          ].join(" ")}
+        >
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="max-w-2xl">
+              <h2 className="text-2xl md:text-3xl font-semibold text-slate-900">
+                Newsletter
+              </h2>
+              <p className="mt-2 text-slate-600">
+                Μικρά, πρακτικά tips για διατροφή, σχέση με το φαγητό και
+                αυτοφροντίδα — απευθείας στο email σου.
+              </p>
+              <p className="mt-2 text-sm text-slate-500">
+                Μπορείς να κάνεις διαγραφή οποιαδήποτε στιγμή.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={openNewsletterModal}
+                className={[
+                  "inline-flex items-center justify-center rounded-2xl px-6 py-3 font-semibold transition",
+                  "bg-primary text-white",
+                  "ring-1 ring-primary/20",
+                  "hover:shadow-[0_16px_34px_rgba(132,132,209,0.25)]",
+                  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
+                ].join(" ")}
+              >
+                Εγγραφή στο Newsletter
+              </button>
+
+              <Link
+                href="/contact/form"
+                className={[
+                  "inline-flex items-center justify-center rounded-2xl px-6 py-3 font-medium transition",
+                  "bg-white text-primary hover:text-accent",
+                  "ring-1 ring-accent/40 hover:bg-accent/10",
+                  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                ].join(" ")}
+              >
+                Επικοινωνία
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
+
+      {/* Newsletter Modal */}
+      {openNewsletter && (
+        <div
+          className="fixed inset-0 z-50"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Newsletter"
+        >
+          {/* backdrop */}
+          <button
+            aria-label="Κλείσιμο"
+            onClick={closeNewsletterModal}
+            className="absolute inset-0 bg-black/40"
+          />
+
+          {/* panel */}
+          <div className="relative mx-auto max-w-lg px-4 sm:px-6 top-24">
+            <div className="rounded-3xl bg-white ring-1 ring-accent/25 shadow-lg overflow-hidden">
+              <div className="p-6 sm:p-7">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-semibold text-slate-900">
+                      {nlStep === "form"
+                        ? "Εγγραφή στο Newsletter"
+                        : nlStep === "verify"
+                          ? "Επιβεβαίωση email"
+                          : "Ολοκληρώθηκε"}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {nlStep === "form"
+                        ? "Συμπλήρωσε τα στοιχεία σου."
+                        : nlStep === "verify"
+                          ? "Βάλε τον κωδικό επιβεβαίωσης που σου στείλαμε."
+                          : "Η εγγραφή σου έγινε με επιτυχία."}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={closeNewsletterModal}
+                    className="rounded-full bg-white ring-1 ring-slate-200 px-3 py-1.5 text-sm hover:border-primary"
+                  >
+                    Κλείσιμο
+                  </button>
+                </div>
+
+                {nlError && (
+                  <div className="mt-4 rounded-2xl bg-white ring-1 ring-rose-200 px-4 py-3 text-sm text-rose-700">
+                    {nlError}
+                  </div>
+                )}
+
+                {/* Step 1: form */}
+                {nlStep === "form" && (
+                  <form onSubmit={submitNewsletter} className="mt-5 space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">
+                        Ονοματεπώνυμο
+                      </label>
+                      <input
+                        value={nlForm.name}
+                        onChange={(e) =>
+                          setNlForm((p) => ({ ...p, name: e.target.value }))
+                        }
+                        className={[
+                          "mt-1 w-full rounded-2xl px-4 py-3 shadow-sm transition",
+                          "bg-white border border-accent/35 hover:bg-accent/10",
+                          "focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary/40",
+                        ].join(" ")}
+                        placeholder="π.χ. Μαρία Παπαδοπούλου"
+                        autoComplete="name"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        value={nlForm.email}
+                        onChange={(e) =>
+                          setNlForm((p) => ({ ...p, email: e.target.value }))
+                        }
+                        className={[
+                          "mt-1 w-full rounded-2xl px-4 py-3 shadow-sm transition",
+                          "bg-white border border-accent/35 hover:bg-accent/10",
+                          "focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary/40",
+                        ].join(" ")}
+                        placeholder="π.χ. name@email.com"
+                        autoComplete="email"
+                      />
+                    </div>
+
+                    <div className="mt-2 flex flex-col sm:flex-row gap-3">
+                      <button
+                        type="submit"
+                        disabled={nlLoading}
+                        className={[
+                          "inline-flex items-center justify-center rounded-2xl px-5 py-3 font-semibold transition",
+                          "bg-primary text-white ring-1 ring-primary/20",
+                          nlLoading
+                            ? "opacity-70 cursor-wait"
+                            : "hover:shadow-[0_16px_34px_rgba(132,132,209,0.25)]",
+                          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
+                        ].join(" ")}
+                      >
+                        {nlLoading ? "Αποστολή…" : "Συνέχεια"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={closeNewsletterModal}
+                        className={[
+                          "inline-flex items-center justify-center rounded-2xl px-5 py-3 font-medium transition",
+                          "bg-white text-primary hover:text-accent",
+                          "ring-1 ring-accent/40 hover:bg-accent/10",
+                          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                        ].join(" ")}
+                      >
+                        Άκυρο
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-slate-500">
+                      Demo: στο επόμενο βήμα βάλε κωδικό{" "}
+                      <span className="font-semibold">123456</span>.
+                    </p>
+                  </form>
+                )}
+
+                {/* Step 2: verify */}
+                {nlStep === "verify" && (
+                  <form onSubmit={submitVerify} className="mt-5 space-y-4">
+                    <div className="rounded-2xl bg-white ring-1 ring-accent/20 p-4 text-sm text-slate-700">
+                      Στείλαμε κωδικό επιβεβαίωσης στο{" "}
+                      <span className="font-semibold">{nlForm.email}</span>.
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">
+                        Κωδικός επιβεβαίωσης
+                      </label>
+                      <input
+                        inputMode="numeric"
+                        value={nlCode}
+                        onChange={(e) => setNlCode(e.target.value)}
+                        className={[
+                          "mt-1 w-full rounded-2xl px-4 py-3 shadow-sm transition",
+                          "bg-white border border-accent/35 hover:bg-accent/10",
+                          "focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary/40",
+                        ].join(" ")}
+                        placeholder="π.χ. 123456"
+                      />
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        type="submit"
+                        disabled={nlLoading}
+                        className={[
+                          "inline-flex items-center justify-center rounded-2xl px-5 py-3 font-semibold transition",
+                          "bg-primary text-white ring-1 ring-primary/20",
+                          nlLoading
+                            ? "opacity-70 cursor-wait"
+                            : "hover:shadow-[0_16px_34px_rgba(132,132,209,0.25)]",
+                          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
+                        ].join(" ")}
+                      >
+                        {nlLoading ? "Επιβεβαίωση…" : "Ολοκλήρωση εγγραφής"}
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={nlLoading}
+                        onClick={() => {
+                          setNlError(null);
+                          setNlStep("form");
+                          setNlCode("");
+                        }}
+                        className={[
+                          "inline-flex items-center justify-center rounded-2xl px-5 py-3 font-medium transition",
+                          "bg-white text-primary hover:text-accent",
+                          "ring-1 ring-accent/40 hover:bg-accent/10",
+                          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                        ].join(" ")}
+                      >
+                        Πίσω
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={nlLoading}
+                      onClick={async () => {
+                        setNlLoading(true);
+                        setNlError(null);
+                        try {
+                          await apiNewsletterStart({
+                            name: nlForm.name.trim(),
+                            email: nlForm.email.trim(),
+                          });
+                        } catch {
+                          setNlError("Δεν έγινε επαναποστολή. Δοκίμασε ξανά.");
+                        } finally {
+                          setNlLoading(false);
+                        }
+                      }}
+                      className="text-sm font-medium text-primary hover:text-accent"
+                    >
+                      Επαναποστολή κωδικού
+                    </button>
+                  </form>
+                )}
+
+                {/* Step 3: done */}
+                {nlStep === "done" && (
+                  <div className="mt-5 space-y-4">
+                    <div className="rounded-2xl bg-white ring-1 ring-accent/20 p-4 text-sm text-slate-700">
+                      Τέλεια! Θα λαμβάνεις ενημερώσεις στο{" "}
+                      <span className="font-semibold">{nlForm.email}</span>.
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={closeNewsletterModal}
+                      className={[
+                        "w-full inline-flex items-center justify-center rounded-2xl px-5 py-3 font-semibold transition",
+                        "bg-primary text-white ring-1 ring-primary/20",
+                        "hover:shadow-[0_16px_34px_rgba(132,132,209,0.25)]",
+                        "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
+                      ].join(" ")}
+                    >
+                      Έτοιμο
+                    </button>
+
+                    <p className="text-xs text-slate-500">
+                      Με την εγγραφή συμφωνείτε να λαμβάνετε ενημερωτικά emails.
+                      Δεν μοιραζόμαστε τα στοιχεία σας.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
