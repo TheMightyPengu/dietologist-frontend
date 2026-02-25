@@ -1,18 +1,14 @@
 import Head from "next/head";
 import Link from "next/link";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 
 type PillProps = { children: React.ReactNode };
 const Pill = ({ children }: PillProps) => (
   <span
     className={[
-      // bg must be white only
       "inline-flex items-center rounded-full bg-white",
-      // stronger green presence: border + soft inner tint + gentle shadow
       "ring-1 ring-accent/40",
       "shadow-[0_1px_0_rgba(164,199,126,0.25)]",
-      // readable text
       "px-3 py-1 text-sm leading-none text-slate-800",
     ].join(" ")}
   >
@@ -20,49 +16,100 @@ const Pill = ({ children }: PillProps) => (
   </span>
 );
 
+function classNames(...xs: Array<string | false | null | undefined>) {
+  return xs.filter(Boolean).join(" ");
+}
+
+function toText(node: React.ReactNode) {
+  if (typeof node === "string") return node;
+  return "Υπηρεσία";
+}
+
+async function copyToClipboard(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      ta.style.top = "-9999px";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+}
+
+function TitleRow({
+  as = "h2",
+  children,
+  size = "card",
+}: {
+  as?: "h1" | "h2" | "h3";
+  children: React.ReactNode;
+  size?: "section" | "card" | "cta";
+}) {
+  const Tag = as as any;
+
+  const titleClass =
+    size === "section"
+      ? "text-xl sm:text-2xl font-semibold text-slate-900"
+      : size === "cta"
+        ? "text-xl sm:text-2xl font-semibold text-slate-900"
+        : "text-lg sm:text-xl font-semibold tracking-tight text-slate-900";
+
+  return (
+    <div className="flex items-center gap-3">
+      <Tag className={titleClass}>{children}</Tag>
+      <span className="hidden sm:inline-block h-[2px] w-20 rounded-full bg-accent/40" />
+    </div>
+  );
+}
+
 const SectionCard: React.FC<
   React.PropsWithChildren<{
     title: React.ReactNode;
     id?: string;
-    featured?: boolean;
     imageUrl?: string;
   }>
-> = ({ title, id, featured = false, children, imageUrl }) => (
+> = ({ title, id, children, imageUrl }) => (
   <section id={id} className="scroll-mt-28">
     <div
       className={[
         "rounded-3xl bg-white",
-        featured
-          ? "ring-2 ring-warm/50 shadow-[0_10px_25px_rgba(255,230,150,0.12)]"
-          : "ring-1 ring-accent/25 shadow-[0_10px_25px_rgba(164,199,126,0.10)]",
+        "ring-1 ring-accent/25 shadow-[0_10px_25px_rgba(164,199,126,0.10)]",
         "shadow-sm",
         "p-6 sm:p-8 lg:p-10",
       ].join(" ")}
     >
-      <div className="flex items-center gap-3">
-        <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">
-          {title}
-        </h2>
-        <span
-          className={`hidden sm:inline-block h-px w-16 ${featured ? "bg-warm/50" : "bg-accent/40"}`}
-        />
-      </div>
+      <TitleRow as="h2" size="card">
+        {title}
+      </TitleRow>
 
-      {/* IMAGE: placed right after title with safe spacing */}
       {imageUrl ? (
         <div className="mt-5 overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-accent/15">
-          <div className="aspect-[16/8] w-full">
+          <div className="relative aspect-video w-full">
             <img
               src={imageUrl}
-              alt={typeof title === "string" ? title : "Υπηρεσία"}
+              alt={toText(title)}
               className="h-full w-full object-cover"
               loading="lazy"
             />
+            <div className="pointer-events-none absolute inset-0">
+              <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white/35 to-transparent" />
+            </div>
           </div>
         </div>
       ) : null}
 
-      {/* CONTENT: separated from image */}
       <div className="mt-6 space-y-4 text-[15px] leading-relaxed text-slate-700">
         {children}
       </div>
@@ -74,10 +121,10 @@ export default function ServicesPage() {
   const [serviceImages, setServiceImages] = useState<Record<string, string>>(
     {},
   );
+  const [tab, setTab] = useState<"one" | "groups">("one");
+  const [copied, setCopied] = useState<null | "phone" | "email">(null);
 
-  // Dummy “API” that returns image URLs keyed by section title
   async function fetchServiceImages(): Promise<Record<string, string>> {
-    // simulate latency
     await new Promise((r) => setTimeout(r, 250));
 
     return {
@@ -101,7 +148,31 @@ export default function ServicesPage() {
     })();
   }, []);
 
+  useEffect(() => {
+    const target = tab === "one" ? "one-to-one" : "groups";
+    if (typeof window !== "undefined") {
+      const newHash = `#${target}`;
+      if (window.location.hash !== newHash) {
+        history.replaceState(null, "", newHash);
+      }
+    }
+  }, [tab]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash.replace("#", "");
+    if (hash === "groups") setTab("groups");
+    if (hash === "one-to-one") setTab("one");
+  }, []);
+
   const siteName = "Διαιτολογικό Κέντρο";
+
+  const phone = "2311 219576";
+  const phoneRaw = "+302311219576";
+  const email = "info@your-domain.gr";
+
+  // TODO: replace with your actual classic booking route
+  const bookHref = "/book";
 
   return (
     <>
@@ -114,26 +185,13 @@ export default function ServicesPage() {
         <link rel="canonical" href="https://your-domain.gr/services" />
       </Head>
 
-      {/* Hero / Intro */}
       <div className="relative">
-        {/* <img
-          src="/decor/vine.png"
-          alt=""
-          aria-hidden="true"
-          width={160}
-          height={160}
-          className="w-full h-auto"
-        /> */}
-
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-10 pb-6">
           <header className="mb-6">
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
               Υπηρεσίες Διατροφής
             </h1>
-
-            {/* green micro-accent line under intro */}
             <div className="mt-2 h-px w-24 bg-accent/35" />
-
             <p className="mt-3 text-[15px] leading-relaxed text-slate-700">
               Σε αυτή τη σελίδα θα βρείτε συγκεντρωμένες όλες τις υπηρεσίες που
               προσφέρονται, τόσο στο γραφείο στο κέντρο της Θεσσαλονίκης όσο και
@@ -142,42 +200,43 @@ export default function ServicesPage() {
             </p>
           </header>
 
-          {/* Quick anchor pills */}
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="#one-to-one"
-              className={[
-                "rounded-full focus:outline-none",
-                "focus-visible:ring-4 focus-visible:ring-primary/20",
-                // more green on hover without changing bg away from white
-                "hover:shadow-[0_10px_25px_rgba(164,199,126,0.12)] transition",
-              ].join(" ")}
-            >
-              <Pill>Ατομικές συνεδρίες (1:1)</Pill>
-            </Link>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex flex-wrap gap-2 sm:flex-1">
+              <Link
+                href="#one-to-one"
+                onClick={() => setTab("one")}
+                className={[
+                  "rounded-full focus:outline-none",
+                  "focus-visible:ring-4 focus-visible:ring-primary/20",
+                  "hover:shadow-[0_10px_25px_rgba(164,199,126,0.12)] transition",
+                ].join(" ")}
+              >
+                <Pill>Ατομικές συνεδρίες (1:1)</Pill>
+              </Link>
 
-            <Link
-              href="#groups"
-              className={[
-                "rounded-full focus:outline-none",
-                "focus-visible:ring-4 focus-visible:ring-primary/20",
-                "hover:shadow-[0_10px_25px_rgba(164,199,126,0.12)] transition",
-              ].join(" ")}
-            >
-              <Pill>Ομαδικές συνεδρίες</Pill>
-            </Link>
+              <Link
+                href="#groups"
+                onClick={() => setTab("groups")}
+                className={[
+                  "rounded-full focus:outline-none",
+                  "focus-visible:ring-4 focus-visible:ring-primary/20",
+                  "hover:shadow-[0_10px_25px_rgba(164,199,126,0.12)] transition",
+                ].join(" ")}
+              >
+                <Pill>Ομαδικές συνεδρίες</Pill>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
       <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-20 space-y-12">
-        {/* Contact stripe */}
+        {/* Contact stripe: remove the 3rd bordered card; button stands alone */}
         <div
           className={[
             "rounded-3xl bg-white",
-            // more green “tint” via stronger ring + soft glow shadow
             "ring-1 ring-accent/25",
-            "shadow-sm shadow-[0_12px_28px_rgba(164,199,126,0.10)]",
+            "shadow-sm shadow-[0_14px_34px_rgba(164,199,126,0.12)]",
             "p-6 sm:p-8",
           ].join(" ")}
         >
@@ -187,40 +246,113 @@ export default function ServicesPage() {
             Επιλέξτε εκείνη που ανταποκρίνεται καλύτερα στις ανάγκες σας.
           </p>
 
-          <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-slate-700">
-            <div className="inline-flex items-center gap-2">
-              <span className="text-accent">📍</span>
-              <span className="rounded-md px-2 py-1 ring-1 ring-accent/25">
-                Πτολεμαίων 11, ΤΚ: 54630
-              </span>
+          <div className="mt-5 grid gap-3 lg:grid-cols-3 lg:items-center">
+            {/* Phone */}
+            <div className="rounded-2xl bg-white ring-1 ring-accent/20 p-4 shadow-[0_10px_22px_rgba(164,199,126,0.08)]">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  <span className="mt-0.5 text-accent" aria-hidden="true">
+                    📞
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-900">
+                      Τηλέφωνο
+                    </p>
+                    <a
+                      href={`tel:${phoneRaw}`}
+                      className="mt-1 inline-flex text-sm text-slate-700 hover:text-accent transition"
+                    >
+                      {phone}
+                    </a>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const ok = await copyToClipboard(phone);
+                    if (ok) {
+                      setCopied("phone");
+                      setTimeout(() => setCopied(null), 1200);
+                    }
+                  }}
+                  className={classNames(
+                    "shrink-0 inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm transition",
+                    "bg-white ring-1 ring-primary/30",
+                    "hover:ring-primary/55 hover:bg-primary/5",
+                    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                  )}
+                >
+                  {copied === "phone" ? "✅ Αντιγράφηκε" : "Αντιγραφή"}
+                </button>
+              </div>
             </div>
-            <div className="inline-flex items-center gap-2">
-              <span className="text-accent">📞</span>
-              <span className="rounded-md px-2 py-1 ring-1 ring-accent/25">
-                2311 219576
-              </span>
+
+            {/* Email */}
+            <div className="rounded-2xl bg-white ring-1 ring-accent/20 p-4 shadow-[0_10px_22px_rgba(164,199,126,0.08)]">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  <span className="mt-0.5 text-accent" aria-hidden="true">
+                    ✉️
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-900">Email</p>
+                    <a
+                      href={`mailto:${email}`}
+                      className="mt-1 inline-flex text-sm text-slate-700 hover:text-accent transition break-all"
+                    >
+                      {email}
+                    </a>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const ok = await copyToClipboard(email);
+                    if (ok) {
+                      setCopied("email");
+                      setTimeout(() => setCopied(null), 1200);
+                    }
+                  }}
+                  className={classNames(
+                    "shrink-0 inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm transition",
+                    "bg-white ring-1 ring-primary/30",
+                    "hover:ring-primary/55 hover:bg-primary/5",
+                    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                  )}
+                >
+                  {copied === "email" ? "✅ Αντιγράφηκε" : "Αντιγραφή"}
+                </button>
+              </div>
             </div>
-            <div className="inline-flex items-center gap-2">
-              <span className="text-accent">✉️</span>
-              <span className="rounded-md px-2 py-1 ring-1 ring-accent/25">
-                info@your-domain.gr
-              </span>
+
+            {/* Button only (no bordered card) */}
+            <div className="lg:justify-self-end">
+              <Link
+                href={bookHref}
+                className={classNames(
+                  "inline-flex w-full lg:w-auto items-center justify-center rounded-2xl px-6 py-3 transition text-sm font-medium",
+                  "bg-primary text-white",
+                  "shadow-[0_14px_30px_rgba(122,122,196,0.22)]",
+                  "hover:shadow-[0_18px_38px_rgba(122,122,196,0.28)]",
+                  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
+                )}
+              >
+                Κλείστε Ραντεβού
+              </Link>
             </div>
           </div>
         </div>
 
         {/* ============ ONE-TO-ONE ============ */}
         <div id="one-to-one" className="space-y-12 scroll-mt-28">
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl sm:text-2xl font-semibold text-slate-900">
-              Ατομικές συνεδρίες (1:1)
-            </h2>
-            <span className="h-px w-16 bg-accent/35" />
-          </div>
+          <TitleRow as="h2" size="section">
+            Ατομικές συνεδρίες (1:1)
+          </TitleRow>
 
           <SectionCard
             title="Συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης"
-            featured={true}
             imageUrl={
               serviceImages[
                 "Συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης"
@@ -272,9 +404,7 @@ export default function ServicesPage() {
           <SectionCard
             title="Συνεδρίες εστιασμένες στις διατροφικές διαταραχές"
             imageUrl={
-              serviceImages[
-                "Συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης"
-              ]
+              serviceImages["Συνεδρίες εστιασμένες στις διατροφικές διαταραχές"]
             }
           >
             <ol className="list-decimal pl-5 space-y-2 marker:text-accent/80">
@@ -319,7 +449,7 @@ export default function ServicesPage() {
             title="Συνεδρίες διαισθητικής διατροφής & mindful eating"
             imageUrl={
               serviceImages[
-                "Συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης"
+                "Συνεδρίες διαισθητικής διατροφής & mindful eating"
               ]
             }
           >
@@ -366,18 +496,15 @@ export default function ServicesPage() {
 
         {/* ============ GROUPS ============ */}
         <div id="groups" className="space-y-12 scroll-mt-28">
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl sm:text-2xl font-semibold text-slate-900">
-              Ομαδικά
-            </h2>
-            <span className="h-px w-16 bg-accent/35" />
-          </div>
+          <TitleRow as="h2" size="section">
+            Ομαδικά
+          </TitleRow>
 
           <SectionCard
             title="Ομαδικές συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης"
             imageUrl={
               serviceImages[
-                "Συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης"
+                "Ομαδικές συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης"
               ]
             }
           >
@@ -414,9 +541,7 @@ export default function ServicesPage() {
           <SectionCard
             title='Ομάδα διαισθητικής διατροφής: "No diet project"'
             imageUrl={
-              serviceImages[
-                "Συνεδρίες διατροφικής παρακολούθησης & εκπαίδευσης"
-              ]
+              serviceImages['Ομάδα διαισθητικής διατροφής: "No diet project"']
             }
           >
             <p>
@@ -452,59 +577,38 @@ export default function ServicesPage() {
           </SectionCard>
         </div>
 
-        {/* Bottom CTA */}
+        {/* Bottom CTA: classic booking button only */}
         <div
           className={[
             "rounded-3xl bg-white",
             "ring-1 ring-accent/25",
-            "shadow-sm shadow-[0_12px_28px_rgba(164,199,126,0.12)]",
-            "p-6 sm:p-8",
-            "flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between",
+            "shadow-sm shadow-[0_16px_38px_rgba(164,199,126,0.14)]",
+            "p-7 sm:p-10",
+            "flex flex-col lg:flex-row items-start lg:items-center gap-6 justify-between",
           ].join(" ")}
         >
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900">
+          <div className="max-w-2xl">
+            <TitleRow as="h3" size="cta">
               Κλείστε ραντεβού
-            </h3>
-            <p className="text-[15px] text-slate-700">
-              Στείλτε μας email με το είδος της υπηρεσίας που σας ενδιαφέρει ή
-              καλέστε μας για διαθεσιμότητα.
+            </TitleRow>
+            <p className="mt-2 text-[15px] text-slate-700 leading-relaxed">
+              Επιλέξτε διαθέσιμη ημέρα και ώρα για το ραντεβού σας.
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2">
-            {/* Secondary action: white bg, lots of green tint; purple for focus */}
+          <div className="w-full lg:w-auto">
             <Link
-              href="mailto:info@your-domain.gr?subject=Ενδιαφέρομαι για συνεδρία"
-              className={[
-                "inline-flex items-center justify-center rounded-2xl px-5 py-2 transition",
-                "bg-white",
-                "ring-1 ring-accent/45",
-                "shadow-[0_10px_25px_rgba(164,199,126,0.10)]",
-                "hover:shadow-[0_12px_28px_rgba(164,199,126,0.18)]",
-                "hover:bg-accent/10",
-                "text-primary hover:text-accent",
-                "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
-              ].join(" ")}
+              href={bookHref}
+              className={classNames(
+                "inline-flex w-full lg:w-auto items-center justify-center rounded-2xl px-6 py-3 transition text-sm font-medium",
+                "bg-primary text-white",
+                "shadow-[0_14px_30px_rgba(122,122,196,0.22)]",
+                "hover:shadow-[0_18px_38px_rgba(122,122,196,0.28)]",
+                "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
+              )}
             >
-              ✉️ Email
+              Κλείστε Ραντεβού
             </Link>
-
-            <a
-              href="tel:+302311219576"
-              className={[
-                "inline-flex items-center justify-center rounded-2xl px-5 py-2 transition",
-                "bg-white",
-                "ring-1 ring-accent/45",
-                "shadow-[0_10px_25px_rgba(164,199,126,0.10)]",
-                "hover:shadow-[0_12px_28px_rgba(164,199,126,0.18)]",
-                "hover:bg-accent/10",
-                "text-primary hover:text-accent",
-                "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
-              ].join(" ")}
-            >
-              📞 2311 219576
-            </a>
           </div>
         </div>
       </main>
