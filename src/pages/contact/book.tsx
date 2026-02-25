@@ -54,22 +54,54 @@ function mulberry32(seed: number) {
   };
 }
 
+type FieldErrors = Partial<{
+  service: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  slot: string;
+}>;
+
+// Bigger typography + consistent height/radius + stronger focus
+const INPUT_BASE =
+  "mt-1 w-full rounded-xl bg-white px-3 h-12 text-[15px] text-slate-900 ring-1 ring-accent/30 outline-none " +
+  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 " +
+  "disabled:opacity-60 disabled:cursor-not-allowed";
+
+const LABEL_BASE = "block text-[15px] font-semibold text-slate-900";
+const STEP_BASE = "mb-1 text-sm font-semibold tracking-wide text-slate-700";
+const HELP_TEXT = "text-sm text-slate-600";
+const ERROR_TEXT = "mt-1 text-sm text-rose-600";
+
 export default function BookPage() {
-  // base state
+  // submit state
   const [loading, setLoading] = useState(false);
-  const [ok, setOk] = useState<null | boolean>(null);
-  const [error, setError] = useState<string | null>(null);
 
   // services
   const [services, setServices] = useState<Service[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
   const [selectedService, setSelectedService] = useState("");
 
-  // availability (ONLY allowed days/times)
+  // availability
   const [slots, setSlots] = useState<Slot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
+
+  // form UI states
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const [successPayload, setSuccessPayload] = useState<null | {
+    serviceLabel: string;
+    dateStr: string;
+    timeStr: string;
+    fullName: string;
+    phone: string;
+    email: string;
+    message?: string;
+  }>(null);
 
   const now = useMemo(() => new Date(), []);
 
@@ -100,43 +132,33 @@ export default function BookPage() {
     await new Promise((r) => setTimeout(r, 650));
     const rand = mulberry32(hashStringToSeed(serviceId || "default"));
 
-    // Business hours snapshot (you can tweak)
     const possibleTimes = ["10:00", "11:30", "13:00", "15:00", "16:30"];
 
     const out: Slot[] = [];
     const base = new Date();
     base.setHours(0, 0, 0, 0);
 
-    // next ~21 days
     for (let i = 0; i < 21; i++) {
       const d = new Date(base);
       d.setDate(base.getDate() + i);
 
-      const weekday = d.getDay(); // 0 Sun ... 6 Sat
+      const weekday = d.getDay();
       const isWeekend = weekday === 0 || weekday === 6;
       if (isWeekend) continue;
 
-      // Only “some” weekdays get availability (to feel realistic)
-      // e.g. Mon/Wed/Fri more likely, Tue/Thu less likely
-      const weekdayChance =
-        weekday === 1 || weekday === 3 || weekday === 5 ? 0.78 : 0.45; // Mon/Wed/Fri vs Tue/Thu
-
+      const weekdayChance = weekday === 1 || weekday === 3 || weekday === 5 ? 0.78 : 0.45;
       if (rand() > weekdayChance) continue;
 
       const dateStr = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 
-      // Create a subset of times for that day
-      const timeCount = 2 + Math.floor(rand() * 3); // 2..4 slots/day
+      const timeCount = 2 + Math.floor(rand() * 3);
       const shuffled = [...possibleTimes].sort(() => rand() - 0.5);
 
       for (let t = 0; t < timeCount; t++) {
         const timeStr = shuffled[t];
-
-        // Randomly “book” some of them so they don’t appear at all (since you only want bookable ones)
         const isBooked = rand() < 0.18;
         if (isBooked) continue;
 
-        // Skip if already in the past (same-day times earlier than now)
         const when = combineToDate(dateStr, timeStr);
         if (when.getTime() <= Date.now()) continue;
 
@@ -150,7 +172,6 @@ export default function BookPage() {
       }
     }
 
-    // Sort by date/time
     out.sort((a, b) => {
       const ad = combineToDate(a.dateStr, a.timeStr).getTime();
       const bd = combineToDate(b.dateStr, b.timeStr).getTime();
@@ -188,6 +209,9 @@ export default function BookPage() {
       setSelectedDate("");
       setSelectedSlotId("");
 
+      setFieldErrors((prev) => ({ ...prev, slot: undefined, service: undefined }));
+      setSubmitError(null);
+
       if (!selectedService) return;
 
       setSlotsLoading(true);
@@ -196,7 +220,6 @@ export default function BookPage() {
         if (!mounted) return;
         setSlots(data);
 
-        // auto-pick first available date (optional but nice UX)
         const firstDate = data[0]?.dateStr || "";
         setSelectedDate(firstDate);
       } finally {
@@ -223,60 +246,100 @@ export default function BookPage() {
     return slots.find((s) => s.id === selectedSlotId) || null;
   }, [slots, selectedSlotId]);
 
+  const selectedServiceLabel = useMemo(() => {
+    return services.find((s) => s.id === selectedService)?.label || "";
+  }, [services, selectedService]);
+
+  function markTouched(name: string) {
+    setTouched((p) => ({ ...p, [name]: true }));
+  }
+
+  function validate(payload: { fullName?: string; phone?: string; email?: string }) {
+    const next: FieldErrors = {};
+
+    if (!selectedService) next.service = "Παρακαλούμε επιλέξτε υπηρεσία.";
+    if (!payload.fullName?.trim()) next.fullName = "Συμπληρώστε ονοματεπώνυμο.";
+    if (!payload.phone?.trim()) next.phone = "Συμπληρώστε τηλέφωνο.";
+
+    if (payload.email?.trim()) {
+      const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email.trim());
+      if (!ok) next.email = "Συμπληρώστε έγκυρο email.";
+    }
+
+    if (!selectedSlot) next.slot = "Παρακαλούμε επιλέξτε διαθέσιμη ημέρα και ώρα.";
+
+    if (selectedSlot) {
+      const when = combineToDate(selectedSlot.dateStr, selectedSlot.timeStr);
+      if (when.getTime() <= now.getTime()) next.slot = "Παρακαλούμε επιλέξτε μελλοντικό διαθέσιμο ραντεβού.";
+    }
+
+    return next;
+  }
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
     setLoading(true);
-    setOk(null);
-    setError(null);
+    setSubmitError(null);
+    setSuccessPayload(null);
 
-    if (!selectedService) {
-      setLoading(false);
-      setOk(false);
-      setError("Παρακαλούμε επιλέξτε υπηρεσία.");
-      return;
-    }
+    const fd = new FormData(e.currentTarget);
+    const fullName = String(fd.get("fullName") || "");
+    const phone = String(fd.get("phone") || "");
+    const email = String(fd.get("email") || "");
+    const message = String(fd.get("message") || "");
 
-    if (!selectedSlot) {
-      setLoading(false);
-      setOk(false);
-      setError("Παρακαλούμε επιλέξτε διαθέσιμη ημερομηνία και ώρα.");
-      return;
-    }
+    setTouched((p) => ({ ...p, service: true, fullName: true, phone: true, slot: true, email: p.email || false }));
 
-    const when = combineToDate(selectedSlot.dateStr, selectedSlot.timeStr);
-    if (when.getTime() <= now.getTime()) {
+    const nextErrors = validate({ fullName, phone, email });
+    setFieldErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
       setLoading(false);
-      setOk(false);
-      setError("Παρακαλούμε επιλέξτε μελλοντικό διαθέσιμο ραντεβού.");
       return;
     }
 
     try {
-      const fd = new FormData(e.currentTarget);
-      const payload = Object.fromEntries(fd.entries());
-
       await mockApiSubmit({
-        ...payload,
-        slotId: selectedSlot.id,
-        date: selectedSlot.dateStr,
-        time: selectedSlot.timeStr,
+        fullName,
+        phone,
+        email,
+        message,
+        slotId: selectedSlot!.id,
+        date: selectedSlot!.dateStr,
+        time: selectedSlot!.timeStr,
         serviceId: selectedService,
       });
 
-      setOk(true);
+      setSuccessPayload({
+        serviceLabel: selectedServiceLabel,
+        dateStr: selectedSlot!.dateStr,
+        timeStr: selectedSlot!.timeStr,
+        fullName,
+        phone,
+        email,
+        message,
+      });
+
       (e.target as HTMLFormElement).reset();
       setSelectedService("");
       setSlots([]);
       setSelectedDate("");
       setSelectedSlotId("");
+      setFieldErrors({});
+      setTouched({});
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Κάτι πήγε στραβά. Δοκιμάστε ξανά.";
-      setOk(false);
-      setError(message);
+      const messageText = err instanceof Error ? err.message : "Κάτι πήγε στραβά. Δοκιμάστε ξανά.";
+      setSubmitError(messageText);
     } finally {
       setLoading(false);
     }
   }
+
+  const show = (name: keyof FieldErrors) => {
+    if (!fieldErrors[name]) return false;
+    return Boolean(touched[name as string]);
+  };
 
   return (
     <>
@@ -291,54 +354,103 @@ export default function BookPage() {
 
       <section className="bg-bg">
         <div className="mx-auto max-w-5xl px-4 py-10 md:py-14">
-          {/* Breadcrumbs */}
-          <nav className="mb-6 text-sm text-slate-600">
-            <Link
-              href="/"
-              className="text-primary hover:text-accent underline decoration-primary/30 hover:decoration-accent/50 transition"
-            >
-              Αρχική
-            </Link>
-            <span className="mx-2">/</span>
-            <Link
-              href="/contact"
-              className="text-primary hover:text-accent underline decoration-primary/30 hover:decoration-accent/50 transition"
-            >
-              Επικοινωνία
-            </Link>
-            <span className="mx-2">/</span>
-            <span className="font-medium text-slate-800">Κλείστε Ραντεβού</span>
-          </nav>
-
           {/* Heading */}
           <header className="mb-8">
             <h1 className="text-3xl md:text-4xl font-semibold text-slate-900">Κλείστε Ραντεβού</h1>
-            <p className="mt-2 max-w-2xl text-slate-700">
+            <p className="mt-2 max-w-2xl text-slate-700 leading-relaxed">
               Επιλέξτε υπηρεσία και θα εμφανιστούν <span className="font-medium">μόνο</span> οι διαθέσιμες ημέρες/ώρες.
               Συμπληρώστε τη φόρμα και θα σας καλέσουμε για επιβεβαίωση.
             </p>
           </header>
 
-          {/* Card */}
-          <div className="grid md:grid-cols-5 gap-6">
+          {/* Success state */}
+          {successPayload && (
+            <div className="mb-6 rounded-2xl bg-white p-6 ring-1 ring-accent/25 shadow-[0_16px_34px_rgba(164,199,126,0.14)]">
+              <h2 className="text-xl font-semibold text-slate-900">Το αίτημά σας υποβλήθηκε</h2>
+              <p className="mt-1 text-base text-slate-700">Θα σας καλέσουμε για επιβεβαίωση.</p>
+
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-[15px] text-slate-800">
+                <div className="rounded-xl bg-white ring-1 ring-accent/20 p-3">
+                  <div className="text-sm text-slate-600">Υπηρεσία</div>
+                  <div className="mt-0.5 font-medium">{successPayload.serviceLabel}</div>
+                </div>
+                <div className="rounded-xl bg-white ring-1 ring-accent/20 p-3">
+                  <div className="text-sm text-slate-600">Ραντεβού</div>
+                  <div className="mt-0.5 font-medium">
+                    {toDateLabel(successPayload.dateStr)} στις {successPayload.timeStr}
+                  </div>
+                </div>
+                <div className="rounded-xl bg-white ring-1 ring-accent/20 p-3">
+                  <div className="text-sm text-slate-600">Ονοματεπώνυμο</div>
+                  <div className="mt-0.5 font-medium">{successPayload.fullName}</div>
+                </div>
+                <div className="rounded-xl bg-white ring-1 ring-accent/20 p-3">
+                  <div className="text-sm text-slate-600">Τηλέφωνο</div>
+                  <div className="mt-0.5 font-medium">{successPayload.phone}</div>
+                </div>
+
+                {successPayload.email?.trim() && (
+                  <div className="rounded-xl bg-white ring-1 ring-accent/20 p-3 md:col-span-2">
+                    <div className="text-sm text-slate-600">Email</div>
+                    <div className="mt-0.5 font-medium">{successPayload.email}</div>
+                  </div>
+                )}
+
+                {successPayload.message?.trim() && (
+                  <div className="rounded-xl bg-white ring-1 ring-accent/20 p-3 md:col-span-2">
+                    <div className="text-sm text-slate-600">Μήνυμα</div>
+                    <div className="mt-0.5">{successPayload.message}</div>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-5">
+                <Link
+                  href="/contact/book"
+                  className="inline-flex items-center rounded-xl bg-primary px-4 h-12 text-[15px] font-semibold text-white transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
+                >
+                  Κλείστε νέο ραντεβού
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Card layout */}
+          <div className="grid md:grid-cols-5 gap-5 md:gap-6">
             <div className="md:col-span-3">
               <form
                 onSubmit={onSubmit}
-                className="rounded-2xl bg-white p-6 shadow-[0_14px_30px_rgba(255,230,150,0.08)] ring-2 ring-warm/40"
+                className="rounded-2xl bg-white p-6 shadow-[0_16px_34px_rgba(255,230,150,0.10)] ring-2 ring-warm/40"
               >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Υπηρεσία */}
+                <div>
+                  <h2 className="text-lg md:text-xl font-semibold text-slate-900">Αίτημα ραντεβού</h2>
+                  <p className="mt-1 text-[15px] text-slate-600">
+                    <span className="font-semibold text-slate-800">Υποχρεωτικά πεδία</span>
+                    <span className="text-slate-600"> σημειώνονται με </span>
+                    <span className="text-rose-600 font-semibold">*</span>
+                  </p>
+                </div>
+
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Step 1: Service */}
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-slate-700">
-                      Υπηρεσία <span className="text-slate-500">(από το μενού υπηρεσιών)</span>
+                    <div className={STEP_BASE}>Βήμα 1: Επιλέξτε υπηρεσία</div>
+                    <label className={LABEL_BASE}>
+                      Υπηρεσία <span className="text-rose-600">*</span>
                     </label>
                     <select
                       name="service"
                       value={selectedService}
-                      onChange={(e) => setSelectedService(e.target.value)}
+                      onChange={(e) => {
+                        setSelectedService(e.target.value);
+                        setFieldErrors((p) => ({ ...p, service: undefined, slot: undefined }));
+                      }}
+                      onBlur={() => markTouched("service")}
                       required
-                      disabled={servicesLoading}
-                      className="mt-1 w-full rounded-xl ring-1 ring-accent/30 bg-white px-3 py-2 text-slate-900 outline-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 disabled:opacity-60"
+                      disabled={servicesLoading || loading}
+                      aria-invalid={show("service")}
+                      aria-describedby={show("service") ? "service-error" : undefined}
+                      className={INPUT_BASE}
                     >
                       <option value="" disabled>
                         {servicesLoading ? "Φόρτωση υπηρεσιών..." : "— Επιλέξτε υπηρεσία —"}
@@ -349,70 +461,130 @@ export default function BookPage() {
                         </option>
                       ))}
                     </select>
+                    {show("service") && (
+                      <p id="service-error" className={ERROR_TEXT}>
+                        {fieldErrors.service}
+                      </p>
+                    )}
                   </div>
 
-                  {/* Ονοματεπώνυμο */}
+                  {/* Full name */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">Ονοματεπώνυμο</label>
+                    <label className={LABEL_BASE}>
+                      Ονοματεπώνυμο <span className="text-rose-600">*</span>
+                    </label>
                     <input
                       name="fullName"
                       required
-                      className="mt-1 w-full rounded-xl ring-1 ring-accent/30 bg-white px-3 py-2 text-slate-900 outline-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+                      onBlur={() => markTouched("fullName")}
+                      onChange={() => setFieldErrors((p) => ({ ...p, fullName: undefined }))}
+                      aria-invalid={show("fullName")}
+                      aria-describedby={show("fullName") ? "fullName-error" : undefined}
+                      className={INPUT_BASE}
                       placeholder="π.χ. Μαρία Παπαδοπούλου"
+                      disabled={loading}
                     />
+                    {show("fullName") && (
+                      <p id="fullName-error" className={ERROR_TEXT}>
+                        {fieldErrors.fullName}
+                      </p>
+                    )}
                   </div>
 
-                  {/* Τηλέφωνο */}
+                  {/* Phone */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">Τηλέφωνο</label>
+                    <label className={LABEL_BASE}>
+                      Τηλέφωνο <span className="text-rose-600">*</span>
+                    </label>
                     <input
                       name="phone"
                       required
-                      className="mt-1 w-full rounded-xl ring-1 ring-accent/30 bg-white px-3 py-2 text-slate-900 outline-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      onBlur={() => markTouched("phone")}
+                      onChange={() => setFieldErrors((p) => ({ ...p, phone: undefined }))}
+                      aria-invalid={show("phone")}
+                      aria-describedby={show("phone") ? "phone-error" : undefined}
+                      className={INPUT_BASE}
                       placeholder="π.χ. 69XXXXXXXX"
+                      disabled={loading}
                     />
+                    {show("phone") && (
+                      <p id="phone-error" className={ERROR_TEXT}>
+                        {fieldErrors.phone}
+                      </p>
+                    )}
                   </div>
 
-                  {/* Email */}
+                  {/* Email (optional) */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">Email</label>
+                    <label className={LABEL_BASE}>Email</label>
                     <input
                       type="email"
                       name="email"
-                      className="mt-1 w-full rounded-xl ring-1 ring-accent/30 bg-white px-3 py-2 text-slate-900 outline-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+                      autoComplete="email"
+                      onBlur={() => markTouched("email")}
+                      onChange={() => setFieldErrors((p) => ({ ...p, email: undefined }))}
+                      aria-invalid={show("email")}
+                      aria-describedby={show("email") ? "email-error" : undefined}
+                      className={INPUT_BASE}
                       placeholder="π.χ. name@email.com"
+                      disabled={loading}
                     />
+                    {show("email") && (
+                      <p id="email-error" className={ERROR_TEXT}>
+                        {fieldErrors.email}
+                      </p>
+                    )}
                   </div>
 
-                  {/* Διαθεσιμότητα (Dates + Times) */}
+                  {/* Step 2: Availability */}
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-slate-700">Διαθεσιμότητα</label>
+                    <div className={STEP_BASE}>Βήμα 2: Διαλέξτε ημέρα & ώρα</div>
+                    <label className={LABEL_BASE}>
+                      Διαθεσιμότητα <span className="text-rose-600">*</span>
+                    </label>
 
-                    <div className="mt-1 rounded-xl ring-1 ring-accent/30 bg-white p-3">
-                      {/* Dates row */}
-                      <div className="text-xs text-slate-600 mb-2">
+                    <div
+                      className={[
+                        "mt-1 rounded-xl bg-white p-3 ring-1 ring-accent/30",
+                        !selectedService ? "opacity-70" : "",
+                      ].join(" ")}
+                    >
+                      <div className="text-sm text-slate-600 mb-2">
                         {selectedService
-                          ? "Επιλέξτε ημέρα (εμφανίζονται μόνο διαθέσιμες)."
-                          : "Επιλέξτε πρώτα υπηρεσία για να εμφανιστούν διαθέσιμες ημέρες/ώρες."}
+                          ? "Επιλέξτε ημέρα και ώρα. Εμφανίζονται μόνο διαθέσιμες επιλογές."
+                          : "Επιλέξτε πρώτα υπηρεσία για να εμφανιστούν διαθέσιμες ημέρες και ώρες."}
                       </div>
 
                       {slotsLoading ? (
-                        <div className="flex flex-wrap gap-2">
-                          {Array.from({ length: 6 }).map((_, i) => (
-                            <div
-                              key={i}
-                              className="h-9 w-32 animate-pulse rounded-lg bg-white ring-1 ring-accent/20"
-                            />
-                          ))}
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap gap-2">
+                            {Array.from({ length: 6 }).map((_, i) => (
+                              <div
+                                key={i}
+                                className="h-11 w-28 animate-pulse rounded-lg bg-white ring-1 ring-accent/20"
+                              />
+                            ))}
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <div
+                                key={i}
+                                className="h-11 w-20 animate-pulse rounded-lg bg-white ring-1 ring-accent/20"
+                              />
+                            ))}
+                          </div>
                         </div>
                       ) : !selectedService ? (
-                        <div className="text-sm text-slate-600">—</div>
+                        <div className="text-[15px] text-slate-600">—</div>
                       ) : availableDates.length === 0 ? (
-                        <div className="text-sm text-rose-600">
+                        <div className="text-[15px] text-rose-600">
                           Δεν υπάρχουν διαθέσιμα ραντεβού για τις επόμενες ημέρες. Δοκιμάστε άλλη υπηρεσία.
                         </div>
                       ) : (
                         <>
+                          {/* Dates */}
                           <div className="flex flex-wrap gap-2">
                             {availableDates.map((d) => {
                               const active = d === selectedDate;
@@ -420,15 +592,20 @@ export default function BookPage() {
                                 <button
                                   key={d}
                                   type="button"
+                                  disabled={loading}
                                   onClick={() => {
                                     setSelectedDate(d);
                                     setSelectedSlotId("");
+                                    setFieldErrors((p) => ({ ...p, slot: undefined }));
                                   }}
+                                  onBlur={() => markTouched("slot")}
                                   className={[
-                                    "h-9 rounded-lg px-3 text-sm ring-1 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                                    "h-11 rounded-lg px-3 text-[15px] ring-1 transition",
+                                    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35",
                                     active
                                       ? "bg-primary text-white ring-primary"
                                       : "bg-white text-slate-800 ring-accent/30 hover:bg-accent/10",
+                                    loading ? "opacity-70 cursor-not-allowed" : "",
                                   ].join(" ")}
                                   title={toDateLabel(d)}
                                 >
@@ -444,11 +621,13 @@ export default function BookPage() {
 
                           {/* Times */}
                           <div className="mt-3">
-                            <div className="text-xs text-slate-600 mb-2">Ώρες για την επιλεγμένη ημέρα:</div>
+                            <div className="text-sm text-slate-600 mb-2">Ώρες για την επιλεγμένη ημέρα:</div>
 
                             {selectedDate ? (
                               slotsForSelectedDate.length === 0 ? (
-                                <div className="text-sm text-slate-600">Δεν υπάρχουν ώρες για αυτήν την ημέρα.</div>
+                                <div className="text-[15px] text-slate-600">
+                                  Δεν υπάρχουν ώρες για αυτήν την ημέρα.
+                                </div>
                               ) : (
                                 <div className="flex flex-wrap gap-2">
                                   {slotsForSelectedDate.map((s) => {
@@ -457,12 +636,19 @@ export default function BookPage() {
                                       <button
                                         key={s.id}
                                         type="button"
-                                        onClick={() => setSelectedSlotId(s.id)}
+                                        disabled={loading}
+                                        onClick={() => {
+                                          setSelectedSlotId(s.id);
+                                          setFieldErrors((p) => ({ ...p, slot: undefined }));
+                                        }}
+                                        onBlur={() => markTouched("slot")}
                                         className={[
-                                          "h-9 rounded-lg px-3 text-sm ring-1 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                                          "h-11 rounded-lg px-3 text-[15px] ring-1 transition",
+                                          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35",
                                           active
                                             ? "bg-primary text-white ring-primary"
                                             : "bg-white text-slate-800 ring-accent/30 hover:bg-accent/10",
+                                          loading ? "opacity-70 cursor-not-allowed" : "",
                                         ].join(" ")}
                                       >
                                         {s.timeStr}
@@ -472,7 +658,7 @@ export default function BookPage() {
                                 </div>
                               )
                             ) : (
-                              <div className="text-sm text-slate-600">Επιλέξτε πρώτα ημέρα.</div>
+                              <div className="text-[15px] text-slate-600">Επιλέξτε πρώτα ημέρα.</div>
                             )}
                           </div>
                         </>
@@ -484,65 +670,70 @@ export default function BookPage() {
                     <input type="hidden" name="date" value={selectedSlot?.dateStr || ""} />
                     <input type="hidden" name="time" value={selectedSlot?.timeStr || ""} />
 
-                    <p className="mt-1 text-xs text-slate-600">
+                    <p className="mt-2 text-sm text-slate-600">
                       {selectedSlot
                         ? `Επιλέξατε: ${toDateLabel(selectedSlot.dateStr)} στις ${selectedSlot.timeStr}`
                         : "Δεν έχει επιλεγεί ραντεβού."}
                     </p>
+
+                    {show("slot") && <p className={ERROR_TEXT}>{fieldErrors.slot}</p>}
                   </div>
 
-                  {/* Μήνυμα */}
+                  {/* Message */}
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-slate-700">
-                      Σύντομο μήνυμα (προαιρετικό)
-                    </label>
+                    <label className={LABEL_BASE}>Σύντομο μήνυμα (προαιρετικό)</label>
                     <textarea
                       name="message"
                       rows={4}
-                      className="mt-1 w-full rounded-xl ring-1 ring-accent/30 bg-white px-3 py-2 text-slate-900 outline-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+                      disabled={loading}
+                      className={[
+                        "mt-1 w-full rounded-xl bg-white px-3 py-2 text-[15px] text-slate-900 ring-1 ring-accent/30 outline-none",
+                        "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35",
+                        "disabled:opacity-60 disabled:cursor-not-allowed",
+                      ].join(" ")}
                       placeholder="Τυχόν απορίες ή προτιμήσεις."
                     />
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div className="mt-5 flex items-center gap-3">
+                {/* NOTE: removed the min-height spacer that caused “extra space” at the bottom */}
+                <div className="mt-6">
                   <button
                     type="submit"
                     disabled={loading || servicesLoading || slotsLoading || !selectedService || !selectedSlotId}
-                    className="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-white disabled:opacity-50 transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+                    className="inline-flex items-center rounded-xl bg-primary px-5 h-12 text-[15px] font-semibold text-white disabled:opacity-50 transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
                   >
                     {loading ? "Αποστολή..." : "Αίτημα Ραντεβού"}
                   </button>
-                  <Link
-                    href="/contact/form"
-                    className="text-primary hover:text-accent underline decoration-primary/30 hover:decoration-accent/50 transition"
-                  >
-                    Εναλλακτικά, Φόρμα Επικοινωνίας →
-                  </Link>
-                </div>
 
-                {/* Status */}
-                <div className="mt-4 min-h-[1.5rem]">
-                  {ok && <p className="text-sm text-primary">Το αίτημά σας υποβλήθηκε! Θα επικοινωνήσουμε σύντομα.</p>}
-                  {ok === false && (
-                    <p className="text-sm text-rose-600">{error || "Κάτι πήγε στραβά. Παρακαλούμε δοκιμάστε ξανά."}</p>
-                  )}
+                  <p className="mt-2 text-sm text-slate-600">Θα σας καλέσουμε για επιβεβαίωση.</p>
+
+                  <div className="mt-3">
+                    <Link
+                      href="/contact/form"
+                      className="inline-flex items-center text-[15px] text-slate-600 hover:text-primary underline decoration-slate-400/30 hover:decoration-primary/40 transition"
+                    >
+                      Εναλλακτικά, Φόρμα Επικοινωνίας →
+                    </Link>
+                  </div>
+
+                  {!!submitError && <p className="mt-3 text-sm text-rose-600">{submitError}</p>}
                 </div>
               </form>
             </div>
 
             {/* Side info */}
             <aside className="md:col-span-2">
-              <div className="rounded-2xl bg-white p-6 shadow-[0_14px_30px_rgba(164,199,126,0.10)] ring-1 ring-accent/25">
-                <h2 className="text-lg font-semibold text-slate-900">Χρήσιμες Πληροφορίες</h2>
-                <ul className="mt-3 space-y-2 text-sm text-slate-700 marker:text-accent/80 list-disc pl-5">
+              <div className="rounded-2xl bg-white p-6 ring-1 ring-accent/30 shadow-[0_16px_34px_rgba(164,199,126,0.14)]">
+                <h2 className="text-xl font-semibold text-slate-900">Χρήσιμες Πληροφορίες</h2>
+                <ul className="mt-3 space-y-2 text-[15px] text-slate-700 marker:text-accent/80 list-disc pl-5">
                   <li>Ώρες λειτουργίας: Δευ–Παρ 10:00–18:00</li>
                   <li>Το ραντεβού επιβεβαιώνεται τηλεφωνικά.</li>
                   <li>Ακύρωση/αλλαγή έως 24 ώρες πριν.</li>
                 </ul>
                 <div className="mt-5 h-px bg-accent/35" />
-                <p className="mt-4 text-sm text-slate-600">
+                <p className="mt-4 text-[15px] text-slate-600">
                   Για απορίες, δείτε και την{" "}
                   <Link
                     href="/contact/form"

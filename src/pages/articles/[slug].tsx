@@ -1,15 +1,23 @@
 import Head from "next/head";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { GetStaticPaths, GetStaticProps } from "next";
 import Image from "next/image";
 
 /**
  * ΑΡΘΡΟ — Σελίδα λεπτομέρειας
- * - Ελληνικός slug / Ελληνικό UI
- * - Εικονική "κλήση API" με dummy δεδομένα
- * - Τυπογραφία, breadcrumbs, μεταδεδομένα (ημ/νία, χρόνος ανάγνωσης, κατηγορία, tags)
- * - Σχετικά άρθρα
+ * - Back button αντί για breadcrumbs
+ * - Category pill πιο κοντά στο headline
+ * - H1: leading-[1.1] + max-w-[22ch]
+ * - Meta row: icons + text-sm text-slate-600 + ίδιο baseline
+ * - Hero: rounded-3xl + ring-1 ring-black/5 + λεπτό gradient scrim
+ * - Body: max-w-[68ch] + leading-relaxed
+ * - Headings: consistent scale (text-lg font-semibold, mt-10 mb-3)
+ * - Lists: space-y-2 + marker:text-slate-400
+ * - Tags: ίδια chips με index + hover/focus
+ * - Remove “Σχετικά άρθρα”
+ * - Reading progress bar
+ * - focus-visible:ring σε links (prose)
  */
 
 // ---------------- Mock "API" (ίδιο dataset με το index για συνέπεια) ----------------
@@ -23,7 +31,7 @@ type Article = {
   readMinutes: number;
   hero: string;
   tags: string[];
-  content: string[]; // Μίξη headers/παραγράφων/λίστας (βλέπε parsing πιο κάτω)
+  content: string[];
 };
 
 function mockFetchArticles(): Article[] {
@@ -183,31 +191,17 @@ export const getStaticProps: GetStaticProps = async (ctx) => {
   const slug = ctx.params?.slug as string;
   const article = getArticleBySlug(slug);
 
-  if (!article) {
-    return { notFound: true };
-  }
-
-  // Σχετικά άρθρα (ίδια κατηγορία, εκτός του τρέχοντος)
-  const related = mockFetchArticles()
-    .filter((a) => a.category === article.category && a.slug !== article.slug)
-    .slice(0, 3);
+  if (!article) return { notFound: true };
 
   return {
     props: {
       article,
-      related,
     },
   };
 };
 
 // ---------------- Page ----------------
-export default function ArticlePage({
-  article,
-  related,
-}: {
-  article: Article;
-  related: Article[];
-}) {
+export default function ArticlePage({ article }: { article: Article }) {
   const formattedDate = useMemo(
     () =>
       new Date(article.dateISO).toLocaleDateString("el-GR", {
@@ -215,8 +209,26 @@ export default function ArticlePage({
         month: "2-digit",
         year: "numeric",
       }),
-    [article.dateISO]
+    [article.dateISO],
   );
+
+  // Reading progress
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const doc = document.documentElement;
+      const scrollTop = doc.scrollTop || document.body.scrollTop;
+      const scrollHeight = doc.scrollHeight || document.body.scrollHeight;
+      const clientHeight = doc.clientHeight;
+      const total = Math.max(1, scrollHeight - clientHeight);
+      setProgress(Math.min(1, Math.max(0, scrollTop / total)));
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <>
@@ -227,7 +239,6 @@ export default function ArticlePage({
           rel="canonical"
           href={`https://example.com/articles/${encodeURIComponent(article.slug)}`}
         />
-        {/* Optional OG/Twitter for richer previews */}
         <meta property="og:type" content="article" />
         <meta property="og:title" content={`${article.title} — Άρθρα`} />
         <meta property="og:description" content={article.excerpt} />
@@ -236,148 +247,134 @@ export default function ArticlePage({
         <meta name="twitter:card" content="summary_large_image" />
       </Head>
 
+      {/* Reading progress bar */}
+      <div className="fixed left-0 top-0 z-50 h-0.5 w-full bg-transparent">
+        <div
+          className="h-full bg-primary transition-[width] duration-75"
+          style={{ width: `${progress * 100}%` }}
+          aria-hidden
+        />
+      </div>
+
       <article className="mx-auto max-w-4xl px-4 md:px-6 lg:px-8 py-8">
-        {/* Breadcrumbs */}
-        <nav className="mb-4 text-sm text-slate-600" aria-label="breadcrumb">
-          <ol className="flex items-center gap-2">
-            <li>
-              <Link href="/" className="hover:underline">
-                Αρχική
-              </Link>
-            </li>
-            <li>›</li>
-            <li>
-              <Link href="/articles" className="hover:underline">
-                Άρθρα
-              </Link>
-            </li>
-            <li>›</li>
-            <li className="text-slate-800">{article.title}</li>
-          </ol>
-        </nav>
+        {/* Back button */}
+        <div className="mb-4">
+          <Link
+            href="/articles"
+            className="inline-flex items-center gap-2 rounded-xl bg-white/70 px-3 py-2 text-sm font-medium text-slate-800 ring-1 ring-slate-200 hover:bg-white transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+          >
+            <span aria-hidden>←</span>
+            Πίσω στα άρθρα
+          </Link>
+        </div>
 
         {/* Hero + metadata */}
-        <header className="mb-6">
-          <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-medium text-white/95">
-            {article.category}
-          </span>
-          <h1 className="mt-3 text-3xl md:text-4xl font-semibold tracking-tight">
+        <header className="mb-7">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+            <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white/95">
+              {article.category}
+            </span>
+
+            <span className="inline-flex items-center gap-1.5 tabular-nums">
+              <span aria-hidden>📅</span>
+              <span>Δημοσίευση: {formattedDate}</span>
+            </span>
+
+            <span className="text-slate-300" aria-hidden>
+              •
+            </span>
+
+            <span className="inline-flex items-center gap-1.5 tabular-nums">
+              <span aria-hidden>⏱</span>
+              <span>{article.readMinutes}′ ανάγνωση</span>
+            </span>
+          </div>
+
+          <h1 className="mt-2 max-w-[22ch] text-3xl md:text-4xl font-semibold tracking-tight leading-[1.1]">
             {article.title}
           </h1>
 
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-600">
-            <span>Δημοσίευση: {formattedDate}</span>
-            <span>•</span>
-            <span>⏱ {article.readMinutes}′ ανάγνωση</span>
-          </div>
-
-          <div className="mt-6 rounded-2xl overflow-hidden ring-1 ring-black/5 bg-white/90 max-h-96 grid place-content-center">
-            <Image
-              src={article.hero}
-              alt={article.title}
-              width={800}
-              height={524}
-              className="w-full h-auto object-cover"
-            />
+          <div className="mt-6 overflow-hidden rounded-3xl ring-1 ring-black/5 bg-white/90">
+            <div className="relative">
+              <Image
+                src={article.hero}
+                alt={article.title}
+                width={1000}
+                height={650}
+                className="w-full h-auto object-cover"
+                priority
+              />
+              {/* subtle scrim */}
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/10 to-transparent" />
+            </div>
           </div>
         </header>
 
         {/* Περιεχόμενο */}
-        <div className="prose prose-slate max-w-none prose-headings:scroll-mt-24">
-          {article.content.map((block, i) => {
-            if (block.startsWith("# ")) {
-              return (
-                <h2 key={i} className="mt-10">
-                  {block.replace("# ", "")}
-                </h2>
-              );
-            }
-            if (block.startsWith("## ")) {
-              return (
-                <h3 key={i} className="mt-8">
-                  {block.replace("## ", "")}
-                </h3>
-              );
-            }
-            if (block.startsWith("• ")) {
-              return (
-                <ul key={i} className="my-4 list-disc pl-6">
-                  {block
-                    .split("• ")
-                    .filter(Boolean)
-                    .map((li, idx) => (
+        <div
+          className={[
+            "prose prose-slate max-w-none",
+            "prose-headings:scroll-mt-24",
+            "prose-p:leading-relaxed",
+            "prose-a:font-medium prose-a:text-primary",
+            "prose-a:no-underline hover:prose-a:underline",
+            "prose-a:focus:outline-none prose-a:focus-visible:ring-4 prose-a:focus-visible:ring-primary/20 prose-a:rounded",
+            "prose-ul:pl-6 prose-ul:my-4 prose-ul:list-disc",
+            "prose-li:my-0",
+            "prose-ul:space-y-2",
+            "prose-li:marker:text-slate-400",
+          ].join(" ")}
+        >
+          <div className="max-w-[68ch]">
+            {article.content.map((block, i) => {
+              if (block.startsWith("# ")) {
+                return (
+                  <h2 key={i} className="text-lg font-semibold mt-10 mb-3">
+                    {block.replace("# ", "")}
+                  </h2>
+                );
+              }
+              if (block.startsWith("## ")) {
+                return (
+                  <h3 key={i} className="text-lg font-semibold mt-10 mb-3">
+                    {block.replace("## ", "")}
+                  </h3>
+                );
+              }
+              if (block.startsWith("• ")) {
+                const items = block
+                  .split("• ")
+                  .filter(Boolean)
+                  .map((s) => s.trim());
+
+                return (
+                  <ul key={i} className="my-4 list-disc pl-6 space-y-2 marker:text-slate-400">
+                    {items.map((li, idx) => (
                       <li key={idx}>{li}</li>
                     ))}
-                </ul>
-              );
-            }
-            return <p key={i}>{block}</p>;
-          })}
-        </div>
+                  </ul>
+                );
+              }
+              return <p key={i}>{block}</p>;
+            })}
 
-        {/* Tags */}
-        {article.tags.length > 0 && (
-          <div className="mt-10 flex flex-wrap gap-2">
-            {article.tags.map((t) => (
-              <span
-                key={t}
-                className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700"
-              >
-                #{t}
-              </span>
-            ))}
+            {/* Tags */}
+            {article.tags.length > 0 && (
+              <div className="mt-10 flex flex-wrap gap-2">
+                {article.tags.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/15 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+                  >
+                    #{t}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </article>
-
-      {/* Σχετικά άρθρα */}
-      {related.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 md:px-6 lg:px-8 pb-12">
-          <h2 className="mb-4 text-xl font-semibold">Σχετικά άρθρα</h2>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {related.map((a) => (
-              <li key={a.id} className="group">
-                <Link
-                  href={`/articles/${encodeURIComponent(a.slug)}`}
-                  className="block overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 transition hover:shadow-lg"
-                >
-                  <div className="relative aspect-[16/10] overflow-hidden">
-                    <Image
-                      src={a.hero}
-                      alt={a.title}
-                      width={400}
-                      height={250}
-                      className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-                      loading="lazy"
-                    />
-                    <span className="absolute left-3 top-3 inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-medium text-white/95">
-                      {a.category}
-                    </span>
-                  </div>
-                  <div className="p-5">
-                    <h3 className="text-lg font-semibold leading-snug">
-                      {a.title}
-                    </h3>
-                    <p className="mt-2 line-clamp-2 text-sm text-slate-600">
-                      {a.excerpt}
-                    </p>
-                    <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
-                      <span>
-                        {new Date(a.dateISO).toLocaleDateString("el-GR", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        })}
-                      </span>
-                      <span>⏱ {a.readMinutes}′</span>
-                    </div>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </>
   );
 }

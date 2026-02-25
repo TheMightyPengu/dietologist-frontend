@@ -2,18 +2,6 @@ import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-/**
- * ΣΕΜΙΝΑΡΙΑ — Λίστα σεμιναρίων (mock API)
- * - Ελληνικό UI
- * - Μινιμαλιστική, μοντέρνα σελιδοποίηση/πλέγμα
- * - Skeletons, loading, error state
- * - Palette rules:
- *   - Backgrounds: WHITE only
- *   - Purple = primary/high-focus (CTAs, focus rings)
- *   - Green = more frequent accent (tints, borders, chips, dividers, shadows)
- *   - Links: purple default -> green on hover
- */
-
 type Seminar = {
   id: string;
   title: string;
@@ -25,6 +13,42 @@ type Seminar = {
   priceEUR?: number; // optional (δωρεάν όταν λείπει)
   slug: string;
 };
+
+type PillProps = {
+  children: React.ReactNode;
+  variant?: "accent" | "warm";
+};
+const Pill = ({ children, variant = "accent" }: PillProps) => (
+  <span
+    className={[
+      "inline-flex items-center rounded-full px-2.5 py-1 text-xs leading-none",
+      "bg-white",
+      variant === "warm" ? "ring-1 ring-warm/45" : "ring-1 ring-accent/30",
+      "text-slate-700",
+    ].join(" ")}
+  >
+    {children}
+  </span>
+);
+
+function formatParts(dateISO: string) {
+  const d = new Date(dateISO);
+  if (isNaN(d.getTime()))
+    return { date: "Ημερομηνία σύντομα", time: "Ώρα σύντομα" };
+
+  const date = d.toLocaleDateString("el-GR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  const time = d.toLocaleTimeString("el-GR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return { date, time };
+}
 
 export default function SeminarsPage() {
   const [loading, setLoading] = useState(true);
@@ -55,12 +79,12 @@ export default function SeminarsPage() {
 
   // --- Mock "API call"
   useEffect(() => {
-    let active = true;
+    let alive = true;
     setLoading(true);
     setError(null);
 
     const timer = setTimeout(() => {
-      if (!active) return;
+      if (!alive) return;
 
       const data: Seminar[] = [
         {
@@ -108,7 +132,7 @@ export default function SeminarsPage() {
     }, 800);
 
     return () => {
-      active = false;
+      alive = false;
       clearTimeout(timer);
     };
   }, []);
@@ -134,10 +158,9 @@ export default function SeminarsPage() {
         />
       </Head>
 
-      {/* White-only background wrapper */}
       <section className="text-slate-800">
         {/* hero */}
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-14 md:pt-20 pb-6">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-14 md:pt-20 pb-10 md:pb-12">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             <div className="max-w-3xl">
               <div className="inline-flex items-center gap-3">
@@ -146,7 +169,7 @@ export default function SeminarsPage() {
                 </h1>
                 <span className="hidden sm:inline-block h-px w-20 bg-accent/40" />
               </div>
-              <p className="mt-3 text-slate-600">
+              <p className="mt-3 text-slate-600 leading-relaxed">
                 Μικρές, στοχευμένες ενότητες με πρακτικό περιεχόμενο. Online
                 &amp; δια ζώσης, με έμφαση στην εφαρμογή.
               </p>
@@ -165,11 +188,8 @@ export default function SeminarsPage() {
                   placeholder="Αναζήτηση σεμιναρίων…"
                   className={[
                     "w-full rounded-2xl px-4 py-3 pr-12 shadow-sm transition",
-                    // bg must be white only
                     "bg-white",
-                    // green used more: border + subtle hover tint
                     "border border-accent/35 hover:bg-accent/10",
-                    // focus is purple (high focus)
                     "focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary/40",
                   ].join(" ")}
                 />
@@ -190,9 +210,7 @@ export default function SeminarsPage() {
                   key={i}
                   className={[
                     "rounded-2xl overflow-hidden animate-pulse",
-                    // bg must be white only
                     "bg-white",
-                    // green-tinted structure
                     "ring-1 ring-accent/20",
                     "shadow-sm shadow-[0_12px_28px_rgba(164,199,126,0.10)]",
                   ].join(" ")}
@@ -218,35 +236,39 @@ export default function SeminarsPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filtered.map((s, idx) => {
-                const date = new Date(s.dateISO);
-                const niceDate = isNaN(date.getTime())
-                  ? "Ημερομηνία σύντομα"
-                  : date.toLocaleString("el-GR", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    });
+                const featured = idx === 0;
+                const { date, time } = formatParts(s.dateISO);
+                const priceLabel =
+                  typeof s.priceEUR === "number" ? `${s.priceEUR}€` : "0€";
 
                 return (
                   <article
                     key={s.id}
                     className={[
                       "group rounded-2xl overflow-hidden h-full flex flex-col transition",
-                      // bg must be white only
                       "bg-white",
-                      // warm accent for first seminar (10% rule), green for others
-                      idx === 0
-                        ? "ring-2 ring-warm/50 shadow-[0_12px_28px_rgba(255,230,150,0.12)] hover:shadow-[0_18px_38px_rgba(255,230,150,0.18)]"
-                        : "ring-1 ring-accent/20 shadow-[0_12px_28px_rgba(164,199,126,0.10)] hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)]",
+                      featured
+                        ? [
+                            "ring-2 ring-warm/50",
+                            "shadow-[0_12px_28px_rgba(255,230,150,0.12)]",
+                            "hover:shadow-[0_18px_38px_rgba(255,230,150,0.18)]",
+                            "hover:ring-warm/70",
+                          ].join(" ")
+                        : [
+                            "ring-1 ring-accent/20",
+                            "shadow-[0_12px_28px_rgba(164,199,126,0.10)]",
+                            "hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)]",
+                            "hover:ring-accent/35",
+                          ].join(" "),
+                      "focus-within:ring-primary/35",
                     ].join(" ")}
                   >
-                    <div
-                      className="h-40 bg-cover bg-center relative"
-                      style={{ backgroundImage: `url(${s.cover})` }}
-                    >
-                      {idx === 0 && (
+                    <div className="relative h-40 overflow-hidden">
+                      <div
+                        className="absolute inset-0 bg-cover bg-center transition-transform duration-300 will-change-transform group-hover:scale-[1.02]"
+                        style={{ backgroundImage: `url(${s.cover})` }}
+                      />
+                      {featured && (
                         <span className="absolute top-2 right-2 inline-flex items-center rounded-full bg-warm/80 border border-warm/60 px-2.5 py-1 text-xs font-medium text-slate-800">
                           🔥 Δημοφιλές
                         </span>
@@ -254,46 +276,41 @@ export default function SeminarsPage() {
                     </div>
 
                     <div className="p-5 flex flex-col grow">
-                      <div className="flex items-center gap-2 text-xs text-slate-600">
-                        {/* Chip: white bg, warm ring for featured, green for others */}
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-1 ${idx === 0 ? "bg-warm/20 ring-1 ring-warm/40" : "bg-white ring-1 ring-accent/30"}`}
-                        >
+                      {/* unified pills */}
+                      <div className="flex flex-wrap gap-2">
+                        <Pill variant={featured ? "warm" : "accent"}>
                           {s.mode}
-                        </span>
-                        <span
-                          className={
-                            idx === 0 ? "text-warm/70" : "text-accent/70"
-                          }
-                        >
-                          •
-                        </span>
-                        <span>{niceDate}</span>
-                        <span
-                          className={
-                            idx === 0 ? "text-warm/70" : "text-accent/70"
-                          }
-                        >
-                          •
-                        </span>
-                        <span>{s.durationMin}′</span>
+                        </Pill>
+                        <Pill variant={featured ? "warm" : "accent"}>
+                          {date}
+                        </Pill>
+                        <Pill variant={featured ? "warm" : "accent"}>
+                          {time}
+                        </Pill>
+                        <Pill variant={featured ? "warm" : "accent"}>
+                          {s.durationMin}′
+                        </Pill>
                       </div>
 
-                      <h3 className="mt-2 text-lg font-semibold leading-snug text-slate-900">
+                      <h3 className="mt-3 text-lg font-semibold leading-snug text-slate-900">
                         {s.title}
                       </h3>
 
-                      <p className="mt-1 text-sm text-slate-600">{s.excerpt}</p>
+                      <p className="mt-1 text-sm text-slate-600 leading-relaxed line-clamp-3">
+                        {s.excerpt}
+                      </p>
 
-                      {/* Sticky-to-bottom footer */}
-                      <div className="mt-auto flex items-center justify-between pt-3">
+                      {/* footer */}
+                      <div className="mt-auto flex items-center justify-between pt-4">
                         <span
-                          className={`font-semibold ${idx === 0 ? "text-warm" : "text-accent"}`}
+                          className={[
+                            "font-semibold",
+                            featured ? "text-warm" : "text-accent",
+                          ].join(" ")}
                         >
-                          {s.priceEUR ? `${s.priceEUR}€` : "ΔΩΡΕΑΝ"}
+                          {priceLabel}
                         </span>
 
-                        {/* Primary CTA = purple, warm hover for featured */}
                         <button
                           type="button"
                           onClick={() => openModal(s)}
@@ -301,14 +318,13 @@ export default function SeminarsPage() {
                             "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm shadow transition",
                             "bg-primary text-white",
                             "ring-1 ring-primary/20",
-                            idx === 0
+                            featured
                               ? "hover:shadow-[0_12px_28px_rgba(255,230,150,0.18)]"
                               : "hover:shadow-[0_12px_28px_rgba(164,199,126,0.18)]",
                             "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
                           ].join(" ")}
                         >
-                          Μάθε περισσότερα
-                          <span aria-hidden>→</span>
+                          Μάθε περισσότερα <span aria-hidden>→</span>
                         </button>
                       </div>
                     </div>
@@ -319,30 +335,34 @@ export default function SeminarsPage() {
           )}
         </div>
 
-        {/* CTA band: keep white bg, push green tints; primary (purple) button inside */}
-        <div>
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 flex flex-col md:flex-row items-center gap-4 md:gap-6">
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl md:text-2xl font-semibold text-slate-900">
-                Θέλετε εταιρικό σεμινάριο;
-              </h2>
-              <span className="hidden md:inline-block h-px w-20 bg-accent/40" />
-            </div>
+        {/* corporate CTA as mini card */}
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 pb-12">
+          <div
+            className={[
+              "rounded-2xl bg-white",
+              "ring-1 ring-accent/30",
+              "shadow-[0_12px_28px_rgba(164,199,126,0.10)]",
+              "px-5 py-5 md:px-6 md:py-6",
+            ].join(" ")}
+          >
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl md:text-2xl font-semibold text-slate-900">
+                  Θέλετε εταιρικό σεμινάριο;
+                </h2>
+                <span className="hidden md:inline-block h-px w-20 bg-accent/40" />
+              </div>
 
-            <p className="text-slate-600">
-              Επικοινωνήστε για προσαρμοσμένα workshops στην ομάδα σας.
-            </p>
+              <p className="text-slate-600 md:flex-1 leading-relaxed">
+                Επικοινωνήστε για προσαρμοσμένα workshops στην ομάδα σας.
+              </p>
 
-            <div className="md:ml-auto">
               <Link
                 href="/contact"
                 className={[
-                  "inline-flex rounded-xl px-4 py-2 font-medium shadow transition",
-                  // bg must be white only
+                  "inline-flex items-center justify-center rounded-xl px-4 py-2 font-medium transition",
                   "bg-white",
-                  // link rule: purple default -> green hover
                   "text-primary hover:text-accent",
-                  // more green tint
                   "ring-1 ring-accent/40 hover:bg-accent/10",
                   "shadow-[0_12px_28px_rgba(164,199,126,0.12)] hover:shadow-[0_16px_34px_rgba(164,199,126,0.18)]",
                   "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
@@ -353,6 +373,8 @@ export default function SeminarsPage() {
             </div>
           </div>
         </div>
+
+        {/* modal */}
         {open && active && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center px-4"
@@ -360,67 +382,105 @@ export default function SeminarsPage() {
             aria-modal="true"
             aria-label="Λεπτομέρειες σεμιναρίου"
           >
-            {/* backdrop */}
+            {/* backdrop (click outside + blur) */}
             <button
               type="button"
               onClick={closeModal}
-              className="absolute inset-0 bg-slate-900/40"
+              className="absolute inset-0 bg-slate-900/55 backdrop-blur-[2px]"
               aria-label="Κλείσιμο"
             />
 
             {/* panel */}
-            <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-accent/25">
-              <div
-                className="h-44 bg-cover bg-center"
-                style={{ backgroundImage: `url(${active.cover})` }}
-              />
+            <div className="relative w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-accent/25">
+              {/* X close */}
+              <button
+                type="button"
+                onClick={closeModal}
+                className={[
+                  "absolute right-3 top-3 z-10",
+                  "inline-flex items-center justify-center rounded-xl p-2",
+                  "bg-white/90 ring-1 ring-accent/30 shadow-sm",
+                  "hover:bg-accent/10",
+                  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                ].join(" ")}
+                aria-label="Κλείσιμο παραθύρου"
+              >
+                ✕
+              </button>
 
-              <div className="p-6 sm:p-7">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
+              {/* layout: image left on desktop */}
+              <div className="flex flex-col md:flex-row">
+                <div className="md:w-[42%]">
+                  <div
+                    className="h-44 md:h-full md:min-h-[260px] bg-cover bg-center"
+                    style={{ backgroundImage: `url(${active.cover})` }}
+                  />
+                </div>
+
+                {/* content with sticky footer */}
+                <div className="md:w-[58%] flex flex-col">
+                  <div className="p-6 sm:p-7 max-h-[70vh] overflow-y-auto">
                     <h3 className="text-xl sm:text-2xl font-semibold text-slate-900">
                       {active.title}
                     </h3>
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-600">
-                      <span className="inline-flex items-center rounded-full bg-white px-2 py-1 ring-1 ring-accent/30">
-                        {active.mode}
-                      </span>
-                      <span className="text-accent/70">•</span>
-                      <span>{active.durationMin}′</span>
-                      <span className="text-accent/70">•</span>
-                      <span className="font-semibold text-accent">
-                        {active.priceEUR ? `${active.priceEUR}€` : "ΔΩΡΕΑΝ"}
-                      </span>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {(() => {
+                        const { date, time } = formatParts(active.dateISO);
+                        const priceLabel =
+                          typeof active.priceEUR === "number"
+                            ? `${active.priceEUR}€`
+                            : "0€";
+                        return (
+                          <>
+                            <Pill>{active.mode}</Pill>
+                            <Pill>{date}</Pill>
+                            <Pill>{time}</Pill>
+                            <Pill>{active.durationMin}′</Pill>
+                            <Pill>
+                              <span className="font-semibold text-accent">
+                                {priceLabel}
+                              </span>
+                            </Pill>
+                          </>
+                        );
+                      })()}
+                    </div>
+
+                    <p className="mt-4 text-slate-700 leading-relaxed">
+                      {active.excerpt}
+                    </p>
+                  </div>
+
+                  <div className="sticky bottom-0 bg-white/90 backdrop-blur border-t border-accent/15 px-6 sm:px-7 py-4">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-end">
+                      <Link
+                        href="/contact/book"
+                        className={[
+                          "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 text-sm font-semibold transition",
+                          "bg-primary text-white",
+                          "ring-1 ring-primary/20",
+                          "hover:shadow-[0_12px_28px_rgba(164,199,126,0.18)]",
+                          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
+                        ].join(" ")}
+                      >
+                        Κράτηση θέσης
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={closeModal}
+                        className={[
+                          "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 text-sm font-medium transition",
+                          "bg-white text-slate-800",
+                          "ring-1 ring-accent/35 hover:bg-accent/10",
+                          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                        ].join(" ")}
+                      >
+                        Κλείσιμο
+                      </button>
                     </div>
                   </div>
-                </div>
-
-                <p className="mt-4 text-slate-700 leading-relaxed">
-                  {active.excerpt}
-                </p>
-
-                {/* actions */}
-                <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-end">
-                  <Link
-                    href="/contact/book"
-                    className={[
-                      "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 text-sm font-semibold transition",
-                      "bg-primary text-white",
-                      "ring-1 ring-primary/20",
-                      "hover:shadow-[0_12px_28px_rgba(164,199,126,0.18)]",
-                      "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
-                    ].join(" ")}
-                  >
-                    Κράτηση θέσης
-                  </Link>
-
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="inline-flex items-center justify-center rounded-2xl px-5 py-2.5 text-sm font-medium bg-white ring-1 ring-accent/40 hover:bg-accent/10"
-                  >
-                    Κλείσιμο
-                  </button>
                 </div>
               </div>
             </div>

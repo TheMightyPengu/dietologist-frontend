@@ -3,6 +3,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import Image from "next/image";
+import { useMemo, useState } from "react";
 
 // -------------------- Types --------------------
 type Category = "Breakfast" | "Main" | "Snack" | "Drink" | "Dessert" | "Salad";
@@ -19,6 +20,16 @@ type Recipe = {
   steps: string[];
   image: string;
   createdAt: string;
+};
+
+// -------------------- Labels --------------------
+const CATEGORY_LABELS: Record<Category, string> = {
+  Breakfast: "Πρωινό",
+  Main: "Κυρίως",
+  Snack: "Σνακ",
+  Drink: "Ρόφημα",
+  Dessert: "Γλυκό",
+  Salad: "Σαλάτα",
 };
 
 // -------------------- Demo Data --------------------
@@ -372,11 +383,104 @@ function toGreekSlug(s: string) {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 }
+function classNames(...xs: Array<string | false | null | undefined>) {
+  return xs.filter(Boolean).join(" ");
+}
+
+// -------------------- UI bits --------------------
+function GlassChip({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <span
+      className={classNames(
+        "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold",
+        "bg-white/70 text-slate-800 ring-1 ring-black/10 backdrop-blur shadow-sm",
+        className
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+function ChipButton({
+  children,
+  active,
+  href,
+}: {
+  children: React.ReactNode;
+  active?: boolean;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={classNames(
+        "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 transition",
+        active
+          ? "bg-primary text-white ring-primary"
+          : "bg-accent/10 text-accent ring-accent/30 hover:bg-accent/15",
+        "hover:shadow-sm",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      )}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M12 7v6l4 2"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+function StarIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M12 3.5l2.7 5.6 6.2.9-4.5 4.4 1.1 6.2L12 17.9 6.5 20.6l1.1-6.2L3 10l6.2-.9L12 3.5Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 // -------------------- Page --------------------
 export default function RecipeDetail() {
   const { query, isReady, asPath } = useRouter();
   const rawParam = (query.slug as string) || "";
+
+  // demo local state for "checked ingredients"
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
 
   if (!isReady) return null;
 
@@ -384,9 +488,7 @@ export default function RecipeDetail() {
   let recipe = RECIPES.find((r) => r.slug === rawParam);
 
   // 2) Fallback: allow direct visits to pretty Greek slug
-  if (!recipe) {
-    recipe = RECIPES.find((r) => toGreekSlug(r.title) === rawParam);
-  }
+  if (!recipe) recipe = RECIPES.find((r) => toGreekSlug(r.title) === rawParam);
 
   if (!recipe) {
     return (
@@ -401,8 +503,16 @@ export default function RecipeDetail() {
         <main className="bg-bg text-slate-800">
           <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-12">
             <p className="mb-6 text-slate-700">Η συνταγή δεν βρέθηκε.</p>
-            <Link href="/recipes" className="underline">
-              ← Επιστροφή στις συνταγές
+            <Link
+              href="/recipes"
+              className={classNames(
+                "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold",
+                "bg-white/70 ring-1 ring-black/10 shadow-sm backdrop-blur",
+                "hover:shadow-[0_12px_28px_rgba(15,23,42,0.10)] transition",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              )}
+            >
+              <span aria-hidden="true">←</span> Επιστροφή στις συνταγές
             </Link>
           </div>
         </main>
@@ -412,6 +522,16 @@ export default function RecipeDetail() {
 
   const pretty = toGreekSlug(recipe.title);
 
+  const shownTags = recipe.tags.slice(0, 3);
+  const extraTags = Math.max(0, recipe.tags.length - shownTags.length);
+
+  const tagHref = (t: string) =>
+    `/recipes?inc=${encodeURIComponent(t)}&page=1`;
+
+  const ingredientId = (s: string) => stripGreekAccents(s).toLowerCase();
+
+  const steps = useMemo(() => recipe.steps ?? [], [recipe.steps]);
+
   return (
     <>
       <Head>
@@ -420,80 +540,198 @@ export default function RecipeDetail() {
           name="description"
           content={`${recipe.title} • Χρόνος: ${formatMin(recipe.minutes)}`}
         />
-        {/* Canonical to the pretty Greek path */}
         <link rel="canonical" href={`https://example.gr/recipes/${pretty}`} />
       </Head>
 
       <main className="bg-bg text-slate-800">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-10">
-          <Link href="/recipes" className="text-sm underline">
-            ← Πίσω στις συνταγές
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10">
+          {/* Back link as pill */}
+          <Link
+            href="/recipes"
+            className={classNames(
+              "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold",
+              "bg-white/70 ring-1 ring-black/10 shadow-sm backdrop-blur",
+              "hover:shadow-[0_12px_28px_rgba(15,23,42,0.10)] transition",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            )}
+          >
+            <span aria-hidden="true">←</span> Πίσω στις συνταγές
           </Link>
 
-          <h1 className="mt-4 text-3xl md:text-4xl font-semibold">
-            {recipe.title}
-          </h1>
-          <div className="mt-2 text-slate-600">
-            Κατηγορία: <span className="font-medium">{recipe.category}</span> •
-            Χρόνος:{" "}
-            <span className="font-medium">{formatMin(recipe.minutes)}</span> •
-            Βαθμολογία:{" "}
-            <span className="font-medium">{recipe.rating.toFixed(1)}</span>
-          </div>
+          {/* Title + chips */}
+          <header className="mt-5">
+            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
+              {recipe.title}
+            </h1>
 
-          <div className="mt-6 rounded-2xl overflow-hidden ring-1 ring-black/5 bg-white/90 max-h-96 grid place-content-center">
-            <Image
-              src={recipe.image}
-              alt={recipe.title}
-              width={800}
-              height={524}
-              className="w-full h-auto object-cover"
-              priority={false}
-            />
-          </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <GlassChip>{CATEGORY_LABELS[recipe.category]}</GlassChip>
+              <GlassChip>
+                <ClockIcon />
+                {formatMin(recipe.minutes)}
+              </GlassChip>
+              <GlassChip>
+                <StarIcon />
+                {recipe.rating.toFixed(1)}
+              </GlassChip>
+            </div>
+          </header>
 
-          <section className="mt-8">
-            <h2 className="text-xl font-semibold">Υλικά</h2>
-            <ul className="mt-3 list-disc pl-6 space-y-1">
-              {recipe.ingredients.map((ing) => (
-                <li key={ing}>{ing}</li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="mt-8">
-            <h2 className="text-xl font-semibold">Εκτέλεση</h2>
-
-            {recipe.steps?.length ? (
-              <ol className="mt-3 list-decimal pl-6 space-y-2">
-                {recipe.steps.map((step, i) => (
-                  <li key={i} className="text-slate-700">
-                    {step}
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="mt-3 text-slate-600">
-                Τα βήματα θα προστεθούν σύντομα.
-              </p>
+          {/* Image: wider + 16/9 + overlay badges */}
+          <div
+            className={classNames(
+              "mt-6 overflow-hidden rounded-2xl",
+              "bg-white/90 ring-1 ring-black/5 shadow-[0_12px_28px_rgba(15,23,42,0.08)]"
             )}
-          </section>
-
-          {recipe.tags.length > 0 && (
-            <section className="mt-6">
-              <h3 className="text-sm font-semibold text-slate-600">Ετικέτες</h3>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {recipe.tags.map((t) => (
-                  <span
-                    key={t}
-                    className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 px-3 py-1 text-xs font-medium"
-                  >
-                    {t}
-                  </span>
-                ))}
+          >
+            <div className="relative aspect-[16/9] w-full">
+              <Image
+                src={recipe.image}
+                alt={recipe.title}
+                fill
+                sizes="(max-width: 1024px) 100vw, 1024px"
+                className="object-cover"
+                priority={false}
+              />
+              <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+                <GlassChip>{CATEGORY_LABELS[recipe.category]}</GlassChip>
+                <GlassChip>
+                  <ClockIcon />
+                  {formatMin(recipe.minutes)}
+                </GlassChip>
+                <GlassChip>
+                  <StarIcon />
+                  {recipe.rating.toFixed(1)}
+                </GlassChip>
               </div>
-            </section>
-          )}
+            </div>
+          </div>
+
+          {/* Content: 2 columns on desktop */}
+          <section className="mt-8 grid gap-6 lg:grid-cols-12">
+            {/* Left: Ingredients (sticky) */}
+            <aside className="lg:col-span-4">
+              <div className="lg:sticky lg:top-6">
+                <div
+                  className={classNames(
+                    "rounded-2xl bg-white/90 ring-1 ring-black/5",
+                    "shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
+                  )}
+                >
+                  <div className="px-5 pt-5">
+                    <h2 className="text-lg font-semibold">Υλικά</h2>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Ό,τι θα χρειαστείς για τη συνταγή.
+                    </p>
+                  </div>
+
+                  <div className="px-5 pb-5 pt-4">
+                    <ul className="space-y-2">
+                      {recipe.ingredients.map((ing) => (
+                        <li
+                          key={ing}
+                          className={classNames(
+                            "flex items-start gap-3 rounded-xl px-3 py-2",
+                            "hover:bg-black/5 transition"
+                          )}
+                        >
+                          <span
+                            className={classNames(
+                              "mt-[0.55rem] h-1.5 w-1.5 shrink-0 rounded-full",
+                              "bg-accent ring-1 ring-accent/30"
+                            )}
+                            aria-hidden="true"
+                          />
+                          <span className="text-sm leading-6 text-slate-800">
+                            {ing}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Tags (clickable, limited) */}
+                {recipe.tags.length > 0 && (
+                  <div className="mt-4">
+                    <div
+                      className={classNames(
+                        "rounded-2xl bg-white/90 ring-1 ring-black/5",
+                        "shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
+                      )}
+                    >
+                      <div className="px-5 pt-5">
+                        <h3 className="text-sm font-semibold text-slate-700">
+                          Ετικέτες
+                        </h3>
+                      </div>
+                      <div className="px-5 pb-5 pt-3 flex flex-wrap gap-2">
+                        {shownTags.map((t) => (
+                          <ChipButton key={t} href={tagHref(t)}>
+                            {t}
+                          </ChipButton>
+                        ))}
+                        {extraTags > 0 && (
+                          <span className="inline-flex items-center rounded-full bg-slate-100 text-slate-700 ring-1 ring-slate-200 px-3 py-1 text-xs font-medium">
+                            +{extraTags}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </aside>
+
+            {/* Right: Steps */}
+            <div className="lg:col-span-8">
+              <div
+                className={classNames(
+                  "rounded-2xl bg-white/90 ring-1 ring-black/5",
+                  "shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
+                )}
+              >
+                <div className="px-5 pt-5">
+                  <h2 className="text-lg font-semibold">Εκτέλεση</h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Ακολούθησε τα βήματα με τη σειρά.
+                  </p>
+                </div>
+
+                <div className="px-5 pb-6 pt-5">
+                  {steps.length ? (
+                    <ol className="space-y-3">
+                      {steps.map((step, i) => (
+                        <li
+                          key={i}
+                          className={classNames(
+                            "flex gap-3 rounded-2xl p-4",
+                            "bg-white ring-1 ring-black/5 shadow-sm"
+                          )}
+                        >
+                          {/* Step pill */}
+                          <div
+                            className={classNames(
+                              "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                              "bg-accent/10 text-accent ring-1 ring-accent/35 font-semibold text-sm"
+                            )}
+                            aria-label={`Βήμα ${i + 1}`}
+                          >
+                            {i + 1}
+                          </div>
+                          <div className="text-slate-700 text-sm leading-7">
+                            {step}
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="text-slate-600">Τα βήματα θα προστεθούν σύντομα.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </main>
     </>
