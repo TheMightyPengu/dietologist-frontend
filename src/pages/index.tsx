@@ -20,6 +20,14 @@ export default function HomePage() {
     },
   };
 
+  // ---- Design tokens (page-level consistency) ----
+  const R_BIG = "rounded-3xl"; // large blocks
+  const R_CARD = "rounded-2xl"; // cards
+  const SH_CARD = "shadow-[0_14px_34px_rgba(15,23,42,0.08)]"; // soft
+  const SH_CTA = "shadow-[0_18px_46px_rgba(122,122,196,0.26)]"; // stronger (primary CTA)
+  const FOCUS =
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
+
   const [openNewsletter, setOpenNewsletter] = useState(false);
   const [nlStep, setNlStep] = useState<"form" | "verify" | "done">("form");
   const [nlLoading, setNlLoading] = useState(false);
@@ -131,7 +139,7 @@ export default function HomePage() {
         <div className="grid gap-10 md:grid-cols-12 md:items-start">
           {/* Left: text */}
           <div className="md:col-span-7">
-            <div className="prose prose-slate max-w-none">
+            <div className="prose prose-slate max-w-none leading-8 space-y-6">
               <div className="flex items-center gap-3 mb-6">
                 <h2 className="m-0">ΒΙΟΓΡΑΦΙΚΟ</h2>
                 <span className="hidden sm:inline-block h-px w-12 bg-gradient-to-r from-warm/60 to-warm/0" />
@@ -212,7 +220,7 @@ export default function HomePage() {
         id="philosophy"
         className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 md:pt-12 pb-12 md:pb-16"
       >
-        <div className="prose prose-slate max-w-none">
+        <div className="prose prose-slate max-w-none leading-8 space-y-6">
           <div className="flex items-center gap-3 mb-6">
             <h2 className="m-0">ΦΙΛΟΣΟΦΙΑ</h2>
             <span className="hidden sm:inline-block h-px w-12 bg-gradient-to-r from-warm/60 to-warm/0" />
@@ -267,8 +275,8 @@ export default function HomePage() {
       </section>
 
       {/* 3 CARDS (below philosophy) */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12 md:pb-16 -mt-6">
-        <h3 className="text-center text-xl md:text-2xl font-semibold text-slate-800">
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12 md:pb-16 pt-8 md:pt-12">
+        <h3 className="text-center text-xl md:text-2xl font-semibold text-slate-900">
           Στο τέλος της συνεργασίας θα έχεις καταφέρει
         </h3>
 
@@ -277,43 +285,55 @@ export default function HomePage() {
             {
               img: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80",
               alt: "Ηρεμία",
-              text: "Να νιώθεις περισσότερη ηρεμία γύρω από το φαγητό και το σώμα σου.",
+              label: "Ηρεμία",
+              text: "Να νιώθεις πιο ήρεμα γύρω από το φαγητό και το σώμα σου.",
             },
             {
               img: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80",
-              alt: "Ισορροπημένη σχέση με το φαγητό",
+              alt: "Ισορροπία",
+              label: "Ισορροπία",
               text: "Να τρέφεσαι ακούγοντας τις ανάγκες σου, χωρίς ενοχές και στέρηση.",
             },
             {
               img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=1200&q=80",
-              alt: "Φροντίδα σώματος",
+              alt: "Σταθερότητα",
+              label: "Σταθερότητα",
               text: "Να φροντίζεις το σώμα σου με πιο ουδέτερο και σταθερό τρόπο.",
             },
           ].map((c) => (
             <div
               key={c.alt}
               className={[
-                "overflow-hidden rounded-3xl bg-white/70",
-                "ring-1 ring-accent/20 shadow-sm",
+                "overflow-hidden bg-white/70 ring-1 ring-accent/20",
+                R_BIG,
+                SH_CARD,
               ].join(" ")}
             >
-              {/* top "arch" image */}
-              <div className="bg-accent/10 px-6 pt-6">
-                <div className="mx-auto w-full max-w-[260px] overflow-hidden rounded-t-[999px] rounded-b-2xl bg-white ring-1 ring-accent/15 shadow-sm">
-                  <div className="aspect-square">
-                    <img
-                      src={c.img}
-                      alt={c.alt}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                  </div>
+              {/* unified cropping (aspect + zoom) */}
+              <div className="p-6 pb-0">
+                <div
+                  className={[
+                    "overflow-hidden bg-white ring-1 ring-accent/15",
+                    R_CARD,
+                    SH_CARD,
+                    "aspect-[4/3]",
+                  ].join(" ")}
+                >
+                  <img
+                    src={c.img}
+                    alt={c.alt}
+                    className="h-full w-full object-cover object-center"
+                    loading="lazy"
+                  />
                 </div>
               </div>
 
-              {/* text */}
-              <div className="px-6 py-5 text-center">
-                <p className="m-0 text-sm leading-relaxed text-slate-700">
+              {/* label + benefit copy (bigger & more benefit-driven) */}
+              <div className="px-6 py-6 text-center">
+                <p className="m-0 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                  {c.label}
+                </p>
+                <p className="mt-2 mb-0 text-base sm:text-[17px] leading-7 font-medium text-slate-800">
                   {c.text}
                 </p>
               </div>
@@ -374,12 +394,16 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Newsletter (replaces Big CTA) */}
+      {/* Newsletter */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
         <div
           className={[
-            "rounded-3xl bg-white",
-            "ring-1 ring-accent/25 shadow-[0_16px_34px_rgba(164,199,126,0.12)]",
+            R_BIG,
+            "bg-white",
+            "ring-1 ring-accent/30",
+            SH_CARD,
+            // subtle premium pattern + slight gradient
+            "bg-[radial-gradient(1200px_400px_at_20%_0%,rgba(164,199,126,0.18),transparent_60%),radial-gradient(900px_320px_at_90%_10%,rgba(122,122,196,0.14),transparent_55%)]",
             "px-6 py-10 md:px-12 md:py-12",
           ].join(" ")}
         >
@@ -388,42 +412,80 @@ export default function HomePage() {
               <h2 className="text-2xl md:text-3xl font-semibold text-slate-900">
                 Newsletter
               </h2>
-              <p className="mt-2 text-slate-600">
+              <p className="mt-2 text-slate-700 leading-7">
                 Μικρά, πρακτικά tips για διατροφή, σχέση με το φαγητό και
                 αυτοφροντίδα — απευθείας στο email σου.
               </p>
-              <p className="mt-2 text-sm text-slate-500">
-                Μπορείς να κάνεις διαγραφή οποιαδήποτε στιγμή.
+
+              {/* Trust line near CTA */}
+              <p className="mt-2 text-sm font-medium text-slate-600">
+                Χωρίς spam, διαγραφή όποτε θέλεις.
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                type="button"
-                onClick={openNewsletterModal}
-                className={[
-                  "inline-flex items-center justify-center rounded-2xl px-6 py-3 font-semibold transition",
-                  "bg-primary text-white",
-                  "ring-1 ring-primary/20",
-                  "hover:shadow-[0_16px_34px_rgba(132,132,209,0.25)]",
-                  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
-                ].join(" ")}
-              >
-                Εγγραφή στο Newsletter
-              </button>
+            {/* Inline email input + single primary CTA */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                openNewsletterModal();
+              }}
+              className="w-full md:w-auto"
+            >
+              <div className="flex flex-col sm:flex-row gap-3">
+                <label className="sr-only" htmlFor="nlEmailInline">
+                  Email
+                </label>
+                <input
+                  id="nlEmailInline"
+                  type="email"
+                  value={nlForm.email}
+                  onChange={(e) =>
+                    setNlForm((p) => ({ ...p, email: e.target.value }))
+                  }
+                  placeholder="π.χ. name@email.com"
+                  className={[
+                    "w-full sm:w-72",
+                    R_CARD,
+                    "px-4 py-3",
+                    "bg-white/80 ring-1 ring-accent/25",
+                    "text-slate-800 placeholder:text-slate-400",
+                    "transition",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+                  ].join(" ")}
+                />
 
-              <Link
-                href="/contact/form"
-                className={[
-                  "inline-flex items-center justify-center rounded-2xl px-6 py-3 font-medium transition",
-                  "bg-white text-primary hover:text-accent",
-                  "ring-1 ring-accent/40 hover:bg-accent/10",
-                  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
-                ].join(" ")}
-              >
-                Επικοινωνία
-              </Link>
-            </div>
+                <button
+                  type="submit"
+                  className={[
+                    "inline-flex items-center justify-center",
+                    R_CARD,
+                    "px-6 py-3 font-semibold text-white",
+                    "bg-primary ring-1 ring-primary/20",
+                    SH_CTA,
+                    "hover:opacity-95 transition",
+                    FOCUS,
+                  ].join(" ")}
+                >
+                  Εγγραφή
+                </button>
+
+                {/* Secondary stays as link (optional) */}
+                <Link
+                  href="/contact/form"
+                  className={[
+                    "inline-flex items-center justify-center",
+                    R_CARD,
+                    "px-6 py-3 font-medium",
+                    "bg-white/80 text-primary hover:text-accent",
+                    "ring-1 ring-accent/35 hover:bg-accent/10",
+                    "transition",
+                    FOCUS,
+                  ].join(" ")}
+                >
+                  Επικοινωνία
+                </Link>
+              </div>
+            </form>
           </div>
         </div>
       </section>
@@ -445,7 +507,14 @@ export default function HomePage() {
 
           {/* panel */}
           <div className="relative mx-auto max-w-lg px-4 sm:px-6 top-24">
-            <div className="rounded-3xl bg-white ring-1 ring-accent/25 shadow-lg overflow-hidden">
+            <div
+              className={[
+                R_BIG,
+                "bg-white ring-1 ring-accent/25",
+                "shadow-[0_22px_70px_rgba(0,0,0,0.20)]",
+                "overflow-hidden",
+              ].join(" ")}
+            >
               <div className="p-6 sm:p-7">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -453,21 +522,25 @@ export default function HomePage() {
                       {nlStep === "form"
                         ? "Εγγραφή στο Newsletter"
                         : nlStep === "verify"
-                          ? "Επιβεβαίωση email"
-                          : "Ολοκληρώθηκε"}
+                        ? "Επιβεβαίωση email"
+                        : "Ολοκληρώθηκε"}
                     </h3>
-                    <p className="mt-1 text-sm text-slate-600">
+                    <p className="mt-1 text-sm text-slate-700">
                       {nlStep === "form"
                         ? "Συμπλήρωσε τα στοιχεία σου."
                         : nlStep === "verify"
-                          ? "Βάλε τον κωδικό επιβεβαίωσης που σου στείλαμε."
-                          : "Η εγγραφή σου έγινε με επιτυχία."}
+                        ? "Βάλε τον κωδικό επιβεβαίωσης που σου στείλαμε."
+                        : "Η εγγραφή σου έγινε με επιτυχία."}
                     </p>
                   </div>
 
                   <button
                     onClick={closeNewsletterModal}
-                    className="rounded-full bg-white ring-1 ring-slate-200 px-3 py-1.5 text-sm hover:border-primary"
+                    className={[
+                      "rounded-full bg-white px-3 py-1.5 text-sm font-medium",
+                      "ring-1 ring-slate-200 hover:ring-slate-300 transition",
+                      FOCUS,
+                    ].join(" ")}
                   >
                     Κλείσιμο
                   </button>
@@ -492,9 +565,12 @@ export default function HomePage() {
                           setNlForm((p) => ({ ...p, name: e.target.value }))
                         }
                         className={[
-                          "mt-1 w-full rounded-2xl px-4 py-3 shadow-sm transition",
-                          "bg-white border border-accent/35 hover:bg-accent/10",
-                          "focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary/40",
+                          "mt-1 w-full",
+                          R_CARD,
+                          "px-4 py-3 transition",
+                          "bg-white ring-1 ring-accent/25 hover:bg-accent/10",
+                          "text-slate-800",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
                         ].join(" ")}
                         placeholder="π.χ. Μαρία Παπαδοπούλου"
                         autoComplete="name"
@@ -512,9 +588,12 @@ export default function HomePage() {
                           setNlForm((p) => ({ ...p, email: e.target.value }))
                         }
                         className={[
-                          "mt-1 w-full rounded-2xl px-4 py-3 shadow-sm transition",
-                          "bg-white border border-accent/35 hover:bg-accent/10",
-                          "focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary/40",
+                          "mt-1 w-full",
+                          R_CARD,
+                          "px-4 py-3 transition",
+                          "bg-white ring-1 ring-accent/25 hover:bg-accent/10",
+                          "text-slate-800",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
                         ].join(" ")}
                         placeholder="π.χ. name@email.com"
                         autoComplete="email"
@@ -526,12 +605,14 @@ export default function HomePage() {
                         type="submit"
                         disabled={nlLoading}
                         className={[
-                          "inline-flex items-center justify-center rounded-2xl px-5 py-3 font-semibold transition",
+                          "inline-flex items-center justify-center",
+                          R_CARD,
+                          "px-5 py-3 font-semibold transition",
                           "bg-primary text-white ring-1 ring-primary/20",
                           nlLoading
                             ? "opacity-70 cursor-wait"
-                            : "hover:shadow-[0_16px_34px_rgba(132,132,209,0.25)]",
-                          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
+                            : SH_CTA + " hover:opacity-95",
+                          FOCUS,
                         ].join(" ")}
                       >
                         {nlLoading ? "Αποστολή…" : "Συνέχεια"}
@@ -541,10 +622,12 @@ export default function HomePage() {
                         type="button"
                         onClick={closeNewsletterModal}
                         className={[
-                          "inline-flex items-center justify-center rounded-2xl px-5 py-3 font-medium transition",
+                          "inline-flex items-center justify-center",
+                          R_CARD,
+                          "px-5 py-3 font-medium transition",
                           "bg-white text-primary hover:text-accent",
-                          "ring-1 ring-accent/40 hover:bg-accent/10",
-                          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                          "ring-1 ring-accent/35 hover:bg-accent/10",
+                          FOCUS,
                         ].join(" ")}
                       >
                         Άκυρο
@@ -575,9 +658,12 @@ export default function HomePage() {
                         value={nlCode}
                         onChange={(e) => setNlCode(e.target.value)}
                         className={[
-                          "mt-1 w-full rounded-2xl px-4 py-3 shadow-sm transition",
-                          "bg-white border border-accent/35 hover:bg-accent/10",
-                          "focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary/40",
+                          "mt-1 w-full",
+                          R_CARD,
+                          "px-4 py-3 transition",
+                          "bg-white ring-1 ring-accent/25 hover:bg-accent/10",
+                          "text-slate-800",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
                         ].join(" ")}
                         placeholder="π.χ. 123456"
                       />
@@ -588,12 +674,14 @@ export default function HomePage() {
                         type="submit"
                         disabled={nlLoading}
                         className={[
-                          "inline-flex items-center justify-center rounded-2xl px-5 py-3 font-semibold transition",
+                          "inline-flex items-center justify-center",
+                          R_CARD,
+                          "px-5 py-3 font-semibold transition",
                           "bg-primary text-white ring-1 ring-primary/20",
                           nlLoading
                             ? "opacity-70 cursor-wait"
-                            : "hover:shadow-[0_16px_34px_rgba(132,132,209,0.25)]",
-                          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
+                            : SH_CTA + " hover:opacity-95",
+                          FOCUS,
                         ].join(" ")}
                       >
                         {nlLoading ? "Επιβεβαίωση…" : "Ολοκλήρωση εγγραφής"}
@@ -608,10 +696,12 @@ export default function HomePage() {
                           setNlCode("");
                         }}
                         className={[
-                          "inline-flex items-center justify-center rounded-2xl px-5 py-3 font-medium transition",
+                          "inline-flex items-center justify-center",
+                          R_CARD,
+                          "px-5 py-3 font-medium transition",
                           "bg-white text-primary hover:text-accent",
-                          "ring-1 ring-accent/40 hover:bg-accent/10",
-                          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                          "ring-1 ring-accent/35 hover:bg-accent/10",
+                          FOCUS,
                         ].join(" ")}
                       >
                         Πίσω
@@ -635,7 +725,11 @@ export default function HomePage() {
                           setNlLoading(false);
                         }
                       }}
-                      className="text-sm font-medium text-primary hover:text-accent"
+                      className={[
+                        "text-sm font-medium text-primary hover:text-accent transition-colors",
+                        FOCUS,
+                        "rounded-md px-1 py-1 w-fit",
+                      ].join(" ")}
                     >
                       Επαναποστολή κωδικού
                     </button>
@@ -654,10 +748,12 @@ export default function HomePage() {
                       type="button"
                       onClick={closeNewsletterModal}
                       className={[
-                        "w-full inline-flex items-center justify-center rounded-2xl px-5 py-3 font-semibold transition",
+                        "w-full inline-flex items-center justify-center",
+                        R_CARD,
+                        "px-5 py-3 font-semibold transition",
                         "bg-primary text-white ring-1 ring-primary/20",
-                        "hover:shadow-[0_16px_34px_rgba(132,132,209,0.25)]",
-                        "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
+                        SH_CTA + " hover:opacity-95",
+                        FOCUS,
                       ].join(" ")}
                     >
                       Έτοιμο
