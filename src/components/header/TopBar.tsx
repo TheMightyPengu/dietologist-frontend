@@ -1,3 +1,4 @@
+// header/TopBar.tsx
 import { useMemo } from "react";
 import type { ReactNode } from "react";
 
@@ -74,57 +75,56 @@ export default function TopBar() {
   return (
     <div
       className={[
-        // keep neutral surface, use GREEN more in borders/dividers
         "w-full sticky top-0 z-50 backdrop-blur",
-        "bg-bg",
-        "border-b border-accent/25",
+        // quieter surface
+        "bg-bg supports-[backdrop-filter]:bg-bg/85",
+        "border-b border-accent/15",
         "px-6",
       ].join(" ")}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between py-2 text-sm">
+      <div className="mx-auto flex max-w-7xl items-center justify-between h-11 text-[12px]">
         {/* Left: contact info */}
-        <div className="flex items-center gap-4 whitespace-nowrap text-[13px] text-slate-700">
+        <div className="flex items-center gap-3 whitespace-nowrap text-slate-600">
           <a
             href="tel:+30-210-0000000"
             className={[
-              "flex items-center gap-2 transition",
-              // links are purple, hover goes green (your rules)
-              "text-primary hover:text-accent",
+              "flex items-center gap-2 rounded-md px-2 py-1 transition",
+              "text-slate-600 hover:text-accent",
+              "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
             ].join(" ")}
           >
-            <span className="text-accent">{Icon.Phone}</span>
+            <span className="text-slate-500">{Icon.Phone}</span>
             <span className="hidden sm:inline">+30 210 0000000</span>
           </a>
 
-          <span className="hidden sm:inline text-accent/30">|</span>
+          {/* cleaner divider */}
+          <span className="hidden sm:inline h-4 w-px bg-accent/25" />
 
           <a
             href="mailto:hello@dietitian.gr"
             className={[
-              "flex items-center gap-2 transition",
-              "text-primary hover:text-accent",
+              "flex items-center gap-2 rounded-md px-2 py-1 transition",
+              "text-slate-600 hover:text-accent",
+              "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
             ].join(" ")}
           >
-            <span className="text-accent">{Icon.Mail}</span>
+            <span className="text-slate-500">{Icon.Mail}</span>
             <span className="hidden md:inline">hello@dietitian.gr</span>
           </a>
         </div>
 
-        {/* Right: social icons */}
-        <div className="flex items-center gap-3">
+        {/* Right: social icons (same style + bigger hit area) */}
+        <div className="flex items-center gap-2">
           {socials.map((s) => (
             <a
               key={s.label}
               href={s.href}
               aria-label={s.label}
               className={[
-                "flex h-7 w-7 items-center justify-center rounded-full transition",
-                // GREEN is the default accent (more usage)
-                "bg-white/80 text-accent ring-1 ring-accent/25",
-                // On hover, emphasize with PURPLE fill (rare but high-focus)
-                "hover:bg-primary hover:text-white hover:ring-primary/25",
-                // nice focus ring in purple
-                "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                "flex h-8 w-8 items-center justify-center rounded-full transition",
+                "bg-white/70 text-slate-600 ring-1 ring-accent/20",
+                "hover:bg-accent/10 hover:text-accent hover:ring-accent/30",
+                "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
               ].join(" ")}
             >
               {s.icon}
