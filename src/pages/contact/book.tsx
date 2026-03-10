@@ -1,21 +1,31 @@
 import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { AppointmentsApi } from "../../api/AppointmentsController";
+import { ProvidedServicesApi } from "../../api/ProvidedServicesController";
 
 /**
  * ΚΛΕΙΣΤΕ ΡΑΝΤΕΒΟΥ — Booking form
- * - Επιλογή ΜΟΝΟ από διαθέσιμες ημερομηνίες/ώρες (όχι ολόκληρο calendar)
- * - Async mock API για υπηρεσίες & διαθέσιμα slots
- * - Ελληνικό UI, 60-30-10 με accent #8484d1
+ * - Services loaded from /api/ProvidedServices
+ * - Real POST to /api/Appointments
+ * - Availability remains mocked because no backend endpoint was provided for it
  */
 
-type Service = { id: string; label: string };
+type Service = {
+  id: number;
+  label: string;
+  category: string;
+  duration: number;
+  description: string;
+  priceIncludingVAT: number;
+  interval: number;
+};
 
 type Slot = {
   id: string;
-  serviceId: string;
-  dateStr: string; // YYYY-MM-DD
-  timeStr: string; // HH:MM
+  serviceId: number;
+  dateStr: string;
+  timeStr: string;
   durationMin: number;
 };
 
@@ -36,7 +46,6 @@ function combineToDate(dateStr: string, timeStr: string) {
   return new Date(`${dateStr}T${timeStr}:00`);
 }
 
-// Deterministic pseudo-random generator (so the mock doesn’t “jump” every render)
 function hashStringToSeed(s: string) {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
@@ -45,6 +54,7 @@ function hashStringToSeed(s: string) {
   }
   return h >>> 0;
 }
+
 function mulberry32(seed: number) {
   return function () {
     let t = (seed += 0x6d2b79f5);
@@ -62,7 +72,6 @@ type FieldErrors = Partial<{
   slot: string;
 }>;
 
-// Bigger typography + consistent height/radius + stronger focus
 const INPUT_BASE =
   "mt-1 w-full rounded-xl bg-white px-3 h-12 text-[15px] text-slate-900 ring-1 ring-accent/30 outline-none " +
   "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 " +
@@ -70,25 +79,20 @@ const INPUT_BASE =
 
 const LABEL_BASE = "block text-[15px] font-semibold text-slate-900";
 const STEP_BASE = "mb-1 text-sm font-semibold tracking-wide text-slate-700";
-const HELP_TEXT = "text-sm text-slate-600";
 const ERROR_TEXT = "mt-1 text-sm text-rose-600";
 
 export default function BookPage() {
-  // submit state
   const [loading, setLoading] = useState(false);
 
-  // services
   const [services, setServices] = useState<Service[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
   const [selectedService, setSelectedService] = useState("");
 
-  // availability
   const [slots, setSlots] = useState<Slot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
 
-  // form UI states
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -105,32 +109,14 @@ export default function BookPage() {
 
   const now = useMemo(() => new Date(), []);
 
-  // ---------------- Mock APIs ----------------
-  async function mockApiSubmit(payload: any) {
-    await new Promise((r) => setTimeout(r, 900));
-    if (Math.random() < 0.12) throw new Error("Προσωρινό σφάλμα διακομιστή.");
-    return { success: true, id: Math.floor(Math.random() * 100000), payload };
-  }
-
-  async function mockApiFetchServices(): Promise<Service[]> {
-    await new Promise((r) => setTimeout(r, 500));
-    return [
-      { id: "monitoring-edu", label: "Συν. διατροφικής παρακολούθησης & εκπαίδευσης" },
-      { id: "eating-disorders", label: "Συνεδρίες για διατροφικές διαταραχές" },
-      { id: "intuitive-mindful", label: "Διαισθητική διατροφή & mindful eating" },
-      { id: "group-edu", label: "Ομαδικές συνεδρίες παρακολούθησης & εκπαίδευσης" },
-      { id: "no-diet-project", label: "Ομάδα διαισθητικής: ‘No diet project’" },
-    ];
-  }
-
   /**
-   * Mock availability:
-   * - Returns ONLY specific future dates & times the user can book.
-   * - Deterministic per serviceId (so it looks stable).
+   * NOTE:
+   * No backend availability endpoint was provided.
+   * So availability remains mocked.
    */
-  async function mockApiFetchAvailability(serviceId: string): Promise<Slot[]> {
+  async function mockApiFetchAvailability(serviceId: number): Promise<Slot[]> {
     await new Promise((r) => setTimeout(r, 650));
-    const rand = mulberry32(hashStringToSeed(serviceId || "default"));
+    const rand = mulberry32(hashStringToSeed(String(serviceId || "default")));
 
     const possibleTimes = ["10:00", "11:30", "13:00", "15:00", "16:30"];
 
@@ -181,15 +167,33 @@ export default function BookPage() {
     return out;
   }
 
-  // load services
   useEffect(() => {
     let mounted = true;
 
     (async () => {
       setServicesLoading(true);
       try {
-        const data = await mockApiFetchServices();
-        if (mounted) setServices(data);
+        const data = await ProvidedServicesApi.list();
+
+        if (!mounted) return;
+
+        const mapped: Service[] = data.map((item) => ({
+          id: item.id,
+          // NOTE:
+          // Backend has no title/name field, so we use description as the visible label.
+          // Fallback to category if description is empty.
+          label: item.description?.trim() || item.category,
+          category: item.category,
+          duration: item.duration,
+          description: item.description,
+          priceIncludingVAT: item.priceIncludingVAT,
+          interval: item.interval,
+        }));
+
+        setServices(mapped);
+      } catch (err) {
+        if (!mounted) return;
+        setServices([]);
       } finally {
         if (mounted) setServicesLoading(false);
       }
@@ -200,7 +204,6 @@ export default function BookPage() {
     };
   }, []);
 
-  // fetch availability when service changes
   useEffect(() => {
     let mounted = true;
 
@@ -216,7 +219,8 @@ export default function BookPage() {
 
       setSlotsLoading(true);
       try {
-        const data = await mockApiFetchAvailability(selectedService);
+        const numericServiceId = Number(selectedService);
+        const data = await mockApiFetchAvailability(numericServiceId);
         if (!mounted) return;
         setSlots(data);
 
@@ -246,9 +250,11 @@ export default function BookPage() {
     return slots.find((s) => s.id === selectedSlotId) || null;
   }, [slots, selectedSlotId]);
 
-  const selectedServiceLabel = useMemo(() => {
-    return services.find((s) => s.id === selectedService)?.label || "";
+  const selectedServiceData = useMemo(() => {
+    return services.find((s) => String(s.id) === selectedService) || null;
   }, [services, selectedService]);
+
+  const selectedServiceLabel = selectedServiceData?.label || "";
 
   function markTouched(name: string) {
     setTouched((p) => ({ ...p, [name]: true }));
@@ -289,7 +295,14 @@ export default function BookPage() {
     const email = String(fd.get("email") || "");
     const message = String(fd.get("message") || "");
 
-    setTouched((p) => ({ ...p, service: true, fullName: true, phone: true, slot: true, email: p.email || false }));
+    setTouched((p) => ({
+      ...p,
+      service: true,
+      fullName: true,
+      phone: true,
+      slot: true,
+      email: p.email || false,
+    }));
 
     const nextErrors = validate({ fullName, phone, email });
     setFieldErrors(nextErrors);
@@ -299,22 +312,40 @@ export default function BookPage() {
       return;
     }
 
+    if (!selectedSlot || !selectedServiceData) {
+      setSubmitError("Δεν ήταν δυνατή η δημιουργία του ραντεβού.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      await mockApiSubmit({
-        fullName,
-        phone,
-        email,
-        message,
-        slotId: selectedSlot!.id,
-        date: selectedSlot!.dateStr,
-        time: selectedSlot!.timeStr,
-        serviceId: selectedService,
+      const appointmentDate = combineToDate(selectedSlot.dateStr, selectedSlot.timeStr).toISOString();
+
+      await AppointmentsApi.create({
+        serviceId: selectedServiceData.id,
+        providedService: {
+          id: selectedServiceData.id,
+          category: selectedServiceData.category,
+          duration: selectedServiceData.duration,
+          description: selectedServiceData.description,
+          priceIncludingVAT: selectedServiceData.priceIncludingVAT,
+          interval: selectedServiceData.interval,
+        },
+        appointmentDate,
+        customerName: fullName.trim(),
+        customerEmail: email.trim(),
+        customerPhone: phone.trim(),
+        isPrepaid: false,
       });
+
+      // NOTE:
+      // Backend request shape does not include "message".
+      // Kept only for local success UI.
 
       setSuccessPayload({
         serviceLabel: selectedServiceLabel,
-        dateStr: selectedSlot!.dateStr,
-        timeStr: selectedSlot!.timeStr,
+        dateStr: selectedSlot.dateStr,
+        timeStr: selectedSlot.timeStr,
         fullName,
         phone,
         email,
@@ -329,7 +360,8 @@ export default function BookPage() {
       setFieldErrors({});
       setTouched({});
     } catch (err: unknown) {
-      const messageText = err instanceof Error ? err.message : "Κάτι πήγε στραβά. Δοκιμάστε ξανά.";
+      const messageText =
+        err instanceof Error ? err.message : "Κάτι πήγε στραβά. Δοκιμάστε ξανά.";
       setSubmitError(messageText);
     } finally {
       setLoading(false);
@@ -354,7 +386,6 @@ export default function BookPage() {
 
       <section className="bg-bg">
         <div className="mx-auto max-w-5xl px-4 py-10 md:py-14">
-          {/* Heading */}
           <header className="mb-8">
             <h1 className="text-3xl md:text-4xl font-semibold text-slate-900">Κλείστε Ραντεβού</h1>
             <p className="mt-2 max-w-2xl text-slate-700 leading-relaxed">
@@ -363,7 +394,6 @@ export default function BookPage() {
             </p>
           </header>
 
-          {/* Success state */}
           {successPayload && (
             <div className="mb-6 rounded-2xl bg-white p-6 ring-1 ring-accent/25 shadow-[0_16px_34px_rgba(164,199,126,0.14)]">
               <h2 className="text-xl font-semibold text-slate-900">Το αίτημά σας υποβλήθηκε</h2>
@@ -415,7 +445,6 @@ export default function BookPage() {
             </div>
           )}
 
-          {/* Card layout */}
           <div className="grid md:grid-cols-5 gap-5 md:gap-6">
             <div className="md:col-span-3">
               <form
@@ -432,7 +461,6 @@ export default function BookPage() {
                 </div>
 
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Step 1: Service */}
                   <div className="md:col-span-2">
                     <div className={STEP_BASE}>Βήμα 1: Επιλέξτε υπηρεσία</div>
                     <label className={LABEL_BASE}>
@@ -456,7 +484,7 @@ export default function BookPage() {
                         {servicesLoading ? "Φόρτωση υπηρεσιών..." : "— Επιλέξτε υπηρεσία —"}
                       </option>
                       {services.map((s) => (
-                        <option key={s.id} value={s.id}>
+                        <option key={s.id} value={String(s.id)}>
                           {s.label}
                         </option>
                       ))}
@@ -468,7 +496,6 @@ export default function BookPage() {
                     )}
                   </div>
 
-                  {/* Full name */}
                   <div>
                     <label className={LABEL_BASE}>
                       Ονοματεπώνυμο <span className="text-rose-600">*</span>
@@ -491,7 +518,6 @@ export default function BookPage() {
                     )}
                   </div>
 
-                  {/* Phone */}
                   <div>
                     <label className={LABEL_BASE}>
                       Τηλέφωνο <span className="text-rose-600">*</span>
@@ -516,7 +542,6 @@ export default function BookPage() {
                     )}
                   </div>
 
-                  {/* Email (optional) */}
                   <div>
                     <label className={LABEL_BASE}>Email</label>
                     <input
@@ -538,7 +563,6 @@ export default function BookPage() {
                     )}
                   </div>
 
-                  {/* Step 2: Availability */}
                   <div className="md:col-span-2">
                     <div className={STEP_BASE}>Βήμα 2: Διαλέξτε ημέρα & ώρα</div>
                     <label className={LABEL_BASE}>
@@ -584,7 +608,6 @@ export default function BookPage() {
                         </div>
                       ) : (
                         <>
-                          {/* Dates */}
                           <div className="flex flex-wrap gap-2">
                             {availableDates.map((d) => {
                               const active = d === selectedDate;
@@ -619,7 +642,6 @@ export default function BookPage() {
                             })}
                           </div>
 
-                          {/* Times */}
                           <div className="mt-3">
                             <div className="text-sm text-slate-600 mb-2">Ώρες για την επιλεγμένη ημέρα:</div>
 
@@ -665,7 +687,6 @@ export default function BookPage() {
                       )}
                     </div>
 
-                    {/* Hidden fields */}
                     <input type="hidden" name="slotId" value={selectedSlotId} />
                     <input type="hidden" name="date" value={selectedSlot?.dateStr || ""} />
                     <input type="hidden" name="time" value={selectedSlot?.timeStr || ""} />
@@ -679,7 +700,6 @@ export default function BookPage() {
                     {show("slot") && <p className={ERROR_TEXT}>{fieldErrors.slot}</p>}
                   </div>
 
-                  {/* Message */}
                   <div className="md:col-span-2">
                     <label className={LABEL_BASE}>Σύντομο μήνυμα (προαιρετικό)</label>
                     <textarea
@@ -696,8 +716,6 @@ export default function BookPage() {
                   </div>
                 </div>
 
-                {/* Actions */}
-                {/* NOTE: removed the min-height spacer that caused “extra space” at the bottom */}
                 <div className="mt-6">
                   <button
                     type="submit"
@@ -723,7 +741,6 @@ export default function BookPage() {
               </form>
             </div>
 
-            {/* Side info */}
             <aside className="md:col-span-2">
               <div className="rounded-2xl bg-white p-6 ring-1 ring-accent/30 shadow-[0_16px_34px_rgba(164,199,126,0.14)]">
                 <h2 className="text-xl font-semibold text-slate-900">Χρήσιμες Πληροφορίες</h2>

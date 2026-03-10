@@ -1,28 +1,31 @@
 import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { EbooksApi, type EbooksGetDto } from "../../api/EbooksController";
 
 /**
- * EBOOK — Landing σελίδα (mock API)
- * - Ελληνικό UI
- * - Μοντέρνο hero + features + preview + CTA
- * - Skeletons, loading, error state
- * - Accent: #8484d1 (60-30-10 rule)
+ * EBOOK — Landing page connected to backend
+ *
+ * Notes:
+ * - Backend currently gives us:
+ *   id, title, author, tableOfContents, coverImageUrl, price, fileUrl, publishedAt
+ * - Fields like subtitle, pages, format, bonus templates, sampleUrl, buyUrl do NOT exist yet.
+ *   We keep safe frontend fallbacks/comments until backend adds them.
  */
 
-type Ebook = {
-  id: string;
+type EbookViewModel = {
+  id: number;
   title: string;
   subtitle: string;
+  author: string;
   cover: string;
-  pages: number;
-  format: "PDF" | "EPUB" | "MOBI";
-  priceEUR?: number; // προαιρετικά δωρεάν
-  toc: string[]; // table of contents
-  bonusTemplates: string[]; // bonus list for structure
+  priceEUR?: number;
+  toc: string[];
+  bonusTemplates: string[];
   sampleUrl?: string;
   buyUrl?: string;
   lastUpdatedISO: string;
+  format: "PDF";
 };
 
 function IconCheckList(props: React.SVGProps<SVGSVGElement>) {
@@ -122,56 +125,93 @@ function IconBeaker(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+function parseTableOfContents(raw?: string | null): string[] {
+  if (!raw) return [];
+
+  // Case 1: backend sends JSON string array
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((x) => String(x).trim())
+        .filter(Boolean);
+    }
+  } catch {
+    // ignore and continue
+  }
+
+  // Case 2: newline-separated / semicolon-separated / comma-separated plain text
+  return raw
+    .split(/\r?\n|;|,/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+function mapDtoToViewModel(dto: EbooksGetDto): EbookViewModel {
+  const toc = parseTableOfContents(dto.tableOfContents);
+
+  return {
+    id: dto.id,
+    title: dto.title,
+    author: dto.author,
+    subtitle:
+      `Ένας πρακτικός οδηγός από τον/την ${dto.author}.`,
+    cover:
+      dto.coverImageUrl ||
+      "https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?q=80&w=1200&auto=format&fit=crop",
+    priceEUR: dto.price,
+    toc,
+    bonusTemplates: [
+      // Backend does not provide bonus templates yet.
+      // Keep placeholders or remove this block later if not needed.
+      "Πρακτικό υλικό",
+      "Οδηγός εφαρμογής",
+    ],
+    sampleUrl: dto.fileUrl || undefined, // backend has no dedicated sample URL yet
+    buyUrl: dto.fileUrl || undefined, // temporary fallback until checkout flow exists
+    lastUpdatedISO: dto.publishedAt,
+    format: "PDF", // backend does not provide format yet
+  };
+}
+
 export default function EbookPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [ebook, setEbook] = useState<Ebook | null>(null);
+  const [ebook, setEbook] = useState<EbookViewModel | null>(null);
 
-  // --- Mock "API"
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError(null);
 
-    const timer = setTimeout(() => {
-      if (!active) return;
+    const run = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const data: Ebook = {
-        id: "ebook-1",
-        title: "Καθημερινή Διατροφή στην Πράξη",
-        subtitle:
-          "Ένας πρακτικός οδηγός με έτοιμα templates, λίστες, και απλές μεθόδους εφαρμογής.",
-        cover:
-          "https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?q=80&w=1200&auto=format&fit=crop",
-        pages: 148,
-        format: "PDF",
-        priceEUR: 12,
-        toc: [
-          "Εισαγωγή: Τι σημαίνει «στην πράξη»",
-          "Στήσιμο πιάτου & βασικές αρχές",
-          "Meal prep & λίστες αγορών",
-          "Διαχείριση ενέργειας & κορεσμού",
-          "Mindful Eating & συνήθειες",
-          "Συχνές ερωτήσεις",
-        ],
-        bonusTemplates: [
-          "Template εβδομαδιαίου μενού",
-          "Λίστα αγορών (εκτυπώσιμη)",
-          "Planner meal prep",
-          "Checklist συνηθειών",
-        ],
-        sampleUrl: "/files/ebook-sample.pdf",
-        buyUrl: "/checkout/ebook",
-        lastUpdatedISO: "2025-10-10T10:00:00+02:00",
-      };
+        const items = await EbooksApi.list();
 
-      setEbook(data);
-      setLoading(false);
-    }, 700);
+        if (!active) return;
+
+        if (!items.length) {
+          setEbook(null);
+          setError("Δεν βρέθηκε ebook.");
+          return;
+        }
+
+        // This page is a single landing page, so for now we display the first ebook.
+        // If later there are many ebooks, replace this with slug/id routing.
+        setEbook(mapDtoToViewModel(items[0]));
+      } catch (err: any) {
+        if (!active) return;
+        setError(err?.message || "Κάτι πήγε στραβά.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    run();
 
     return () => {
       active = false;
-      clearTimeout(timer);
     };
   }, []);
 
@@ -203,7 +243,6 @@ export default function EbookPage() {
       </Head>
 
       <section className="bg-bg text-slate-800">
-        {/* hero */}
         <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-14 md:pt-20 pb-10">
           {loading ? (
             <div className="grid md:grid-cols-2 gap-8 items-center animate-pulse">
@@ -217,15 +256,11 @@ export default function EbookPage() {
             </div>
           ) : error ? (
             <div className="rounded-xl bg-red-50 border border-red-200 p-4">
-              <p className="text-red-700">
-                Κάτι πήγε στραβά. Δοκιμάστε ξανά αργότερα.
-              </p>
+              <p className="text-red-700">{error}</p>
             </div>
           ) : ebook ? (
             <div className="grid md:grid-cols-2 gap-8 items-center">
-              {/* cover */}
               <div className="flex justify-center md:justify-start">
-                {/* subtle frame + optional 3D mockup feel */}
                 <div className="relative w-full max-w-[520px]">
                   <div className="absolute inset-0 rounded-2xl bg-white/30 blur-2xl" />
                   <div
@@ -245,15 +280,12 @@ export default function EbookPage() {
                       className="h-full w-full bg-cover bg-center"
                       style={{ backgroundImage: `url(${ebook.cover})` }}
                     />
-                    {/* subtle highlight edge */}
                     <div className="pointer-events-none absolute inset-0 ring-1 ring-white/20" />
                   </div>
                 </div>
               </div>
 
-              {/* content */}
               <div>
-                {/* useful badge */}
                 <div className="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#8484d1] ring-1 ring-[#8484d1]/20 shadow-sm">
                   Νέο ebook
                 </div>
@@ -266,10 +298,11 @@ export default function EbookPage() {
                   {ebook.subtitle}
                 </p>
 
+                <div className="mt-3 text-sm text-slate-500">
+                  Συγγραφέας: {ebook.author}
+                </div>
+
                 <div className="mt-5 flex flex-wrap items-center gap-3 text-sm">
-                  <span className="inline-flex items-center rounded-full bg-white px-3 py-1 border border-slate-200 shadow-sm">
-                    {ebook.pages} σελίδες
-                  </span>
                   <span className="inline-flex items-center rounded-full bg-white px-3 py-1 border border-slate-200 shadow-sm">
                     Μορφή: {ebook.format}
                   </span>
@@ -279,23 +312,33 @@ export default function EbookPage() {
                 </div>
 
                 <div className="mt-6 flex flex-wrap items-center gap-4">
-                  {/* quiet preview */}
                   {ebook.sampleUrl && (
-                    <a href={ebook.sampleUrl} className={quietLinkClass}>
+                    <a
+                      href={ebook.sampleUrl}
+                      className={quietLinkClass}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
                       Προεπισκόπηση <span aria-hidden>→</span>
                     </a>
                   )}
 
-                  {/* primary buy */}
-                  <Link
-                    href={ebook.buyUrl || "/contact"}
-                    className={primaryCtaClass}
-                  >
-                    {ebook.priceEUR ? `Αγορά — ${ebook.priceEUR}€` : "Κατέβασμα"}
-                  </Link>
+                  {ebook.buyUrl ? (
+                    <a
+                      href={ebook.buyUrl}
+                      className={primaryCtaClass}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {ebook.priceEUR ? `Αγορά — ${ebook.priceEUR}€` : "Κατέβασμα"}
+                    </a>
+                  ) : (
+                    <Link href="/contact" className={primaryCtaClass}>
+                      {ebook.priceEUR ? `Αγορά — ${ebook.priceEUR}€` : "Κατέβασμα"}
+                    </Link>
+                  )}
                 </div>
 
-                {/* microcopy trust line */}
                 <p className="mt-2 text-sm text-slate-500">
                   Άμεση πρόσβαση μετά την πληρωμή.
                 </p>
@@ -304,24 +347,23 @@ export default function EbookPage() {
           ) : null}
         </div>
 
-        {/* features (30% δευτερεύον χρώμα: λευκά cards πάνω σε ουδέτερο φόντο) */}
         {!loading && !error && ebook && (
           <div className="mx-auto max-w-6xl px-4 sm:px-6 pb-14">
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {[
                 {
-                  t: "Πρακτικά Templates",
-                  d: "Έτοιμα φύλλα για μενού, λίστες αγορών και οργάνωση εβδομάδας.",
+                  t: "Πρακτικός Οδηγός",
+                  d: "Καθαρή δομή και εύκολη ανάγνωση για άμεση εφαρμογή στην καθημερινότητα.",
                   Ico: IconCheckList,
                 },
                 {
-                  t: "Εστίαση στην Πράξη",
-                  d: "Κανένα «μαγικό» μυστικό—μόνο βήματα που εφαρμόζονται εύκολα.",
+                  t: "Άμεση Χρήση",
+                  d: "Χρήσιμο περιεχόμενο που μπορεί να αξιοποιηθεί χωρίς περιττή θεωρία.",
                   Ico: IconTarget,
                 },
                 {
-                  t: "Επιστημονικά Τεκμηριωμένο",
-                  d: "Σαφείς αναφορές και καθαρές οδηγίες όπου χρειάζεται.",
+                  t: "Οργανωμένο Περιεχόμενο",
+                  d: "Το ebook έρχεται οργανωμένο με σαφή ενότητες και εύχρηστο υλικό.",
                   Ico: IconBeaker,
                 },
               ].map((f, i) => (
@@ -346,32 +388,32 @@ export default function EbookPage() {
           </div>
         )}
 
-        {/* TOC + CTA (accent band ~10%) */}
         {!loading && !error && ebook && (
           <div className="bg-[#8484d1] text-white">
             <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10">
-              {/* bring CTA closer + add structure */}
               <div className="grid md:grid-cols-[1.25fr_0.75fr] gap-8 items-start">
                 <div className="grid sm:grid-cols-2 gap-8">
-                  {/* contents */}
                   <div>
                     <h3 className="text-xl font-semibold">Περιεχόμενα</h3>
                     <ul className="mt-3 space-y-2 text-white/95">
-                      {(ebook.toc || []).map((entry, idx) => (
-                        <li
-                          key={idx}
-                          className="flex items-start gap-2 leading-relaxed"
-                        >
-                          <span className="mt-1 select-none text-white/90">
-                            •
-                          </span>
-                          <span>{entry}</span>
+                      {(ebook.toc || []).length > 0 ? (
+                        ebook.toc.map((entry, idx) => (
+                          <li
+                            key={idx}
+                            className="flex items-start gap-2 leading-relaxed"
+                          >
+                            <span className="mt-1 select-none text-white/90">•</span>
+                            <span>{entry}</span>
+                          </li>
+                        ))
+                      ) : (
+                        <li className="text-white/90">
+                          Δεν υπάρχουν ακόμη διαθέσιμα περιεχόμενα.
                         </li>
-                      ))}
+                      )}
                     </ul>
                   </div>
 
-                  {/* bonus */}
                   <div>
                     <h3 className="text-xl font-semibold">Bonus templates</h3>
                     <ul className="mt-3 space-y-2 text-white/95">
@@ -380,9 +422,7 @@ export default function EbookPage() {
                           key={idx}
                           className="flex items-start gap-2 leading-relaxed"
                         >
-                          <span className="mt-1 select-none text-white/90">
-                            •
-                          </span>
+                          <span className="mt-1 select-none text-white/90">•</span>
                           <span>{entry}</span>
                         </li>
                       ))}
@@ -390,23 +430,40 @@ export default function EbookPage() {
                   </div>
                 </div>
 
-                {/* CTA aligned closer to lists */}
                 <div className="md:justify-self-end md:pt-1">
-                  <Link
-                    href={ebook.buyUrl || "/contact"}
-                    className={[
-                      // same style language as hero primary, adapted for purple band
-                      "inline-flex items-center gap-2 rounded-xl",
-                      "border border-white/20 bg-white/10 text-white",
-                      "px-5 py-3 font-semibold shadow",
-                      "hover:bg-white/15 transition",
-                    ].join(" ")}
-                  >
-                    {ebook.priceEUR
-                      ? `Αγορά τώρα — ${ebook.priceEUR}€`
-                      : "Κατέβασμα τώρα"}
-                    <span aria-hidden>→</span>
-                  </Link>
+                  {ebook.buyUrl ? (
+                    <a
+                      href={ebook.buyUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={[
+                        "inline-flex items-center gap-2 rounded-xl",
+                        "border border-white/20 bg-white/10 text-white",
+                        "px-5 py-3 font-semibold shadow",
+                        "hover:bg-white/15 transition",
+                      ].join(" ")}
+                    >
+                      {ebook.priceEUR
+                        ? `Αγορά τώρα — ${ebook.priceEUR}€`
+                        : "Κατέβασμα τώρα"}
+                      <span aria-hidden>→</span>
+                    </a>
+                  ) : (
+                    <Link
+                      href="/contact"
+                      className={[
+                        "inline-flex items-center gap-2 rounded-xl",
+                        "border border-white/20 bg-white/10 text-white",
+                        "px-5 py-3 font-semibold shadow",
+                        "hover:bg-white/15 transition",
+                      ].join(" ")}
+                    >
+                      {ebook.priceEUR
+                        ? `Αγορά τώρα — ${ebook.priceEUR}€`
+                        : "Κατέβασμα τώρα"}
+                      <span aria-hidden>→</span>
+                    </Link>
+                  )}
 
                   <p className="mt-2 text-white/95 text-sm">
                     Ασφαλής πληρωμή — Άμεση πρόσβαση.

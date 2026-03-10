@@ -6,7 +6,11 @@ export type ProvidedServices = {
   duration: number;
   description: string;
   priceIncludingVAT: number;
-  intervalInDays: number;
+
+    // NOTE:
+  // Backend example uses "interval".
+  // If backend actually returns "intervalInDays", adjust this field accordingly.
+  interval: number;
 };
 
 export type AppointmentsGetDto = {

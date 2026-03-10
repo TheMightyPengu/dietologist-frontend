@@ -1,7 +1,8 @@
 import Head from "next/head";
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { ContactMessagesApi } from "../../api/ContactMessagesController"; 
+import { useEffect, useMemo, useState } from "react";
+import { ContactMessagesApi } from "../../api/ContactMessagesController";
+import { ContactInfoApi, type ContactInfoGetDto } from "../../api/ContactInfoController";
 
 type FieldErrors = Partial<{
   fullName: string;
@@ -82,15 +83,50 @@ export default function ContactFormPage() {
     subject: string;
   }>(null);
 
-  const contact = useMemo(
+  const fallbackContact = useMemo(
     () => ({
       email: "info@example.gr",
-      phoneDisplay: "2310 000000",
-      phoneTel: "+302310000000",
-      hours: "Δευ–Παρ 10:00–18:00",
+      telephone: "+302310000000",
+      // TODO: Δεν υπάρχει ακόμη working-hours field στο ContactInfo DTO/backend.
+      // Όταν προστεθεί, αντικατάστησε το static κείμενο πιο κάτω.
     }),
     []
   );
+
+  const [contactInfo, setContactInfo] = useState<ContactInfoGetDto | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadContactInfo() {
+      try {
+        const data = await ContactInfoApi.list();
+
+        if (!active) return;
+
+        // TODO: Υποθέτουμε ότι το API επιστρέφει λίστα και παίρνουμε το πρώτο record.
+        // Αν αργότερα γίνει single object endpoint, άλλαξέ το εδώ.
+        setContactInfo(data?.[0] ?? null);
+      } catch {
+        if (!active) return;
+        // TODO: Silent fallback στα hardcoded στοιχεία μέχρι να οριστικοποιηθεί το backend behavior.
+        setContactInfo(null);
+      }
+    }
+
+    loadContactInfo();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const contact = {
+    email: contactInfo?.email || fallbackContact.email,
+    phoneDisplay: contactInfo?.telephone || fallbackContact.telephone,
+    phoneTel: contactInfo?.telephone || fallbackContact.telephone,
+    hours: "Δευ–Παρ 10:00–18:00",
+  };
 
   function markTouched(name: string) {
     setTouched((p) => ({ ...p, [name]: true }));

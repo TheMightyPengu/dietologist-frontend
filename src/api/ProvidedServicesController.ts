@@ -6,7 +6,7 @@ export type ProvidedServicesGetDto = {
   duration: number;
   description: string;
   priceIncludingVAT: number;
-  intervalInDays: number;
+  interval: number;
 };
 
 export type ProvidedServicesPostDto = {
@@ -14,7 +14,7 @@ export type ProvidedServicesPostDto = {
   duration: number;
   description: string;
   priceIncludingVAT: number;
-  intervalInDays: number;
+  interval: number;
 };
 
 const base = '/ProvidedServices';
