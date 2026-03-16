@@ -1,6 +1,6 @@
-// header/TopBar.tsx
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { ContactInfoApi, type ContactInfoGetDto } from "@/api/ContactInfoController";
 
 type SocialLink = { label: string; href: string; icon: ReactNode };
 
@@ -64,6 +64,31 @@ const Icon = {
 };
 
 export default function TopBar() {
+  const [contactInfo, setContactInfo] = useState<ContactInfoGetDto | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        const items = await ContactInfoApi.list();
+
+        if (!mounted) return;
+
+        // Assuming backend returns one active contact info item.
+        // If later there are many, replace this selection logic accordingly.
+        setContactInfo(items?.[0] ?? null);
+      } catch (error) {
+        console.error("Failed to load contact info:", error);
+        // Keep fallback UI values if API fails
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const socials: SocialLink[] = useMemo(
     () => [
       { label: "Instagram", href: "#", icon: Icon.Instagram },
@@ -72,21 +97,25 @@ export default function TopBar() {
     []
   );
 
+  const phone = contactInfo?.telephone || "+30 210 0000000";
+  const email = contactInfo?.email || "hello@dietitian.gr";
+
+  // Location exists in backend response but is not used in this TopBar yet.
+  // const location = contactInfo?.location || "";
+
   return (
     <div
       className={[
         "w-full sticky top-0 z-50 backdrop-blur",
-        // quieter surface
         "bg-bg supports-[backdrop-filter]:bg-bg/85",
         "border-b border-accent/15",
         "px-6",
       ].join(" ")}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between h-11 text-[12px]">
-        {/* Left: contact info */}
         <div className="flex items-center gap-3 whitespace-nowrap text-slate-600">
           <a
-            href="tel:+30-210-0000000"
+            href={`tel:${phone.replace(/\s+/g, "")}`}
             className={[
               "flex items-center gap-2 rounded-md px-2 py-1 transition",
               "text-slate-600 hover:text-accent",
@@ -94,14 +123,13 @@ export default function TopBar() {
             ].join(" ")}
           >
             <span className="text-slate-500">{Icon.Phone}</span>
-            <span className="hidden sm:inline">+30 210 0000000</span>
+            <span className="hidden sm:inline">{phone}</span>
           </a>
 
-          {/* cleaner divider */}
           <span className="hidden sm:inline h-4 w-px bg-accent/25" />
 
           <a
-            href="mailto:hello@dietitian.gr"
+            href={`mailto:${email}`}
             className={[
               "flex items-center gap-2 rounded-md px-2 py-1 transition",
               "text-slate-600 hover:text-accent",
@@ -109,11 +137,10 @@ export default function TopBar() {
             ].join(" ")}
           >
             <span className="text-slate-500">{Icon.Mail}</span>
-            <span className="hidden md:inline">hello@dietitian.gr</span>
+            <span className="hidden md:inline">{email}</span>
           </a>
         </div>
 
-        {/* Right: social icons (same style + bigger hit area) */}
         <div className="flex items-center gap-2">
           {socials.map((s) => (
             <a
