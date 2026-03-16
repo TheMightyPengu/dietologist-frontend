@@ -4,36 +4,44 @@ import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Image from "next/image";
 
+// Αν το path του controller σου είναι αλλού, άλλαξέ το εδώ.
+import { RecipesApi, type RecipesGetDto } from "@/api/RecipesController";
+
 /*
-  Σελίδα λίστας συνταγών (UI στα ελληνικά).
-  - Τα εσωτερικά keys (κατηγορίες/αλλεργιογόνα) παραμένουν αγγλικά για μελλοντικό API.
+  Σελίδα λίστας συνταγών συνδεδεμένη με backend.
+  Χρησιμοποιούμε μόνο ό,τι υπάρχει στο backend:
+  - title
+  - ingredients
+  - category
+  - instructions
+  - timeToPrepare
+  - description
+  - imageUrl
+  - createdAt
+
+  Δεν χρησιμοποιούμε πλέον:
+  - rating
+  - tags
+  - allergensFree
+  - exclude
 */
 
 // -------------------- Types --------------------
-export type Category =
-  | "Breakfast"
-  | "Main"
-  | "Snack"
-  | "Drink"
-  | "Dessert"
-  | "Salad";
-
 export type Recipe = {
   id: number;
-  slug: string; // API/internal slug (EN)
-  title: string; // Used to derive Greek pretty slug for the UI
-  category: Category;
+  slug: string;
+  title: string;
+  category: string;
   minutes: number;
-  rating: number;
-  tags: string[];
-  allergensFree: string[]; // tokens π.χ. ["gluten", "dairy"]
+  description: string;
+  instructions: string;
   ingredients: string[];
   image: string;
-  createdAt: string; // ISO για sort=new
+  createdAt: string;
 };
 
 // -------------------- Labels (UI) --------------------
-const CATEGORY_LABELS: Record<Category, string> = {
+const CATEGORY_LABELS: Record<string, string> = {
   Breakfast: "Πρωινό",
   Main: "Κυρίως",
   Snack: "Σνακ",
@@ -42,291 +50,9 @@ const CATEGORY_LABELS: Record<Category, string> = {
   Salad: "Σαλάτα",
 };
 
-const CATEGORIES: Category[] = [
-  "Breakfast",
-  "Main",
-  "Snack",
-  "Drink",
-  "Dessert",
-  "Salad",
-] as const;
-
-const ALLERGENS = [
-  "gluten",
-  "dairy",
-  "egg",
-  "soy",
-  "peanut",
-  "tree nut",
-  "sesame",
-] as const;
-
-const ALLERGEN_LABELS: Record<(typeof ALLERGENS)[number], string> = {
-  gluten: "Γλουτένη",
-  dairy: "Γαλακτομικά",
-  egg: "Αυγό",
-  soy: "Σόγια",
-  peanut: "Φυστίκι",
-  "tree nut": "Ξηροί καρποί",
-  sesame: "Σουσάμι",
-};
-
-// -------------------- Data (demo) --------------------
-const RECIPES: Recipe[] = [
-  {
-    id: 3001,
-    slug: "strawberry-brownies",
-    title: "Brownies Φράουλας",
-    category: "Dessert",
-    minutes: 60,
-    rating: 4.7,
-    tags: ["Σοκολάτα", "Φράουλα"],
-    allergensFree: [],
-    ingredients: [
-      "φράουλες",
-      "μέλι",
-      "κακάο",
-      "αλεύρι",
-      "αυγά",
-      "baking powder",
-      "εκχύλισμα βανίλιας",
-      "μαργαρίνη",
-      "αλάτι",
-      "κουβερτούρα",
-      "γάλα",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1606313564200-e75d5e30476e?q=80&w=1974&auto=format&fit=crop",
-    createdAt: "2025-01-15T10:00:00Z",
-  },
-  {
-    id: 3002,
-    slug: "banana-bread",
-    title: "Banana Bread",
-    category: "Dessert",
-    minutes: 60,
-    rating: 4.8,
-    tags: ["Ολικής", "Ξηροί καρποί"],
-    allergensFree: [],
-    ingredients: [
-      "αλεύρι ολικής",
-      "μπανάνες",
-      "ζάχαρη καστανή",
-      "χουρμαδόπαστα",
-      "αυγά",
-      "ελαιόλαδο",
-      "χυμός πορτοκάλι",
-      "γιαούρτι",
-      "καρύδια",
-      "αμύγδαλα",
-      "μπέικιν πάουντερ",
-      "κανέλα",
-      "μοσχοκάρυδο",
-      "γαρύφαλλο",
-      "βανίλια",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1604335399105-a0c64b754bf1?q=80&w=1974&auto=format&fit=crop",
-    createdAt: "2025-02-01T09:30:00Z",
-  },
-  {
-    id: 3003,
-    slug: "chocolate-muffins",
-    title: "Chocolate Muffins",
-    category: "Dessert",
-    minutes: 50,
-    rating: 4.6,
-    tags: ["Χωρίς ζάχαρη", "Βρώμη"],
-    allergensFree: [],
-    ingredients: [
-      "αλεύρι ολικής",
-      "βρώμη",
-      "κακάο",
-      "baking powder",
-      "ξύσμα πορτοκαλιού",
-      "βανίλια",
-      "ελαιόλαδο",
-      "χυμός πορτοκάλι",
-      "πουρές μήλου",
-      "γάλα",
-      "χουρμάδες",
-      "κουβερτούρα",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1607958996333-41aef7caefaa?q=80&w=1974&auto=format&fit=crop",
-    createdAt: "2025-02-12T14:00:00Z",
-  },
-  {
-    id: 3004,
-    slug: "no-bake-cereal-bars",
-    title: "Cereal Bars",
-    category: "Snack",
-    minutes: 60,
-    rating: 4.4,
-    tags: ["Χωρίς ψήσιμο", "Υγιεινό"],
-    allergensFree: [],
-    ingredients: [
-      "νιφάδες βρώμης",
-      "ξηροί καρποί",
-      "χουρμαδόπαστα",
-      "κακάο",
-      "μέλι",
-      "βανίλια",
-      "πρωτεΐνη",
-      "κουβερτούρα",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1559160580-55d1a6fd4ec4?q=80&w=1974&auto=format&fit=crop",
-    createdAt: "2025-03-05T11:15:00Z",
-  },
-  {
-    id: 3005,
-    slug: "carrot-cake",
-    title: "Carrot Cake",
-    category: "Dessert",
-    minutes: 60,
-    rating: 4.7,
-    tags: ["Καρότο", "Ολικής"],
-    allergensFree: [],
-    ingredients: [
-      "αλεύρι ολικής",
-      "καρότα",
-      "ζάχαρη καστανή",
-      "χουρμαδόπαστα",
-      "αυγά",
-      "ελαιόλαδο",
-      "γάλα",
-      "γιαούρτι",
-      "καρύδια",
-      "αμύγδαλα",
-      "μπέικιν πάουντερ",
-      "κανέλα",
-      "μοσχοκάρυδο",
-      "γαρύφαλλο",
-      "βανίλια",
-      "αλάτι",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1606890737304-57a1ca8a5b72?q=80&w=1974&auto=format&fit=crop",
-    createdAt: "2025-03-18T16:40:00Z",
-  },
-  {
-    id: 3006,
-    slug: "carrot-cake-frosting",
-    title: "Carrot Cake Frosting (γιαούρτι & τυρί κρέμα)",
-    category: "Dessert",
-    minutes: 30,
-    rating: 4.5,
-    tags: ["Frosting", "Επικάλυψη"],
-    allergensFree: [],
-    ingredients: ["γιαούρτι", "τυρί κρέμα", "ξύσμα λεμονιού", "βανίλια"],
-    image:
-      "https://images.unsplash.com/photo-1601972599720-b82e67fce78b?q=80&w=1974&auto=format&fit=crop",
-    createdAt: "2025-03-18T17:00:00Z",
-  },
-  {
-    id: 3007,
-    slug: "apple-tart",
-    title: "Μηλόπιτα Τάρτα",
-    category: "Dessert",
-    minutes: 80,
-    rating: 4.6,
-    tags: ["Τάρτα", "Μήλο"],
-    allergensFree: [],
-    ingredients: [
-      "αλεύρι που φουσκώνει μόνο του",
-      "αλεύρι ολικής",
-      "μπέικιν πάουντερ",
-      "αλάτι",
-      "ελαιόλαδο",
-      "χυμός πορτοκαλιού",
-      "νερό",
-      "μήλα",
-      "κανέλα",
-      "ζάχαρη",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1974&auto=format&fit=crop",
-    createdAt: "2025-04-02T12:20:00Z",
-  },
-  {
-    id: 3008,
-    slug: "raw-chocolate-bites",
-    title: "Ωμά Σοκολατάκια",
-    category: "Dessert",
-    minutes: 30,
-    rating: 4.3,
-    tags: ["Χωρίς ψήσιμο", "Χουρμάδες"],
-    allergensFree: [],
-    ingredients: [
-      "χουρμάδες",
-      "βρώμη",
-      "αμύγδαλα",
-      "κακάο",
-      "βανίλια",
-      "μαύρη σοκολάτα",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?q=80&w=1974&auto=format&fit=crop",
-    createdAt: "2025-04-20T08:10:00Z",
-  },
-  {
-    id: 3009,
-    slug: "almond-cookies",
-    title: "Cookies Αμυγδάλου",
-    category: "Dessert",
-    minutes: 30,
-    rating: 4.4,
-    tags: ["Αμύγδαλο", "Γρήγορο"],
-    allergensFree: [],
-    ingredients: [
-      "αλεύρι αμυγδάλου",
-      "ινδική καρύδα",
-      "σταγόνες σοκολάτας",
-      "χουρμάδες",
-      "baking powder",
-      "βανίλια",
-      "αλάτι",
-      "ελαιόλαδο",
-      "αυγό",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1511385348-a52b4a160dc2?q=80&w=1974&auto=format&fit=crop",
-    createdAt: "2025-05-03T09:00:00Z",
-  },
-  {
-    id: 3010,
-    slug: "homemade-breadsticks",
-    title: "Σπιτικά Κριτσίνια",
-    category: "Snack",
-    minutes: 120,
-    rating: 4.5,
-    tags: ["Αλμυρό", "Meal prep"],
-    allergensFree: [],
-    ingredients: [
-      "αλεύρι ολικής",
-      "αλεύρι για όλες τις χρήσεις",
-      "ελαιόλαδο",
-      "ρετσίνα",
-      "μπέικιν",
-      "αλάτι",
-      "ζάχαρη",
-      "σουσάμι",
-      "ρίγανη",
-      "βασιλικός",
-      "ελιά",
-      "καρότο",
-      "φέτα",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?q=80&w=1974&auto=format&fit=crop",
-    createdAt: "2025-06-10T13:45:00Z",
-  },
-];
-
-// -------------------- Helpers --------------------
 const PER_PAGE = 12;
 
+// -------------------- Helpers --------------------
 function formatMin(m: number) {
   return m <= 60 ? `${m}′` : `${Math.floor(m / 60)} ώ ${m % 60}′`;
 }
@@ -337,6 +63,7 @@ function stripGreekAccents(s: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/ς/g, "σ");
 }
+
 function toGreekSlug(s: string) {
   return stripGreekAccents(s)
     .toLowerCase()
@@ -351,6 +78,7 @@ function arrFromQuery(v: string | string[] | undefined): string[] {
   if (Array.isArray(v)) return v.flatMap((s) => s.split(",").filter(Boolean));
   return v.split(",").filter(Boolean);
 }
+
 type QueryInputValue = string | number | string[] | undefined;
 
 function setQuery(pathname: string, q: Record<string, QueryInputValue>) {
@@ -391,13 +119,36 @@ function paginateNumbers(totalPages: number, current: number) {
   if (showRight < totalPages - 1) pages.push("…");
   pages.push(totalPages);
 
-  // Ensure current is present (edge cases)
   if (!pages.includes(current)) {
     const insertAt = pages.indexOf("…");
     if (insertAt !== -1) pages.splice(insertAt, 0, current);
   }
 
   return pages;
+}
+
+function parseIngredients(value: string | null | undefined): string[] {
+  if (!value) return [];
+
+  return value
+    .split(/[\n,;•]+/g)
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+function mapRecipe(dto: RecipesGetDto): Recipe {
+  return {
+    id: dto.id,
+    slug: String(dto.id),
+    title: dto.title ?? "",
+    category: dto.category ?? "",
+    minutes: dto.timeToPrepare ?? 0,
+    description: dto.description ?? "",
+    instructions: dto.instructions ?? "",
+    ingredients: parseIngredients(dto.ingredients),
+    image: dto.imageUrl ?? "",
+    createdAt: dto.createdAt ?? "",
+  };
 }
 
 // -------------------- UI Primitives --------------------
@@ -457,72 +208,95 @@ export default function RecipesIndex() {
   const router = useRouter();
   const { query } = router;
 
-  // Applied state (URL-synced)
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [fetchError, setFetchError] = useState<string>("");
+
   const [search, setSearch] = useState<string>((query.q as string) || "");
   const [cats, setCats] = useState<string[]>(arrFromQuery(query.cat));
-  const [free, setFree] = useState<string[]>(arrFromQuery(query.free));
   const [include, setInclude] = useState<string[]>(arrFromQuery(query.inc));
-  const [exclude, setExclude] = useState<string[]>(arrFromQuery(query.exc));
   const [time, setTime] = useState<string>((query.time as string) || "");
   const [sort, setSort] = useState<string>((query.sort as string) || "new");
   const [page, setPage] = useState<number>(Number(query.page || 1));
 
-  // Mobile drawer draft state
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draftSearch, setDraftSearch] = useState(search);
   const [draftCats, setDraftCats] = useState<string[]>(cats);
-  const [draftFree, setDraftFree] = useState<string[]>(free);
   const [draftInclude, setDraftInclude] = useState<string[]>(include);
-  const [draftExclude, setDraftExclude] = useState<string[]>(exclude);
   const [draftTime, setDraftTime] = useState(time);
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Sync from URL
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadRecipes() {
+      try {
+        setIsLoading(true);
+        setFetchError("");
+
+        const data = await RecipesApi.list();
+
+        if (!mounted) return;
+
+        const mapped = Array.isArray(data) ? data.map(mapRecipe) : [];
+        setRecipes(mapped);
+      } catch (error) {
+        if (!mounted) return;
+        setRecipes([]);
+        setFetchError("Δεν ήταν δυνατή η φόρτωση των συνταγών.");
+        console.error(error);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    }
+
+    loadRecipes();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   useEffect(() => {
     setSearch((query.q as string) || "");
     setCats(arrFromQuery(query.cat));
-    setFree(arrFromQuery(query.free));
     setInclude(arrFromQuery(query.inc));
-    setExclude(arrFromQuery(query.exc));
     setTime((query.time as string) || "");
     setSort((query.sort as string) || "new");
     setPage(Number(query.page || 1));
-  }, [
-    query.q,
-    query.cat,
-    query.free,
-    query.inc,
-    query.exc,
-    query.time,
-    query.sort,
-    query.page,
-  ]);
+  }, [query.q, query.cat, query.inc, query.time, query.sort, query.page]);
 
-  // Fake loading (for skeletons) on query changes
-  useEffect(() => {
-    setIsLoading(true);
-    const t = setTimeout(() => setIsLoading(false), 220);
-    return () => clearTimeout(t);
-  }, [query.q, query.cat, query.free, query.inc, query.exc, query.time, query.sort, query.page]);
+  const categories = useMemo(
+    () => uniq(recipes.map((r) => r.category).filter(Boolean)),
+    [recipes]
+  );
 
   const filtered = useMemo(() => {
-    let list = RECIPES.slice();
-    if (search) {
-      const s = search.toLowerCase();
+    let list = recipes.slice();
+
+    if (search.trim()) {
+      const s = search.trim().toLowerCase();
       list = list.filter(
         (r) =>
           r.title.toLowerCase().includes(s) ||
+          r.description.toLowerCase().includes(s) ||
           r.ingredients.some((i) => i.toLowerCase().includes(s))
       );
     }
-    if (cats.length) list = list.filter((r) => cats.includes(r.category));
-    if (free.length)
-      list = list.filter((r) => free.every((a) => r.allergensFree.includes(a)));
-    if (include.length)
-      list = list.filter((r) => include.every((i) => r.ingredients.includes(i)));
-    if (exclude.length)
-      list = list.filter((r) => exclude.every((i) => !r.ingredients.includes(i)));
+
+    if (cats.length) {
+      list = list.filter((r) => cats.includes(r.category));
+    }
+
+    if (include.length) {
+      list = list.filter((r) =>
+        include.every((wanted) =>
+          r.ingredients.some((ing) =>
+            ing.toLowerCase().includes(wanted.toLowerCase())
+          )
+        )
+      );
+    }
 
     if (time) {
       list = list.filter((r) => {
@@ -534,12 +308,18 @@ export default function RecipesIndex() {
       });
     }
 
-    if (sort === "az") list.sort((a, b) => a.title.localeCompare(b.title));
-    else if (sort === "rating") list.sort((a, b) => b.rating - a.rating);
-    else list.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+    if (sort === "az") {
+      list.sort((a, b) => a.title.localeCompare(b.title));
+    } else {
+      list.sort(
+        (a, b) =>
+          Date.parse(b.createdAt || "1970-01-01") -
+          Date.parse(a.createdAt || "1970-01-01")
+      );
+    }
 
     return list;
-  }, [search, cats, free, include, exclude, time, sort]);
+  }, [recipes, search, cats, include, time, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const pageClamped = Math.min(totalPages, Math.max(1, page));
@@ -551,9 +331,7 @@ export default function RecipesIndex() {
   function pushToUrl(next: {
     q: string;
     cat: string[];
-    free: string[];
     inc: string[];
-    exc: string[];
     time: string;
     sort: string;
     page: number;
@@ -561,47 +339,35 @@ export default function RecipesIndex() {
     const dest = setQuery("/recipes", {
       q: next.q || undefined,
       cat: next.cat,
-      free: next.free,
       inc: next.inc,
-      exc: next.exc,
       time: next.time || undefined,
       sort: next.sort,
       page: next.page,
     });
+
     router.push(dest, undefined, { shallow: true });
   }
 
-  // When applied state changes, update URL (single place)
   useEffect(() => {
+    if (!router.isReady) return;
+
     const nextPage = Math.min(totalPages, Math.max(1, page));
+
     pushToUrl({
       q: search,
       cat: cats,
-      free,
       inc: include,
-      exc: exclude,
       time,
       sort,
       page: nextPage,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    search,
-    cats.join(","),
-    free.join(","),
-    include.join(","),
-    exclude.join(","),
-    time,
-    sort,
-    page,
-  ]);
+  }, [router.isReady, search, cats.join(","), include.join(","), time, sort, page, totalPages]);
 
   function clearAll() {
     setSearch("");
     setCats([]);
-    setFree([]);
     setInclude([]);
-    setExclude([]);
     setTime("");
     setSort("new");
     setPage(1);
@@ -610,9 +376,7 @@ export default function RecipesIndex() {
   function openFilters() {
     setDraftSearch(search);
     setDraftCats(cats);
-    setDraftFree(free);
     setDraftInclude(include);
-    setDraftExclude(exclude);
     setDraftTime(time);
     setFiltersOpen(true);
   }
@@ -620,9 +384,7 @@ export default function RecipesIndex() {
   function applyDrawerFilters() {
     setSearch(draftSearch);
     setCats(draftCats);
-    setFree(draftFree);
     setInclude(draftInclude);
-    setExclude(draftExclude);
     setTime(draftTime);
     setPage(1);
     setFiltersOpen(false);
@@ -635,16 +397,11 @@ export default function RecipesIndex() {
       parts.push({
         key: "cat",
         label: `Κατηγορία: ${cats
-          .map((c) => CATEGORY_LABELS[c as Category] ?? c)
+          .map((c) => CATEGORY_LABELS[c] ?? c)
           .join(", ")}`,
       });
     }
-    if (free.length) {
-      parts.push({
-        key: "free",
-        label: `Χωρίς: ${free.map((a) => ALLERGEN_LABELS[a as (typeof ALLERGENS)[number]] ?? a).join(", ")}`,
-      });
-    }
+
     if (time) {
       const t =
         time === "t15"
@@ -656,17 +413,23 @@ export default function RecipesIndex() {
           : time === "t61"
           ? "> 60′"
           : "";
+
       if (t) parts.push({ key: "time", label: `Χρόνος: ${t}` });
     }
-    if (include.length) parts.push({ key: "inc", label: `Να περιέχει: ${include.join(", ")}` });
-    if (exclude.length) parts.push({ key: "exc", label: `Να μην περιέχει: ${exclude.join(", ")}` });
-    if (search.trim()) parts.push({ key: "q", label: `Αναζήτηση: ${search.trim()}` });
+
+    if (include.length) {
+      parts.push({ key: "inc", label: `Με: ${include.join(", ")}` });
+    }
+
+    if (search.trim()) {
+      parts.push({ key: "q", label: `Αναζήτηση: ${search.trim()}` });
+    }
 
     return parts;
-  }, [cats, free, time, include, exclude, search]);
+  }, [cats, time, include, search]);
 
   const mobileActiveCount =
-    cats.length + free.length + include.length + exclude.length + (time ? 1 : 0) + (search.trim() ? 1 : 0);
+    cats.length + include.length + (time ? 1 : 0) + (search.trim() ? 1 : 0);
 
   return (
     <>
@@ -674,7 +437,7 @@ export default function RecipesIndex() {
         <title>Συνταγές — NutriClinic</title>
         <meta
           name="description"
-          content="Αναζήτηση και φιλτράρισμα συνταγών (demo) — όλα στα ελληνικά."
+          content="Αναζήτηση και φιλτράρισμα συνταγών."
         />
         <link rel="canonical" href="https://example.gr/recipes" />
       </Head>
@@ -686,11 +449,10 @@ export default function RecipesIndex() {
               Συνταγές
             </h1>
             <p className="mt-2 text-slate-600">
-              Demo σελίδα με αναζήτηση, φίλτρα, ταξινόμηση και σελιδοποίηση.
+              Αναζήτηση, φίλτρα, ταξινόμηση και σελιδοποίηση.
             </p>
           </header>
 
-          {/* Mobile controls */}
           <div className="md:hidden mb-5 flex items-center justify-between gap-3">
             <button
               onClick={openFilters}
@@ -726,182 +488,122 @@ export default function RecipesIndex() {
               >
                 <option value="new">Νεότερα</option>
                 <option value="az">Αλφαβητικά (A–Z)</option>
-                <option value="rating">Βαθμολογία</option>
               </select>
             </div>
           </div>
 
           <section className="grid gap-8 md:grid-cols-12">
-            {/* Filters (desktop) */}
             <aside className="hidden md:block md:col-span-4 lg:col-span-3 space-y-6">
               {isLoading ? (
                 <SidebarSkeleton />
               ) : (
-                <>
-                  <SectionCard
-                    title="Φίλτρα"
-                    right={
-                      <button
-                        onClick={clearAll}
-                        className={classNames(
-                          "text-xs font-semibold text-primary",
-                          "hover:text-primary/80 transition",
-                          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg px-2 py-1"
-                        )}
-                      >
-                        Καθαρισμός
-                      </button>
-                    }
-                  >
-                    <div className="space-y-4">
-                      {/* Search */}
-                      <div>
-                        <div className="text-xs font-semibold text-slate-700 mb-2">
-                          Αναζήτηση
-                        </div>
-                        <SearchInput
-                          value={search}
-                          onChange={(v) => {
-                            setSearch(v);
-                            setPage(1);
-                          }}
-                          placeholder="όνομα ή υλικό…"
-                        />
+                <SectionCard
+                  title="Φίλτρα"
+                  right={
+                    <button
+                      onClick={clearAll}
+                      className={classNames(
+                        "text-xs font-semibold text-primary",
+                        "hover:text-primary/80 transition",
+                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg px-2 py-1"
+                      )}
+                    >
+                      Καθαρισμός
+                    </button>
+                  }
+                >
+                  <div className="space-y-4">
+                    <div>
+                      <div className="text-xs font-semibold text-slate-700 mb-2">
+                        Αναζήτηση
                       </div>
+                      <SearchInput
+                        value={search}
+                        onChange={(v) => {
+                          setSearch(v);
+                          setPage(1);
+                        }}
+                        placeholder="όνομα, περιγραφή ή υλικό…"
+                      />
+                    </div>
 
-                      {/* Categories */}
-                      <div>
-                        <div className="text-xs font-semibold text-slate-700 mb-2">
-                          Κατηγορία
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {CATEGORIES.map((c) => {
-                            const active = cats.includes(c);
-                            return (
-                              <button
-                                key={c}
-                                type="button"
-                                onClick={() => {
-                                  setPage(1);
-                                  setCats((prev) =>
-                                    prev.includes(c)
-                                      ? prev.filter((x) => x !== c)
-                                      : [...prev, c]
-                                  );
-                                }}
-                                className={classNames(
-                                  "rounded-full px-3 py-1 text-xs font-medium ring-1 transition",
-                                  active
-                                    ? "bg-primary text-white ring-primary"
-                                    : "bg-primary/10 text-primary ring-primary/30 hover:bg-primary/15",
-                                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                                )}
-                              >
-                                {CATEGORY_LABELS[c]}
-                              </button>
-                            );
-                          })}
-                        </div>
+                    <div>
+                      <div className="text-xs font-semibold text-slate-700 mb-2">
+                        Κατηγορία
                       </div>
-
-                      {/* Time */}
-                      <div>
-                        <div className="text-xs font-semibold text-slate-700 mb-2">
-                          Χρόνος προετοιμασίας
-                        </div>
-                        <select
-                          value={time}
-                          onChange={(e) => {
-                            setTime(e.target.value);
-                            setPage(1);
-                          }}
-                          className={classNames(
-                            "w-full rounded-xl bg-white px-3 py-2 text-sm text-slate-800",
-                            "ring-1 ring-black/10 shadow-sm",
-                            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                          )}
-                        >
-                          <option value="">Όλοι</option>
-                          <option value="t15">≤ 15 λεπτά</option>
-                          <option value="t30">15–30 λεπτά</option>
-                          <option value="t60">30–60 λεπτά</option>
-                          <option value="t61">&gt; 60 λεπτά</option>
-                        </select>
-                      </div>
-
-                      {/* Allergens free */}
-                      <div>
-                        <div className="text-xs font-semibold text-slate-700 mb-2">
-                          Χωρίς
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {ALLERGENS.map((a) => {
-                            const active = free.includes(a);
-                            return (
-                              <button
-                                key={a}
-                                type="button"
-                                onClick={() => {
-                                  setPage(1);
-                                  setFree((prev) =>
-                                    prev.includes(a)
-                                      ? prev.filter((x) => x !== a)
-                                      : [...prev, a]
-                                  );
-                                }}
-                                className={classNames(
-                                  "rounded-full px-3 py-1 text-xs font-medium ring-1 transition",
-                                  active
-                                    ? "bg-primary text-white ring-primary"
-                                    : "bg-primary/10 text-primary ring-primary/30 hover:bg-primary/15",
-                                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                                )}
-                              >
-                                {ALLERGEN_LABELS[a]}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Include/Exclude */}
-                      <div className="grid gap-4">
-                        <div>
-                          <div className="text-xs font-semibold text-slate-700 mb-2">
-                            Να περιέχει
-                          </div>
-                          <TagInput
-                            value={include}
-                            setValue={(v) => {
-                              setInclude(v);
-                              setPage(1);
-                            }}
-                            placeholder="π.χ. βρώμη, σοκολάτα"
-                          />
-                        </div>
-                        <div>
-                          <div className="text-xs font-semibold text-slate-700 mb-2">
-                            Να μην περιέχει
-                          </div>
-                          <TagInput
-                            value={exclude}
-                            setValue={(v) => {
-                              setExclude(v);
-                              setPage(1);
-                            }}
-                            placeholder="π.χ. φιστίκι, γλουτένη"
-                          />
-                        </div>
+                      <div className="flex flex-wrap gap-2">
+                        {categories.map((c) => {
+                          const active = cats.includes(c);
+                          return (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => {
+                                setPage(1);
+                                setCats((prev) =>
+                                  prev.includes(c)
+                                    ? prev.filter((x) => x !== c)
+                                    : [...prev, c]
+                                );
+                              }}
+                              className={classNames(
+                                "rounded-full px-3 py-1 text-xs font-medium ring-1 transition",
+                                active
+                                  ? "bg-primary text-white ring-primary"
+                                  : "bg-primary/10 text-primary ring-primary/30 hover:bg-primary/15",
+                                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                              )}
+                            >
+                              {CATEGORY_LABELS[c] ?? c}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
-                  </SectionCard>
-                </>
+
+                    <div>
+                      <div className="text-xs font-semibold text-slate-700 mb-2">
+                        Χρόνος προετοιμασίας
+                      </div>
+                      <select
+                        value={time}
+                        onChange={(e) => {
+                          setTime(e.target.value);
+                          setPage(1);
+                        }}
+                        className={classNames(
+                          "w-full rounded-xl bg-white px-3 py-2 text-sm text-slate-800",
+                          "ring-1 ring-black/10 shadow-sm",
+                          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        )}
+                      >
+                        <option value="">Όλοι</option>
+                        <option value="t15">≤ 15 λεπτά</option>
+                        <option value="t30">15–30 λεπτά</option>
+                        <option value="t60">30–60 λεπτά</option>
+                        <option value="t61">&gt; 60 λεπτά</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <div className="text-xs font-semibold text-slate-700 mb-2">
+                        Με
+                      </div>
+                      <TagInput
+                        value={include}
+                        setValue={(v) => {
+                          setInclude(v);
+                          setPage(1);
+                        }}
+                        placeholder="π.χ. βρώμη, σοκολάτα"
+                      />
+                    </div>
+                  </div>
+                </SectionCard>
               )}
             </aside>
 
-            {/* Results */}
             <div className="md:col-span-8 lg:col-span-9">
-              {/* Header row aligned */}
               <div className="mb-4 flex items-end justify-between gap-4">
                 <div className="flex flex-col gap-2">
                   <div className="text-sm text-slate-600">
@@ -912,7 +614,6 @@ export default function RecipesIndex() {
                     συνταγές
                   </div>
 
-                  {/* Active filters summary */}
                   {activeFilters.length > 0 && (
                     <div className="flex flex-wrap items-center gap-2">
                       {activeFilters.map((f) => (
@@ -928,10 +629,8 @@ export default function RecipesIndex() {
                             type="button"
                             onClick={() => {
                               if (f.key === "cat") setCats([]);
-                              if (f.key === "free") setFree([]);
                               if (f.key === "time") setTime("");
                               if (f.key === "inc") setInclude([]);
-                              if (f.key === "exc") setExclude([]);
                               if (f.key === "q") setSearch("");
                               setPage(1);
                             }}
@@ -961,7 +660,6 @@ export default function RecipesIndex() {
                   )}
                 </div>
 
-                {/* Sort (desktop) */}
                 <div className="hidden md:flex items-end gap-2">
                   <span className="text-sm text-slate-600 pb-2">
                     Ταξινόμηση:
@@ -980,13 +678,18 @@ export default function RecipesIndex() {
                   >
                     <option value="new">Νεότερα</option>
                     <option value="az">Αλφαβητικά (A–Z)</option>
-                    <option value="rating">Βαθμολογία</option>
                   </select>
                 </div>
               </div>
 
-              {/* Grid */}
-              {isLoading ? (
+              {fetchError ? (
+                <div className="rounded-2xl bg-white/90 ring-1 ring-black/5 shadow-[0_10px_24px_rgba(15,23,42,0.06)] p-8 text-center">
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Σφάλμα φόρτωσης
+                  </h3>
+                  <p className="mt-2 text-sm text-slate-600">{fetchError}</p>
+                </div>
+              ) : isLoading ? (
                 <GridSkeleton />
               ) : filtered.length === 0 ? (
                 <EmptyState onClear={clearAll} />
@@ -995,9 +698,6 @@ export default function RecipesIndex() {
                   {paged.map((r) => {
                     const pretty = toGreekSlug(r.title);
                     const hasImage = Boolean(r.image);
-
-                    const shownTags = r.tags.slice(0, 3);
-                    const extra = Math.max(0, r.tags.length - shownTags.length);
 
                     return (
                       <Link
@@ -1012,7 +712,6 @@ export default function RecipesIndex() {
                           "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         )}
                       >
-                        {/* Fixed aspect ratio image area */}
                         <div className="relative aspect-[16/10] w-full overflow-hidden">
                           {hasImage ? (
                             <Image
@@ -1033,7 +732,6 @@ export default function RecipesIndex() {
                             </div>
                           )}
 
-                          {/* Badges: consistent position + glass */}
                           <div className="absolute left-3 top-3">
                             <GlassBadge>
                               <ClockIcon />
@@ -1042,10 +740,11 @@ export default function RecipesIndex() {
                           </div>
                         </div>
 
-                        {/* Unified padding + spacing */}
                         <div className="flex flex-col p-4 gap-3 flex-1">
                           <div className="flex items-center justify-between gap-3">
-                            <Chip tone="muted">{CATEGORY_LABELS[r.category]}</Chip>
+                            <Chip tone="muted">
+                              {CATEGORY_LABELS[r.category] ?? r.category}
+                            </Chip>
                           </div>
 
                           <div className="min-h-[2.75rem]">
@@ -1054,16 +753,24 @@ export default function RecipesIndex() {
                             </div>
                           </div>
 
-                          <div className="mt-auto flex flex-wrap gap-2 pt-1">
-                            {shownTags.map((t) => (
-                              <Chip key={t} tone="soft">
-                                {t}
-                              </Chip>
-                            ))}
-                            {extra > 0 && (
-                              <Chip tone="muted">+{extra}</Chip>
-                            )}
-                          </div>
+                          {r.description && (
+                            <p className="text-sm text-slate-600 line-clamp-3">
+                              {r.description}
+                            </p>
+                          )}
+
+                          {r.ingredients.length > 0 && (
+                            <div className="mt-auto flex flex-wrap gap-2 pt-1">
+                              {r.ingredients.slice(0, 3).map((ingredient) => (
+                                <Chip key={ingredient} tone="soft">
+                                  {ingredient}
+                                </Chip>
+                              ))}
+                              {r.ingredients.length > 3 && (
+                                <Chip tone="muted">+{r.ingredients.length - 3}</Chip>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </Link>
                     );
@@ -1071,8 +778,7 @@ export default function RecipesIndex() {
                 </div>
               )}
 
-              {/* Pagination */}
-              {filtered.length > 0 && !isLoading && (
+              {filtered.length > 0 && !isLoading && !fetchError && (
                 <div className="mt-10 flex items-center justify-center gap-2">
                   <button
                     className={classNames(
@@ -1133,7 +839,6 @@ export default function RecipesIndex() {
           </section>
         </div>
 
-        {/* Mobile Filters Drawer */}
         {filtersOpen && (
           <div
             className="fixed inset-0 z-50"
@@ -1186,13 +891,13 @@ export default function RecipesIndex() {
                     <SearchInput
                       value={draftSearch}
                       onChange={setDraftSearch}
-                      placeholder="όνομα ή υλικό…"
+                      placeholder="όνομα, περιγραφή ή υλικό…"
                     />
                   </SectionCard>
 
                   <SectionCard title="Κατηγορία">
                     <div className="flex flex-wrap gap-2">
-                      {CATEGORIES.map((c) => {
+                      {categories.map((c) => {
                         const active = draftCats.includes(c);
                         return (
                           <button
@@ -1213,7 +918,7 @@ export default function RecipesIndex() {
                               "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                             )}
                           >
-                            {CATEGORY_LABELS[c]}
+                            {CATEGORY_LABELS[c] ?? c}
                           </button>
                         );
                       })}
@@ -1238,49 +943,11 @@ export default function RecipesIndex() {
                     </select>
                   </SectionCard>
 
-                  <SectionCard title="Χωρίς">
-                    <div className="flex flex-wrap gap-2">
-                      {ALLERGENS.map((a) => {
-                        const active = draftFree.includes(a);
-                        return (
-                          <button
-                            key={a}
-                            type="button"
-                            onClick={() =>
-                              setDraftFree((prev) =>
-                                prev.includes(a)
-                                  ? prev.filter((x) => x !== a)
-                                  : [...prev, a]
-                              )
-                            }
-                            className={classNames(
-                              "rounded-full px-3 py-1 text-xs font-medium ring-1 transition",
-                              active
-                                ? "bg-primary text-white ring-primary"
-                                : "bg-primary/10 text-primary ring-primary/30 hover:bg-primary/15",
-                              "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                            )}
-                          >
-                            {ALLERGEN_LABELS[a]}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </SectionCard>
-
-                  <SectionCard title="Να περιέχει">
+                  <SectionCard title="Με">
                     <TagInput
                       value={draftInclude}
                       setValue={setDraftInclude}
                       placeholder="π.χ. βρώμη, σοκολάτα"
-                    />
-                  </SectionCard>
-
-                  <SectionCard title="Να μην περιέχει">
-                    <TagInput
-                      value={draftExclude}
-                      setValue={setDraftExclude}
-                      placeholder="π.χ. φιστίκι, γλουτένη"
                     />
                   </SectionCard>
                 </div>
@@ -1292,9 +959,7 @@ export default function RecipesIndex() {
                     onClick={() => {
                       setDraftSearch("");
                       setDraftCats([]);
-                      setDraftFree([]);
                       setDraftInclude([]);
-                      setDraftExclude([]);
                       setDraftTime("");
                     }}
                     className={classNames(
@@ -1386,7 +1051,9 @@ function TagInput({
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
+
     if (!parts.length) return;
+
     const v = uniq([...value, ...parts]);
     setValue(v);
     setText("");
@@ -1466,12 +1133,6 @@ function SidebarSkeleton() {
         </div>
         <div className="h-3 w-32 rounded bg-slate-200 animate-pulse" />
         <div className="h-10 w-full rounded-xl bg-slate-200 animate-pulse" />
-        <div className="h-3 w-20 rounded bg-slate-200 animate-pulse" />
-        <div className="flex flex-wrap gap-2">
-          {Array.from({ length: 7 }).map((_, i) => (
-            <div key={i} className="h-7 w-24 rounded-full bg-slate-200 animate-pulse" />
-          ))}
-        </div>
       </div>
     </div>
   );

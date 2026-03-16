@@ -3,6 +3,10 @@ import { api, toApiError } from './_axios-client';
 export type RecipesGetDto = {
   id: number;
   title: string;
+  ingredients: string;
+  category: string;
+  instructions: string;
+  timeToPrepare: number;
   description: string;
   imageUrl?: string | null;
   createdAt: string; // ISO
@@ -10,6 +14,10 @@ export type RecipesGetDto = {
 
 export type RecipesPostDto = {
   title: string;
+  ingredients: string;
+  category: string;
+  instructions: string;
+  timeToPrepare: number;
   description: string;
   imageUrl?: string | null;
   createdAt: string; // ISO
@@ -20,12 +28,20 @@ const base = '/Recipes';
 
 function buildFormData(p: RecipesPostDto): FormData {
   const fd = new FormData();
-  // Use backend DTO property names (model binding is case-insensitive, but we keep them identical)
+
   fd.append('Title', p.title);
+  fd.append('Ingredients', p.ingredients);
+  fd.append('Category', p.category);
+  fd.append('Instructions', p.instructions);
+  fd.append('TimeToPrepare', String(p.timeToPrepare));
   fd.append('Description', p.description);
+
   if (p.imageUrl ?? null) fd.append('ImageUrl', String(p.imageUrl));
+
   fd.append('CreatedAt', p.createdAt);
+
   if (p.imageFile) fd.append('ImageFile', p.imageFile);
+
   return fd;
 }
 

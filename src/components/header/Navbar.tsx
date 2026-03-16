@@ -41,7 +41,7 @@ const NAV: MenuItem[] = [
     href: "/contact/book",
     children: [
       { label: "ΚΛΕΙΣΤΕ ΡΑΝΤΕΒΟΥ", href: "/contact/book" },
-      { label: "ΦΟΡΡΜΑ ΕΠΙΚΟΙΝΩΝΙΑΣ", href: "/contact/form" },
+      { label: "ΦΟΡΜΑ ΕΠΙΚΟΙΝΩΝΙΑΣ", href: "/contact/form" },
     ],
   },
 ];
