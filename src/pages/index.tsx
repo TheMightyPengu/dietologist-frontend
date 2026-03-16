@@ -1,9 +1,62 @@
 import Head from "next/head";
 import Link from "next/link";
 import HomeHero from "@/components/home/HomeHeader";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  MainPagesApi,
+  type MainPageGetDto,
+} from "@/api/MainPagesController";
 
 type NewsletterStep = { title: string; desc: string };
+
+function splitTextToParagraphs(text?: string | null): string[] {
+  if (!text) return [];
+  return text
+    .split(/\n\s*\n|\r\n\s*\r\n/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function splitTextToLines(text?: string | null): string[] {
+  if (!text) return [];
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function renderTextBlocks(text?: string | null) {
+  const paragraphs = splitTextToParagraphs(text);
+
+  if (paragraphs.length > 1) {
+    return paragraphs.map((p, i) => <p key={i}>{p}</p>);
+  }
+
+  const lines = splitTextToLines(text);
+
+  if (lines.length <= 1) {
+    return text ? <p>{text}</p> : null;
+  }
+
+  const bulletLines = lines.filter((line) => /^[-•*]/.test(line));
+  const normalLines = lines.filter((line) => !/^[-•*]/.test(line));
+
+  return (
+    <>
+      {normalLines.map((line, i) => (
+        <p key={`p-${i}`}>{line}</p>
+      ))}
+
+      {bulletLines.length > 0 && (
+        <ul className="list-disc pl-6 md:columns-2 md:gap-10">
+          {bulletLines.map((line, i) => (
+            <li key={`li-${i}`}>{line.replace(/^[-•*]\s*/, "")}</li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+}
 
 export default function HomePage() {
   const siteName = "Διαιτολογικό Κέντρο";
@@ -20,11 +73,10 @@ export default function HomePage() {
     },
   };
 
-  // ---- Design tokens (page-level consistency) ----
-  const R_BIG = "rounded-3xl"; // large blocks
-  const R_CARD = "rounded-2xl"; // cards
-  const SH_CARD = "shadow-[0_14px_34px_rgba(15,23,42,0.08)]"; // soft
-  const SH_CTA = "shadow-[0_18px_46px_rgba(122,122,196,0.26)]"; // stronger (primary CTA)
+  const R_BIG = "rounded-3xl";
+  const R_CARD = "rounded-2xl";
+  const SH_CARD = "shadow-[0_14px_34px_rgba(15,23,42,0.08)]";
+  const SH_CTA = "shadow-[0_18px_46px_rgba(122,122,196,0.26)]";
   const FOCUS =
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
 
@@ -35,7 +87,59 @@ export default function HomePage() {
   const [nlForm, setNlForm] = useState({ name: "", email: "" });
   const [nlCode, setNlCode] = useState("");
 
-  // Optional: close on Esc
+  const [mainPage, setMainPage] = useState<MainPageGetDto | null>(null);
+  const [mainPictureUrl, setMainPictureUrl] = useState<string | null>(null);
+  const [mainPageLoading, setMainPageLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadMainPage() {
+      try {
+        setMainPageLoading(true);
+
+        const pages = await MainPagesApi.list();
+        const firstPage = pages?.[0] ?? null;
+
+        if (!active) return;
+
+        setMainPage(firstPage);
+
+        if (firstPage?.id) {
+          try {
+            const pictureRes = await MainPagesApi.getMainPictureUrl(firstPage.id);
+            if (!active) return;
+            setMainPictureUrl(pictureRes?.url || null);
+          } catch {
+            // If the endpoint is missing or fails, keep null and use fallback image.
+            if (!active) return;
+            setMainPictureUrl(null);
+          }
+        } else {
+          setMainPictureUrl(null);
+        }
+      } catch {
+        // If backend data is missing for now, keep page functional with fallback content.
+        if (!active) return;
+        setMainPage(null);
+        setMainPictureUrl(null);
+      } finally {
+        if (active) setMainPageLoading(false);
+      }
+    }
+
+    loadMainPage();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const biographyParagraphs = useMemo(
+    () => splitTextToParagraphs(mainPage?.biography),
+    [mainPage?.biography]
+  );
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") setOpenNewsletter(false);
@@ -44,21 +148,19 @@ export default function HomePage() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  // dummy API helpers (inside component)
   async function apiNewsletterStart(payload: { name: string; email: string }) {
     await new Promise((r) => setTimeout(r, 650));
-    // pretend success and that we sent a code
-    return { ok: true };
-  }
-  async function apiNewsletterVerify(payload: { email: string; code: string }) {
-    await new Promise((r) => setTimeout(r, 650));
-    // for demo: accept 123456 only
-    if (payload.code.trim() !== "123456")
-      throw new Error("Λάθος κωδικός επιβεβαίωσης.");
     return { ok: true };
   }
 
-  // when opening modal, reset flow
+  async function apiNewsletterVerify(payload: { email: string; code: string }) {
+    await new Promise((r) => setTimeout(r, 650));
+    if (payload.code.trim() !== "123456") {
+      throw new Error("Λάθος κωδικός επιβεβαίωσης.");
+    }
+    return { ok: true };
+  }
+
   function openNewsletterModal() {
     setOpenNewsletter(true);
     setNlStep("form");
@@ -128,16 +230,18 @@ export default function HomePage() {
         />
       </Head>
 
-      {/* HERO */}
-      <HomeHero />
+      <HomeHero
+        title={mainPage?.title}
+        info={mainPage?.info}
+        mainPictureUrl={mainPictureUrl}
+        loading={mainPageLoading}
+      />
 
-      {/* ΒΙΟΓΡΑΦΙΚΟ (first, anchor target) */}
       <section
         id="bio"
         className="scroll-mt-28 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-12 md:pt-16 pb-8"
       >
         <div className="grid gap-10 md:grid-cols-12 md:items-start">
-          {/* Left: text */}
           <div className="md:col-span-7">
             <div className="prose prose-slate max-w-none leading-8 space-y-6">
               <div className="flex items-center gap-3 mb-6">
@@ -145,61 +249,76 @@ export default function HomePage() {
                 <span className="hidden sm:inline-block h-px w-12 bg-gradient-to-r from-warm/60 to-warm/0" />
               </div>
 
-              <p className="lead">
-                Ονομάζομαι <strong>Βασιλική Χύτα</strong> και είμαι Διαιτολόγος
-                – Διατροφολόγος.
-              </p>
+              {biographyParagraphs.length > 0 ? (
+                biographyParagraphs.map((paragraph, i) => (
+                  <p key={i} className={i === 0 ? "lead" : undefined}>
+                    {paragraph}
+                  </p>
+                ))
+              ) : (
+                <>
+                  {/* Fallback content until backend data exists */}
+                  <p className="lead">
+                    Ονομάζομαι <strong>Βασιλική Χύτα</strong> και είμαι
+                    Διαιτολόγος – Διατροφολόγος.
+                  </p>
 
-              <p>
-                Σπούδασα Διατροφή και Διαιτολογία στο Διεθνές Πανεπιστήμιο
-                Ελλάδος και πραγματοποίησα την πρακτική μου άσκηση στο
-                Ιπποκράτειο Γενικό Νοσοκομείο Θεσσαλονίκης, στο τμήμα Διατροφής
-                του Ψυχιατρικού Τομέα, όπου είχα την ευκαιρία να συνεργαστώ με
-                ανθρώπους που πάλευαν με διατροφικές διαταραχές.
-              </p>
+                  <p>
+                    Σπούδασα Διατροφή και Διαιτολογία στο Διεθνές Πανεπιστήμιο
+                    Ελλάδος και πραγματοποίησα την πρακτική μου άσκηση στο
+                    Ιπποκράτειο Γενικό Νοσοκομείο Θεσσαλονίκης, στο τμήμα
+                    Διατροφής του Ψυχιατρικού Τομέα, όπου είχα την ευκαιρία να
+                    συνεργαστώ με ανθρώπους που πάλευαν με διατροφικές
+                    διαταραχές.
+                  </p>
 
-              <p>
-                Η ερευνητική μου εργασία, με τίτλο «Σύνδρομο Πολυκυστικών
-                Ωοθηκών: Διατροφικές συνήθειες και πιθανότητα εμφάνισης
-                διατροφικών διαταραχών», παρουσιάστηκε στο 1ο Διεθνές Συνέδριο
-                Διατροφής και Διαιτολογίας και αποτέλεσε μια σημαντική στιγμή
-                στην διαδρομή μου στην έρευνα.
-              </p>
+                  <p>
+                    Η ερευνητική μου εργασία, με τίτλο «Σύνδρομο Πολυκυστικών
+                    Ωοθηκών: Διατροφικές συνήθειες και πιθανότητα εμφάνισης
+                    διατροφικών διαταραχών», παρουσιάστηκε στο 1ο Διεθνές
+                    Συνέδριο Διατροφής και Διαιτολογίας και αποτέλεσε μια
+                    σημαντική στιγμή στην διαδρομή μου στην έρευνα.
+                  </p>
 
-              <p>
-                Στη συνέχεια, εκπαιδεύτηκα στην «Τεκμηριωμένη Ιατρική
-                Διατροφολογία» στην Ιατρική Σχολή του Αριστοτελείου
-                Πανεπιστημίου Θεσσαλονίκης και παρακολούθησα πολυάριθμα
-                σεμινάρια και μετεκπαιδεύσεις με επίκεντρο τις διατροφικές
-                διαταραχές και τη σχέση ανθρώπου–τροφής.
-              </p>
+                  <p>
+                    Στη συνέχεια, εκπαιδεύτηκα στην «Τεκμηριωμένη Ιατρική
+                    Διατροφολογία» στην Ιατρική Σχολή του Αριστοτελείου
+                    Πανεπιστημίου Θεσσαλονίκης και παρακολούθησα πολυάριθμα
+                    σεμινάρια και μετεκπαιδεύσεις με επίκεντρο τις διατροφικές
+                    διαταραχές και τη σχέση ανθρώπου–τροφής.
+                  </p>
 
-              <p>
-                Μέχρι πρόσφατα διατηρούσα το ιδιωτικό μου γραφείο στο κέντρο της
-                Θεσσαλονίκης, ενώ πλέον ζω στη Γαλλία και συνεργάζομαι
-                διαδικτυακά με ανθρώπους από διάφορες χώρες. Παράλληλα,
-                συντονίζω ομαδικές συναντήσεις και workshops σε συνεργασία με
-                άλλες ειδικότητες, με θέμα το φαγητό, το σώμα και την ψυχολογία.
-              </p>
+                  <p>
+                    Μέχρι πρόσφατα διατηρούσα το ιδιωτικό μου γραφείο στο κέντρο
+                    της Θεσσαλονίκης, ενώ πλέον ζω στη Γαλλία και συνεργάζομαι
+                    διαδικτυακά με ανθρώπους από διάφορες χώρες. Παράλληλα,
+                    συντονίζω ομαδικές συναντήσεις και workshops σε συνεργασία
+                    με άλλες ειδικότητες, με θέμα το φαγητό, το σώμα και την
+                    ψυχολογία.
+                  </p>
 
-              <p>
-                Αυτό που με οδήγησε σε αυτό το μονοπάτι δεν ήταν μόνο η αγάπη
-                μου για τη διατροφή, αλλά και η προσωπική μου εμπειρία με το
-                φαγητό και το σώμα μου. Θέλησα να κατανοήσω σε βάθος τη σχέση
-                μας με την τροφή, όχι μόνο διατροφικά, αλλά και συναισθηματικά.
-                Αυτή η αναζήτηση έγινε ο δρόμος μου μέσα από τον οποίο προσπαθώ
-                καθημερινά να συνοδεύω τους ανθρώπους στο ταξίδι τους στην
-                διατροφική θεραπεία που αναζητούν.
-              </p>
+                  <p>
+                    Αυτό που με οδήγησε σε αυτό το μονοπάτι δεν ήταν μόνο η
+                    αγάπη μου για τη διατροφή, αλλά και η προσωπική μου εμπειρία
+                    με το φαγητό και το σώμα μου. Θέλησα να κατανοήσω σε βάθος
+                    τη σχέση μας με την τροφή, όχι μόνο διατροφικά, αλλά και
+                    συναισθηματικά. Αυτή η αναζήτηση έγινε ο δρόμος μου μέσα από
+                    τον οποίο προσπαθώ καθημερινά να συνοδεύω τους ανθρώπους στο
+                    ταξίδι τους στην διατροφική θεραπεία που αναζητούν.
+                  </p>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Right: image */}
           <div className="md:col-span-5">
             <div className="sticky top-28">
               <div className="overflow-hidden rounded-3xl bg-white ring-1 ring-accent/25 shadow-sm">
                 <img
-                  src="https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?auto=format&fit=crop&w=1200&q=80"
+                  src={
+                    mainPictureUrl ||
+                    "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?auto=format&fit=crop&w=1200&q=80"
+                  }
                   alt="Βασιλική Χύτα — Διαιτολόγος"
                   className="h-auto w-full object-cover aspect-[4/5]"
                   loading="lazy"
@@ -210,12 +329,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* subtle warm accent divider */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-1">
         <div className="h-[2px] bg-gradient-to-r from-transparent via-warm/60 to-transparent" />
       </div>
 
-      {/* ΦΙΛΟΣΟΦΙΑ (after bio, with bullets preserved) */}
       <section
         id="philosophy"
         className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 md:pt-12 pb-12 md:pb-16"
@@ -226,55 +343,63 @@ export default function HomePage() {
             <span className="hidden sm:inline-block h-px w-12 bg-gradient-to-r from-warm/60 to-warm/0" />
           </div>
 
-          <p className="lead">
-            Η φιλοσοφία μου στηρίζεται στο <em>βιοψυχοκοινωνικό</em> μοντέλο της
-            ιατρικής: η υγεία και η διατροφή διαμορφώνονται από το σώμα, τον νου
-            και το περιβάλλον μας — όχι μόνο από τα γονίδια.
-          </p>
+          {mainPage?.phylosophy ? (
+            renderTextBlocks(mainPage.phylosophy)
+          ) : (
+            <>
+              {/* Fallback content until backend data exists */}
+              <p className="lead">
+                Η φιλοσοφία μου στηρίζεται στο <em>βιοψυχοκοινωνικό</em> μοντέλο
+                της ιατρικής: η υγεία και η διατροφή διαμορφώνονται από το σώμα,
+                τον νου και το περιβάλλον μας — όχι μόνο από τα γονίδια.
+              </p>
 
-          <p>
-            Ως διαιτολόγος, βλέπω τη διατροφή όχι ως απομονωμένο σύνολο κανόνων,
-            αλλά ως καθρέφτη της σχέσης μας με το σώμα, τα συναισθήματα και το
-            πλαίσιο της καθημερινότητας. Το πώς τρώμε, τι επιλέγουμε, πότε
-            σταματάμε, συχνά αποτυπώνει το πώς σχετιζόμαστε με τον εαυτό μας και
-            τον κόσμο γύρω μας.
-          </p>
+              <p>
+                Ως διαιτολόγος, βλέπω τη διατροφή όχι ως απομονωμένο σύνολο
+                κανόνων, αλλά ως καθρέφτη της σχέσης μας με το σώμα, τα
+                συναισθήματα και το πλαίσιο της καθημερινότητας. Το πώς τρώμε,
+                τι επιλέγουμε, πότε σταματάμε, συχνά αποτυπώνει το πώς
+                σχετιζόμαστε με τον εαυτό μας και τον κόσμο γύρω μας.
+              </p>
 
-          <p>
-            Στις συνεδρίες δουλεύουμε ολιστικά και ανθρωποκεντρικά, δίνοντας
-            χώρο σε όλες τις πτυχές: σώμα, νου, συναισθηματική ζωή, συνήθειες
-            και συνθήκες. Αντλώ στοιχεία από τη γνωστική–συμπεριφορική θεραπεία
-            (CBT), προσαρμόζοντάς τα στη διατροφική παρέμβαση.
-          </p>
+              <p>
+                Στις συνεδρίες δουλεύουμε ολιστικά και ανθρωποκεντρικά, δίνοντας
+                χώρο σε όλες τις πτυχές: σώμα, νου, συναισθηματική ζωή,
+                συνήθειες και συνθήκες. Αντλώ στοιχεία από τη γνωστική–
+                συμπεριφορική θεραπεία (CBT), προσαρμόζοντάς τα στη διατροφική
+                παρέμβαση.
+              </p>
 
-          <p>
-            Στόχος δεν είναι η “τέλεια διατροφή”, αλλά ο άνθρωπος στο κέντρο — η
-            σύνδεση με το σώμα και τις ανάγκες του με τρόπο ήπιο και ρεαλιστικό,
-            ώστε η διατροφή να γίνει χώρος φροντίδας και αυτογνωσίας.
-          </p>
+              <p>
+                Στόχος δεν είναι η “τέλεια διατροφή”, αλλά ο άνθρωπος στο κέντρο
+                — η σύνδεση με το σώμα και τις ανάγκες του με τρόπο ήπιο και
+                ρεαλιστικό, ώστε η διατροφή να γίνει χώρος φροντίδας και
+                αυτογνωσίας.
+              </p>
 
-          <p>Αναλαμβάνω ενήλικες και εφήβους. Συγκεκριμένα, εργάζομαι σε:</p>
+              <p>Αναλαμβάνω ενήλικες και εφήβους. Συγκεκριμένα, εργάζομαι σε:</p>
 
-          <ul className="list-disc pl-6 md:columns-2 md:gap-10">
-            <li>
-              Διατροφικές διαταραχές (ψυχογενής βουλιμία, υπερφαγία, ανορεξία,
-              συναισθηματική κατανάλωση)
-            </li>
-            <li>Δυσκολίες στη ρύθμιση βάρους</li>
-            <li>
-              Σύνδρομο Πολυκυστικών Ωοθηκών (PCOS) και ορμονικές διαταραχές
-            </li>
-            <li>
-              Διατροφή σε κάθε νόσο (σακχαρώδης διαβήτης, υπέρταση,
-              υπερλιπιδαιμία, πεπτικές διαταραχές κ.ά.)
-            </li>
-            <li>Εκπαίδευση στη συνειδητή και διαισθητική διατροφή</li>
-            <li>Αποκατάσταση μεταβολισμού και θρέψης</li>
-          </ul>
+              <ul className="list-disc pl-6 md:columns-2 md:gap-10">
+                <li>
+                  Διατροφικές διαταραχές ψυχογενής βουλιμία, υπερφαγία,
+                  ανορεξία, συναισθηματική κατανάλωση
+                </li>
+                <li>Δυσκολίες στη ρύθμιση βάρους</li>
+                <li>
+                  Σύνδρομο Πολυκυστικών Ωοθηκών PCOS και ορμονικές διαταραχές
+                </li>
+                <li>
+                  Διατροφή σε κάθε νόσο σακχαρώδης διαβήτης, υπέρταση,
+                  υπερλιπιδαιμία, πεπτικές διαταραχές κ.ά.
+                </li>
+                <li>Εκπαίδευση στη συνειδητή και διαισθητική διατροφή</li>
+                <li>Αποκατάσταση μεταβολισμού και θρέψης</li>
+              </ul>
+            </>
+          )}
         </div>
       </section>
 
-      {/* 3 CARDS (below philosophy) */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12 md:pb-16 pt-8 md:pt-12">
         <h3 className="text-center text-xl md:text-2xl font-semibold text-slate-900">
           Στο τέλος της συνεργασίας θα έχεις καταφέρει
@@ -309,7 +434,6 @@ export default function HomePage() {
                 SH_CARD,
               ].join(" ")}
             >
-              {/* unified cropping (aspect + zoom) */}
               <div className="p-6 pb-0">
                 <div
                   className={[
@@ -328,7 +452,6 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* label + benefit copy (bigger & more benefit-driven) */}
               <div className="px-6 py-6 text-center">
                 <p className="m-0 text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   {c.label}
@@ -342,7 +465,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Blog Teaser */}
       <section className="bg-bg">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 md:py-16">
           <div className="flex items-end justify-between gap-4">
@@ -356,15 +478,21 @@ export default function HomePage() {
               Δείτε όλα →
             </Link>
           </div>
-          {/* Replace with real posts */}
+
           <div className="mt-6 grid gap-6 md:grid-cols-3">
             {[1, 2, 3].map((i) => (
               <article
                 key={i}
-                className={`rounded-2xl bg-white ${i === 1 ? "ring-2 ring-warm/50 shadow-[0_10px_25px_rgba(255,230,150,0.12)]" : "ring-1 ring-black/5 shadow-sm"} p-5`}
+                className={`rounded-2xl bg-white ${
+                  i === 1
+                    ? "ring-2 ring-warm/50 shadow-[0_10px_25px_rgba(255,230,150,0.12)]"
+                    : "ring-1 ring-black/5 shadow-sm"
+                } p-5`}
               >
                 <div
-                  className={`aspect-[16/9] w-full overflow-hidden rounded-xl ${i === 1 ? "bg-warm/10" : "bg-slate-100"} mb-4 relative`}
+                  className={`aspect-[16/9] w-full overflow-hidden rounded-xl ${
+                    i === 1 ? "bg-warm/10" : "bg-slate-100"
+                  } mb-4 relative`}
                 >
                   {i === 1 && (
                     <span className="absolute top-2 right-2 inline-flex items-center rounded-full bg-warm/70 px-2 py-1 text-xs font-medium text-slate-800">
@@ -376,7 +504,9 @@ export default function HomePage() {
                   {i === 1 ? "Ενημερωμένο άρθρο" : `Τίτλος άρθρου #${i}`}
                 </h3>
                 <p
-                  className={`mt-2 text-sm ${i === 1 ? "text-warm font-medium" : "text-slate-600"}`}
+                  className={`mt-2 text-sm ${
+                    i === 1 ? "text-warm font-medium" : "text-slate-600"
+                  }`}
                 >
                   {i === 1
                     ? "Προτεινόμενη ανάγνωση για εσάς."
@@ -394,7 +524,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Newsletter */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
         <div
           className={[
@@ -402,7 +531,6 @@ export default function HomePage() {
             "bg-white",
             "ring-1 ring-accent/30",
             SH_CARD,
-            // subtle premium pattern + slight gradient
             "bg-[radial-gradient(1200px_400px_at_20%_0%,rgba(164,199,126,0.18),transparent_60%),radial-gradient(900px_320px_at_90%_10%,rgba(122,122,196,0.14),transparent_55%)]",
             "px-6 py-10 md:px-12 md:py-12",
           ].join(" ")}
@@ -417,13 +545,11 @@ export default function HomePage() {
                 αυτοφροντίδα — απευθείας στο email σου.
               </p>
 
-              {/* Trust line near CTA */}
               <p className="mt-2 text-sm font-medium text-slate-600">
                 Χωρίς spam, διαγραφή όποτε θέλεις.
               </p>
             </div>
 
-            {/* Inline email input + single primary CTA */}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -469,7 +595,6 @@ export default function HomePage() {
                   Εγγραφή
                 </button>
 
-                {/* Secondary stays as link (optional) */}
                 <Link
                   href="/contact/form"
                   className={[
@@ -490,7 +615,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Newsletter Modal */}
       {openNewsletter && (
         <div
           className="fixed inset-0 z-50"
@@ -498,14 +622,12 @@ export default function HomePage() {
           aria-modal="true"
           aria-label="Newsletter"
         >
-          {/* backdrop */}
           <button
             aria-label="Κλείσιμο"
             onClick={closeNewsletterModal}
             className="absolute inset-0 bg-black/40"
           />
 
-          {/* panel */}
           <div className="relative mx-auto max-w-lg px-4 sm:px-6 top-24">
             <div
               className={[
@@ -552,7 +674,6 @@ export default function HomePage() {
                   </div>
                 )}
 
-                {/* Step 1: form */}
                 {nlStep === "form" && (
                   <form onSubmit={submitNewsletter} className="mt-5 space-y-4">
                     <div>
@@ -641,7 +762,6 @@ export default function HomePage() {
                   </form>
                 )}
 
-                {/* Step 2: verify */}
                 {nlStep === "verify" && (
                   <form onSubmit={submitVerify} className="mt-5 space-y-4">
                     <div className="rounded-2xl bg-white ring-1 ring-accent/20 p-4 text-sm text-slate-700">
@@ -736,7 +856,6 @@ export default function HomePage() {
                   </form>
                 )}
 
-                {/* Step 3: done */}
                 {nlStep === "done" && (
                   <div className="mt-5 space-y-4">
                     <div className="rounded-2xl bg-white ring-1 ring-accent/20 p-4 text-sm text-slate-700">
