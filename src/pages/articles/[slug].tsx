@@ -1,26 +1,10 @@
 import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { GetStaticPaths, GetStaticProps } from "next";
+import type { GetServerSideProps } from "next";
 import Image from "next/image";
+import { ArticlesApi, type ArticlesGetDto } from "@/api/ArticlesController";
 
-/**
- * ΑΡΘΡΟ — Σελίδα λεπτομέρειας
- * - Back button αντί για breadcrumbs
- * - Category pill πιο κοντά στο headline
- * - H1: leading-[1.1] + max-w-[22ch]
- * - Meta row: icons + text-sm text-slate-600 + ίδιο baseline
- * - Hero: rounded-3xl + ring-1 ring-black/5 + λεπτό gradient scrim
- * - Body: max-w-[68ch] + leading-relaxed
- * - Headings: consistent scale (text-lg font-semibold, mt-10 mb-3)
- * - Lists: space-y-2 + marker:text-slate-400
- * - Tags: ίδια chips με index + hover/focus
- * - Remove “Σχετικά άρθρα”
- * - Reading progress bar
- * - focus-visible:ring σε links (prose)
- */
-
-// ---------------- Mock "API" (ίδιο dataset με το index για συνέπεια) ----------------
 type Article = {
   id: number;
   slug: string;
@@ -34,173 +18,129 @@ type Article = {
   content: string[];
 };
 
-function mockFetchArticles(): Article[] {
-  return [
-    {
-      id: 1,
-      slug: "διατροφή-και-ύπνος",
-      title: "Διατροφή & Ύπνος: πώς επηρεάζει η μία τον άλλον",
-      excerpt:
-        "Πρακτικές συμβουλές για να βελτιώσετε την ποιότητα του ύπνου μέσα από μικρές αλλαγές στη διατροφή σας.",
-      category: "Ευεξία",
-      dateISO: "2025-09-28",
-      readMinutes: 6,
-      hero:
-        "https://images.unsplash.com/photo-1505575972945-210eb7a0a2ee?q=80&w=1600&auto=format&fit=crop",
-      tags: ["ύπνος", "ορμόνες", "βραδινό"],
-      content: [
-        "# Γιατί ο ύπνος συνδέεται με τη διατροφή",
-        "Ο επαρκής ύπνος συμβάλλει στη ρύθμιση ορμονών πείνας/κορεσμού (γκρελίνη/λεπτίνη) και επηρεάζει τις ημερήσιες επιλογές μας.",
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus sit amet arcu a massa facilisis luctus. Integer hendrerit, elit sed posuere tristique, arcu ex sagittis arcu, ac elementum mauris dolor sed dui. Curabitur porta, ligula non fringilla fringilla, arcu massa tincidunt nibh, in tincidunt nisi ante ac justo.",
-        "## Πρακτικά βήματα",
-        "• Κρατήστε μικρότερο, ελαφρύ βραδινό 2–3 ώρες πριν τον ύπνο.",
-        "• Περιορίστε καφεΐνη μετά το μεσημέρι και αλκοόλ αργά το βράδυ.",
-        "• Προτιμήστε πρωτεΐνη & σύνθετους υδατάνθρακες για σταθερό σάκχαρο.",
-        "Nam ut neque pulvinar, mattis odio vitae, iaculis justo. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec bibendum, nibh a laoreet fermentum, lacus est tristique dui, sed tempor sapien lacus et magna.",
-      ],
-    },
-    {
-      id: 2,
-      slug: "πρωτεΐνη-χωρίς-υπερβολές",
-      title: "Πόση πρωτεΐνη χρειαζόμαστε πραγματικά χωρίς υπερβολές",
-      excerpt:
-        "Ξεδιαλύνουμε μύθους, προτείνουμε ρεαλιστικές ποσότητες και ιδέες για ισορροπημένα γεύματα.",
-      category: "Επιστήμη",
-      dateISO: "2025-10-07",
-      readMinutes: 8,
-      hero:
-        "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=1600&auto=format&fit=crop",
-      tags: ["πρωτεΐνη", "μύθοι", "πόσο"],
-      content: [
-        "# Πραγματικές ανάγκες",
-        "Οι ανάγκες ποικίλλουν ανά άτομο (ηλικία, δραστηριότητα, στόχοι). Στόχος: επαρκής πρόσληψη ημερησίως με έμφαση στην ποιότητα.",
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam in urna at nulla varius gravida. Integer ac consequat mauris. Sed gravida, sem sed gravida posuere, ex odio gravida sapien, a efficitur leo nisi id lectus.",
-        "## Παραδείγματα",
-        "• Ισορροπημένες μερίδες σε κάθε γεύμα.",
-        "• Φυτικές & ζωικές πηγές με ποικιλία.",
-        "• Προγραμματισμός εβδομάδας για σταθερή πρόσληψη.",
-        "Curabitur vel elit nec justo pretium volutpat. Suspendisse potenti. Cras dictum, dui sed gravida interdum, nisi ipsum tristique mi, in imperdiet lectus ligula non magna.",
-      ],
-    },
-    {
-      id: 3,
-      slug: "γρήγορα-γεύματα-στο-γραφείο",
-      title: "Γρήγορα γεύματα για το γραφείο: χορταστικά & ισορροπημένα",
-      excerpt:
-        "Ιδέες που ετοιμάζονται σε 10-15′, μεταφέρονται εύκολα και σας κρατούν σε ενέργεια.",
-      category: "Διατροφή",
-      dateISO: "2025-08-19",
-      readMinutes: 5,
-      hero:
-        "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?q=80&w=1600&auto=format&fit=crop",
-      tags: ["lunchbox", "γραφείο", "γρήγορα"],
-      content: [
-        "# Ιδέες που δουλεύουν",
-        "Συνδυασμοί με πρωτεΐνη, υδατάνθρακες & καλά λιπαρά για σταθερή ενέργεια.",
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam condimentum, nunc ac pharetra volutpat, justo nisl efficitur sem, id luctus tortor nibh a est.",
-        "• Μπολ με κινόα, όσπρια και λαχανικά.",
-        "• Πίτα ολικής με τόνο/κοτόπουλο και λαχανικά.",
-        "• Γιαούρτι με φρούτα και ξηρούς καρπούς.",
-        "Proin eu fermentum velit. Vestibulum auctor urna vitae massa imperdiet, in aliquet ipsum cursus.",
-      ],
-    },
-    {
-      id: 4,
-      slug: "ενυδάτωση-και-επιδόσεις",
-      title: "Ενυδάτωση & επιδόσεις: τι δείχνουν οι μελέτες",
-      excerpt:
-        "Απόδοση, συγκέντρωση και ευεξία: γιατί η καλή ενυδάτωση έχει σημασία όλη την ημέρα.",
-      category: "Επιστήμη",
-      dateISO: "2025-07-02",
-      readMinutes: 7,
-      hero:
-        "https://images.unsplash.com/photo-1517686469429-8bdb88b9f907?q=80&w=1600&auto=format&fit=crop",
-      tags: ["νερό", "απόδοση", "συγκέντρωση"],
-      content: [
-        "# Επίδραση στην απόδοση",
-        "Ακόμα και ήπια αφυδάτωση επηρεάζει διάθεση και συγκέντρωση.",
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean vulputate, risus id convallis euismod, nisi urna blandit ipsum, ac sollicitudin enim dolor eget augue.",
-        "## Πρακτικές οδηγίες",
-        "• Έχετε νερό ορατό στο γραφείο σας.",
-        "• Προσθέστε φρούτα/βότανα για γεύση.",
-        "• Θυμηθείτε μικρές γουλιές συχνά μέσα στην ημέρα.",
-        "Donec viverra, augue eu bibendum pulvinar, magna velit efficitur augue, ac mattis elit augue sit amet arcu.",
-      ],
-    },
-    {
-      id: 5,
-      slug: "μεσογειακή-διατροφή-στην-πράξη",
-      title: "Μεσογειακή διατροφή στην πράξη: απλά βήματα",
-      excerpt:
-        "Πώς εφαρμόζουμε τη μεσογειακή διατροφή στην καθημερινότητα χωρίς περίπλοκα πλάνα.",
-      category: "Διατροφή",
-      dateISO: "2025-10-15",
-      readMinutes: 9,
-      hero:
-        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1600&auto=format&fit=crop",
-      tags: ["μεσογειακή", "απλά-βήματα", "καθημερινότητα"],
-      content: [
-        "# Πυλώνες",
-        "Έμφαση σε λαχανικά, φρούτα, όσπρια, δημητριακά ολικής και ελαιόλαδο.",
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam vulputate lacinia mauris, nec mattis urna feugiat a. Sed nec eros sit amet purus lacinia malesuada.",
-        "## Σταδιακή υιοθέτηση",
-        "• Μικρές αλλαγές στα εβδομαδιαία γεύματα.",
-        "• Προγραμματισμός και λίστα σούπερ μάρκετ.",
-        "• Εστίαση στην ποιότητα του λίπους.",
-        "Mauris sit amet magna non libero rutrum interdum. Donec vel tempus purus.",
-      ],
-    },
-    {
-      id: 6,
-      slug: "γλυκό-χωρίς-ενοχές",
-      title: "Γλυκό χωρίς ενοχές: ισορροπία, όχι στέρηση",
-      excerpt:
-        "Πώς απολαμβάνουμε γλυκά με μέτρο και ποια swaps βοηθούν την ισορροπία.",
-      category: "Συνταγές",
-      dateISO: "2025-06-11",
-      readMinutes: 4,
-      hero:
-        "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?q=80&w=1600&auto=format&fit=crop",
-      tags: ["γλυκά", "ισορροπία", "swaps"],
-      content: [
-        "# Απόλαυση με ισορροπία",
-        "Στόχος δεν είναι η στέρηση αλλά η συνειδητή απόλαυση.",
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vitae vestibulum purus. Cras nec dui ut mi dignissim suscipit.",
-        "## Ιδέες",
-        "• Μικρότερες μερίδες, πλουσιότερη γεύση.",
-        "• Φρούτα, κακάο, γιαούρτι σε σνακ.",
-        "• Εναλλακτικά γλυκαντικά με μέτρο.",
-        "Integer tristique, enim sed faucibus sodales, mauris felis gravida enim, sed iaculis enim nisl sed augue.",
-      ],
-    },
-  ];
+function slugifyArticle(title: string, id: number) {
+  const base = (title || `article-${id}`)
+    .toLowerCase()
+    .trim()
+    .replace(/ά/g, "α")
+    .replace(/έ/g, "ε")
+    .replace(/ή/g, "η")
+    .replace(/ί/g, "ι")
+    .replace(/ό/g, "ο")
+    .replace(/ύ/g, "υ")
+    .replace(/ώ/g, "ω")
+    .replace(/ϊ|ΐ/g, "ι")
+    .replace(/ϋ|ΰ/g, "υ")
+    .replace(/ς/g, "σ")
+    .replace(/[^a-z0-9α-ω\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+
+  return `${base || "article"}-${id}`;
 }
 
-function getArticleBySlug(slug: string): Article | undefined {
-  return mockFetchArticles().find((a) => a.slug === slug);
+function estimateReadMinutes(text: string) {
+  const words = (text || "").trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(words / 200));
 }
 
-// ---------------- SSG ----------------
-export const getStaticPaths: GetStaticPaths = async () => {
-  const articles = mockFetchArticles();
-  const paths = articles.map((a) => ({ params: { slug: a.slug } }));
-  return { paths, fallback: false };
-};
+function mapContentToBlocks(dto: ArticlesGetDto): string[] {
+  const blocks: string[] = [];
 
-export const getStaticProps: GetStaticProps = async (ctx) => {
-  const slug = ctx.params?.slug as string;
-  const article = getArticleBySlug(slug);
+  // Το backend έχει Heading αλλά όχι δομημένα content blocks.
+  // Προσωρινά βάζουμε το heading σαν πρώτο section title αν υπάρχει.
+  if (dto.heading?.trim()) {
+    blocks.push(`# ${dto.heading.trim()}`);
+  }
 
-  if (!article) return { notFound: true };
+  // Το backend έχει Content σαν απλό string.
+  // Προσωρινά το σπάμε σε paragraphs με διπλά line breaks.
+  const cleanContent = (dto.content || "").trim();
 
+  if (cleanContent) {
+    const paragraphs = cleanContent
+      .split(/\n\s*\n/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    if (paragraphs.length > 0) {
+      blocks.push(...paragraphs);
+    }
+  }
+
+  // Fallback αν λείπει content
+  if (blocks.length === 0) {
+    blocks.push("Δεν υπάρχει διαθέσιμο περιεχόμενο για αυτό το άρθρο.");
+  }
+
+  return blocks;
+}
+
+function mapArticleDtoToUi(dto: ArticlesGetDto): Article {
   return {
-    props: {
-      article,
-    },
+    id: dto.id,
+    slug: slugifyArticle(dto.title, dto.id),
+    title: dto.title,
+
+    // Το backend δεν δίνει excerpt.
+    // Προσωρινά χρησιμοποιούμε subtitle ή μικρό κομμάτι από content.
+    excerpt:
+      dto.subtitle?.trim() ||
+      dto.content?.replace(/<[^>]*>/g, "").slice(0, 160) ||
+      "",
+
+    // Το backend δεν δίνει category.
+    // Placeholder μέχρι να προστεθεί.
+    category: "Διατροφή",
+
+    dateISO: dto.publishedAt,
+
+    // Το backend δεν δίνει readMinutes.
+    // Πρόχειρος υπολογισμός από το content.
+    readMinutes: estimateReadMinutes(dto.content),
+
+    // Το backend δίνει imageUrl.
+    // Fallback προσωρινό αν λείπει.
+    hero:
+      dto.imageUrl ||
+      "https://via.placeholder.com/1200x750?text=Article+Image",
+
+    // Το backend δεν δίνει tags.
+    // Placeholder μέχρι να προστεθούν.
+    tags: [],
+
+    // Το backend δεν δίνει structured blocks.
+    // Τα φτιάχνουμε προσωρινά από heading + content.
+    content: mapContentToBlocks(dto),
   };
+}
+
+type PageProps = {
+  article: Article;
 };
 
-// ---------------- Page ----------------
+export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
+  try {
+    const slug = String(ctx.params?.slug || "");
+    const data = await ArticlesApi.list();
+    const articles = data.map(mapArticleDtoToUi);
+    const article = articles.find((a) => a.slug === slug);
+
+    if (!article) {
+      return { notFound: true };
+    }
+
+    return {
+      props: {
+        article,
+      },
+    };
+  } catch (error) {
+    console.error("Failed to fetch article by slug:", error);
+    return { notFound: true };
+  }
+};
+
 export default function ArticlePage({ article }: { article: Article }) {
   const formattedDate = useMemo(
     () =>
@@ -212,7 +152,6 @@ export default function ArticlePage({ article }: { article: Article }) {
     [article.dateISO],
   );
 
-  // Reading progress
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -247,7 +186,6 @@ export default function ArticlePage({ article }: { article: Article }) {
         <meta name="twitter:card" content="summary_large_image" />
       </Head>
 
-      {/* Reading progress bar */}
       <div className="fixed left-0 top-0 z-50 h-0.5 w-full bg-transparent">
         <div
           className="h-full bg-primary transition-[width] duration-75"
@@ -257,7 +195,6 @@ export default function ArticlePage({ article }: { article: Article }) {
       </div>
 
       <article className="mx-auto max-w-4xl px-4 md:px-6 lg:px-8 py-8">
-        {/* Back button */}
         <div className="mb-4">
           <Link
             href="/articles"
@@ -268,7 +205,6 @@ export default function ArticlePage({ article }: { article: Article }) {
           </Link>
         </div>
 
-        {/* Hero + metadata */}
         <header className="mb-7">
           <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
             <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white/95">
@@ -304,13 +240,11 @@ export default function ArticlePage({ article }: { article: Article }) {
                 className="w-full h-auto object-cover"
                 priority
               />
-              {/* subtle scrim */}
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/10 to-transparent" />
             </div>
           </div>
         </header>
 
-        {/* Περιεχόμενο */}
         <div
           className={[
             "prose prose-slate max-w-none",
@@ -334,6 +268,7 @@ export default function ArticlePage({ article }: { article: Article }) {
                   </h2>
                 );
               }
+
               if (block.startsWith("## ")) {
                 return (
                   <h3 key={i} className="text-lg font-semibold mt-10 mb-3">
@@ -341,6 +276,7 @@ export default function ArticlePage({ article }: { article: Article }) {
                   </h3>
                 );
               }
+
               if (block.startsWith("• ")) {
                 const items = block
                   .split("• ")
@@ -355,10 +291,10 @@ export default function ArticlePage({ article }: { article: Article }) {
                   </ul>
                 );
               }
+
               return <p key={i}>{block}</p>;
             })}
 
-            {/* Tags */}
             {article.tags.length > 0 && (
               <div className="mt-10 flex flex-wrap gap-2">
                 {article.tags.map((t) => (

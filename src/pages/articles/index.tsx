@@ -4,6 +4,7 @@ import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import { ArticlesApi, type ArticlesGetDto } from "@/api/ArticlesController";
 
 /**
  * ΑΡΘΡΑ — Κεντρική σελίδα καταλόγου
@@ -21,97 +22,76 @@ import { useEffect, useMemo, useState } from "react";
 // ---------------- Mock "API" ----------------
 export type Article = {
   id: number;
-  slug: string; // Ελληνικό slug
-  title: string; // Ελληνικός τίτλος
-  excerpt: string; // Σύντομη περιγραφή
+  slug: string;
+  title: string;
+  excerpt: string;
   category: "Διατροφή" | "Ευεξία" | "Συνταγές" | "Επιστήμη";
-  dateISO: string; // Ημ/νία δημοσίευσης
-  readMinutes: number; // Χρόνος ανάγνωσης
-  hero: string; // Εικόνα εξωφύλλου
+  dateISO: string;
+  readMinutes: number;
+  hero: string;
   tags: string[];
 };
 
-function mockFetchArticles(): Article[] {
-  return [
-    {
-      id: 1,
-      slug: "διατροφή-και-ύπνος",
-      title: "Διατροφή & Ύπνος: πώς επηρεάζει η μία τον άλλον",
-      excerpt:
-        "Πρακτικές συμβουλές για να βελτιώσετε την ποιότητα του ύπνου μέσα από μικρές αλλαγές στη διατροφή σας.",
-      category: "Ευεξία",
-      dateISO: "2025-09-28",
-      readMinutes: 6,
-      hero:
-        "https://images.unsplash.com/photo-1505575972945-210eb7a0a2ee?q=80&w=1600&auto=format&fit=crop",
-      tags: ["ύπνος", "ορμόνες", "βραδινό"],
-    },
-    {
-      id: 2,
-      slug: "πρωτεΐνη-χωρίς-υπερβολές",
-      title: "Πόση πρωτεΐνη χρειαζόμαστε πραγματικά χωρίς υπερβολές",
-      excerpt:
-        "Ξεδιαλύνουμε μύθους, προτείνουμε ρεαλιστικές ποσότητες και ιδέες για ισορροπημένα γεύματα.",
-      category: "Επιστήμη",
-      dateISO: "2025-10-07",
-      readMinutes: 8,
-      hero:
-        "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=1600&auto=format&fit=crop",
-      tags: ["πρωτεΐνη", "μύθοι", "πόσο"],
-    },
-    {
-      id: 3,
-      slug: "γρήγορα-γεύματα-στο-γραφείο",
-      title: "Γρήγορα γεύματα για το γραφείο: χορταστικά & ισορροπημένα",
-      excerpt:
-        "Ιδέες που ετοιμάζονται σε 10-15′, μεταφέρονται εύκολα και σας κρατούν σε ενέργεια.",
-      category: "Διατροφή",
-      dateISO: "2025-08-19",
-      readMinutes: 5,
-      hero:
-        "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?q=80&w=1600&auto=format&fit=crop",
-      tags: ["lunchbox", "γραφείο", "γρήγορα"],
-    },
-    {
-      id: 4,
-      slug: "ενυδάτωση-και-επιδόσεις",
-      title: "Ενυδάτωση & επιδόσεις: τι δείχνουν οι μελέτες",
-      excerpt:
-        "Απόδοση, συγκέντρωση και ευεξία: γιατί η καλή ενυδάτωση έχει σημασία όλη την ημέρα.",
-      category: "Επιστήμη",
-      dateISO: "2025-07-02",
-      readMinutes: 7,
-      hero:
-        "https://images.unsplash.com/photo-1517686469429-8bdb88b9f907?q=80&w=1600&auto=format&fit=crop",
-      tags: ["νερό", "απόδοση", "συγκέντρωση"],
-    },
-    {
-      id: 5,
-      slug: "μεσογειακή-διατροφή-στην-πράξη",
-      title: "Μεσογειακή διατροφή στην πράξη: απλά βήματα",
-      excerpt:
-        "Πώς εφαρμόζουμε τη μεσογειακή διατροφή στην καθημερινότητα χωρίς περίπλοκα πλάνα.",
-      category: "Διατροφή",
-      dateISO: "2025-10-15",
-      readMinutes: 9,
-      hero:
-        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1600&auto=format&fit=crop",
-      tags: ["μεσογειακή", "απλά-βήματα", "καθημερινότητα"],
-    },
-    {
-      id: 6,
-      slug: "γλυκό-χωρίς-ενοχές",
-      title: "Γλυκό χωρίς ενοχές: ισορροπία, όχι στέρηση",
-      excerpt:
-        "Πώς απολαμβάνουμε γλυκά με μέτρο και ποια swaps βοηθούν την ισορροπία.",
-      category: "Συνταγές",
-      dateISO: "2025-06-11",
-      readMinutes: 4,
-      hero:
-        "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?q=80&w=1600&auto=format&fit=crop",
-      tags: ["γλυκά", "ισορροπία", "swaps"],
-    },
-  ];
+function slugifyArticle(title: string, id: number) {
+  const base = (title || `article-${id}`)
+    .toLowerCase()
+    .trim()
+    .replace(/ά/g, "α")
+    .replace(/έ/g, "ε")
+    .replace(/ή/g, "η")
+    .replace(/ί/g, "ι")
+    .replace(/ό/g, "ο")
+    .replace(/ύ/g, "υ")
+    .replace(/ώ/g, "ω")
+    .replace(/ϊ|ΐ/g, "ι")
+    .replace(/ϋ|ΰ/g, "υ")
+    .replace(/ς/g, "σ")
+    .replace(/[^a-z0-9α-ω\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+
+  return `${base || "article"}-${id}`;
+}
+
+function estimateReadMinutes(text: string) {
+  const words = (text || "").trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(words / 200));
+}
+
+function mapArticleDtoToUi(dto: ArticlesGetDto): Article {
+  return {
+    id: dto.id,
+    slug: slugifyArticle(dto.title, dto.id),
+
+    title: dto.title,
+
+    // Το backend δεν δίνει excerpt.
+    // Μέχρι να προστεθεί, χρησιμοποιούμε subtitle ή μικρό κομμάτι από content.
+    excerpt:
+      dto.subtitle?.trim() ||
+      dto.content?.replace(/<[^>]*>/g, "").slice(0, 160) ||
+      "",
+
+    // Το backend δεν δίνει category.
+    // Placeholder μέχρι να προστεθεί σχετικό πεδίο.
+    category: "Διατροφή",
+
+    dateISO: dto.publishedAt,
+
+    // Το backend δεν δίνει readMinutes.
+    // Πρόχειρος υπολογισμός από το content.
+    readMinutes: estimateReadMinutes(dto.content),
+
+    // Το backend δίνει imageUrl.
+    // Fallback placeholder αν λείπει.
+    hero:
+    dto.imageUrl ||
+    "https://via.placeholder.com/1200x750?text=Article+Image",
+
+    // Το backend δεν δίνει tags.
+    // Placeholder μέχρι να προστεθούν.
+    tags: [],
+  };
 }
 
 // ---------------- Page ----------------
@@ -123,16 +103,42 @@ type Props = {
   maxRead?: number;
 };
 
-export async function getStaticProps() {
-  const articles = mockFetchArticles();
-  const categories = Array.from(new Set(articles.map((a) => a.category)));
-  const tags = Array.from(new Set(articles.flatMap((a) => a.tags))).sort((a, b) =>
-    a.localeCompare(b, "el"),
-  );
-  const readMinutesAll = articles.map((a) => a.readMinutes);
-  const minRead = Math.min(...readMinutesAll);
-  const maxRead = Math.max(...readMinutesAll);
-  return { props: { articles, categories, tags, minRead, maxRead } };
+export async function getServerSideProps() {
+  try {
+    const data = await ArticlesApi.list();
+    const articles = data.map(mapArticleDtoToUi);
+
+    const categories = Array.from(new Set(articles.map((a) => a.category)));
+    const tags = Array.from(new Set(articles.flatMap((a) => a.tags))).sort((a, b) =>
+      a.localeCompare(b, "el"),
+    );
+
+    const readMinutesAll = articles.map((a) => a.readMinutes);
+    const minRead = readMinutesAll.length ? Math.min(...readMinutesAll) : 1;
+    const maxRead = readMinutesAll.length ? Math.max(...readMinutesAll) : 10;
+
+    return {
+      props: {
+        articles,
+        categories,
+        tags,
+        minRead,
+        maxRead,
+      },
+    };
+  } catch (error) {
+    console.error("Failed to fetch articles:", error);
+
+    return {
+      props: {
+        articles: [],
+        categories: [],
+        tags: [],
+        minRead: 1,
+        maxRead: 10,
+      },
+    };
+  }
 }
 
 type SortKey = "newest" | "oldest" | "readAsc" | "readDesc";
