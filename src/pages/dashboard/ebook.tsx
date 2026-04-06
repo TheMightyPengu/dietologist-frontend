@@ -1,109 +1,174 @@
 import Head from "next/head";
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import {
-  createEbook,
-  deleteEbook,
-  fetchEbooks,
-  updateEbook,
-  type Ebook,
-  type EbookFeature,
-} from "@/lib/mgmtEbooksAPI";
-import Image from "next/image"; 
+  EbooksApi,
+  type EbooksGetDto,
+  type EbooksPostDto,
+} from "@/api/EbooksController";
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
-const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({ className, children }) => (
-  <div className={cx("rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-200/50", className)}>
+
+const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
+  className,
+  children,
+}) => (
+  <div
+    className={cx(
+      "rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-200/50",
+      className
+    )}
+  >
     {children}
   </div>
 );
 
+type EbookDraft = EbooksGetDto & {
+  file?: File | null;
+};
+
 function fmtDateHuman(iso: string) {
   try {
     const d = new Date(iso);
-    return new Intl.DateTimeFormat("el-GR", { day: "2-digit", month: "long", year: "numeric" }).format(d);
+    return new Intl.DateTimeFormat("el-GR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }).format(d);
   } catch {
     return iso;
   }
 }
 
+function toInputDate(iso: string) {
+  try {
+    return new Date(iso).toISOString().slice(0, 10);
+  } catch {
+    return "";
+  }
+}
+
+function draftToPayload(draft: EbookDraft): EbooksPostDto {
+  return {
+    title: draft.title,
+    author: draft.author,
+    tableOfContents: draft.tableOfContents,
+    coverImageUrl: draft.coverImageUrl,
+    price: Number(draft.price) || 0,
+    fileUrl: draft.fileUrl ?? "",
+    publishedAt: draft.publishedAt,
+    file: draft.file ?? null,
+  };
+}
+
 export default function ManagementEbookPage() {
-  const [all, setAll] = useState<Ebook[]>([]);
+  const [all, setAll] = useState<EbookDraft[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
-  useEffect(() => {
-    (async () => {
+  async function loadEbooks() {
+    try {
       setLoading(true);
-      const data = await fetchEbooks();
-      setAll(data);
+      const data = await EbooksApi.list();
+      setAll(data.map((x) => ({ ...x, file: null })));
+    } catch (error) {
+      console.error(error);
+      setToast("Αποτυχία φόρτωσης ebooks.");
+    } finally {
       setLoading(false);
-    })();
+    }
+  }
+
+  useEffect(() => {
+    loadEbooks();
   }, []);
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 1600);
+    const t = setTimeout(() => setToast(null), 1800);
     return () => clearTimeout(t);
   }, [toast]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return all;
-    return all.filter(e =>
-      [e.title, e.subtitle ?? "", e.description].some(t => t.toLowerCase().includes(q))
+
+    return all.filter((e) =>
+      [e.title, e.author, e.tableOfContents, e.coverImageUrl, e.fileUrl ?? ""]
+        .join(" ")
+        .toLowerCase()
+        .includes(q)
     );
   }, [all, query]);
 
   async function handleCreate() {
-    setCreating(true);
-    const empty: Omit<Ebook, "id"> = {
-      coverUrl: "",
-      title: "Νέο Ebook",
-      subtitle: "",
-      description: "",
-      pages: 100,
-      format: "PDF",
-      lastUpdatedISO: new Date().toISOString(),
-      priceEuro: 0,
-      previewUrl: "/files/ebook-sample.pdf",
-      buyUrl: "/contact#ebook",
-      buyCta: "Αγορά",
-      previewCta: "Προεπισκόπηση",
-      features: [],
-      contents: [],
-      published: false,
-    };
-    const created = await createEbook(empty);
-    setAll(prev => [created, ...prev]);
-    setCreating(false);
-    setToast("Δημιουργήθηκε.");
+    try {
+      setCreating(true);
+
+      const payload: EbooksPostDto = {
+        title: "Νέο Ebook",
+        author: "",
+        tableOfContents: "",
+        coverImageUrl: "",
+        price: 0,
+        fileUrl: "",
+        publishedAt: new Date().toISOString(),
+        file: null,
+      };
+
+      const created = await EbooksApi.create(payload);
+      setAll((prev) => [{ ...created, file: null }, ...prev]);
+      setToast("Δημιουργήθηκε.");
+    } catch (error) {
+      console.error(error);
+      setToast("Αποτυχία δημιουργίας.");
+    } finally {
+      setCreating(false);
+    }
   }
 
-  async function handleSave(eb: Ebook) {
-    setBusyId(eb.id);
-    const updated = await updateEbook(eb);
-    setAll(prev => prev.map(x => (x.id === updated.id ? updated : x)));
-    setBusyId(null);
-    setToast("Αποθηκεύτηκε.");
+  async function handleSave(draft: EbookDraft) {
+    try {
+      setBusyId(draft.id);
+      await EbooksApi.update(draft.id, draftToPayload(draft));
+
+      const refreshed = await EbooksApi.get(draft.id);
+      setAll((prev) =>
+        prev.map((x) => (x.id === draft.id ? { ...refreshed, file: null } : x))
+      );
+      setToast("Αποθηκεύτηκε.");
+    } catch (error) {
+      console.error(error);
+      setToast("Αποτυχία αποθήκευσης.");
+    } finally {
+      setBusyId(null);
+    }
   }
 
-  async function handleDelete(id: string) {
+  async function handleDelete(id: number) {
     if (!confirm("Διαγραφή ebook;")) return;
-    setBusyId(id);
-    await deleteEbook(id);
-    setAll(prev => prev.filter(x => x.id !== id));
-    setBusyId(null);
-    setToast("Διαγράφηκε.");
+
+    try {
+      setBusyId(id);
+      await EbooksApi.remove(id);
+      setAll((prev) => prev.filter((x) => x.id !== id));
+      setToast("Διαγράφηκε.");
+    } catch (error) {
+      console.error(error);
+      setToast("Αποτυχία διαγραφής.");
+    } finally {
+      setBusyId(null);
+    }
   }
 
   return (
     <>
       <Head>
-        <title>Διαχείριση | EBOOK</title>
+        <title>Διαχείριση | Ebooks</title>
         <meta name="robots" content="noindex,nofollow" />
       </Head>
 
@@ -116,14 +181,14 @@ export default function ManagementEbookPage() {
             >
               ← Πίσω στο Dashboard
             </Link>
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">EBOOK</h1>
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">EBOOKS</h1>
           </div>
 
           <Card className="p-4 md:p-5 mb-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <input
                 value={query}
-                onChange={e => setQuery(e.target.value)}
+                onChange={(e) => setQuery(e.target.value)}
                 placeholder="Αναζήτηση ebooks…"
                 className="w-full md:w-80 rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
@@ -132,7 +197,9 @@ export default function ManagementEbookPage() {
                 disabled={creating}
                 className={cx(
                   "rounded-full px-4 py-2 text-sm font-semibold transition",
-                  creating ? "bg-[#8484d1]/70 text-white cursor-wait" : "bg-[#8484d1] text-white hover:shadow"
+                  creating
+                    ? "bg-[#8484d1]/70 text-white cursor-wait"
+                    : "bg-[#8484d1] text-white hover:shadow"
                 )}
               >
                 {creating ? "Δημιουργία…" : "Νέο ebook"}
@@ -141,16 +208,18 @@ export default function ManagementEbookPage() {
           </Card>
 
           {loading ? (
-            <Card className="p-6"><p>Φόρτωση…</p></Card>
+            <Card className="p-6">
+              <p>Φόρτωση…</p>
+            </Card>
           ) : filtered.length === 0 ? (
             <Card className="p-6 text-slate-600">Καμία εγγραφή.</Card>
           ) : (
             <div className="space-y-6">
-              {filtered.map(eb => (
+              {filtered.map((ebook) => (
                 <EbookEditorCard
-                  key={eb.id}
-                  eb={eb}
-                  busy={busyId === eb.id}
+                  key={ebook.id}
+                  eb={ebook}
+                  busy={busyId === ebook.id}
                   onSave={handleSave}
                   onDelete={handleDelete}
                 />
@@ -169,33 +238,23 @@ export default function ManagementEbookPage() {
   );
 }
 
-/* ---------------- Editor Card ---------------- */
 function EbookEditorCard({
   eb,
   busy,
   onSave,
   onDelete,
 }: {
-  eb: Ebook;
+  eb: EbookDraft;
   busy: boolean;
-  onSave: (e: Ebook) => void;
-  onDelete: (id: string) => void;
+  onSave: (e: EbookDraft) => void;
+  onDelete: (id: number) => void;
 }) {
-  const [draft, setDraft] = useState<Ebook>(eb);
+  const [draft, setDraft] = useState<EbookDraft>(eb);
   const [open, setOpen] = useState(true);
 
-  useEffect(() => setDraft(eb), [eb]);
-
-  const addFeature = () =>
-    setDraft(d => ({ ...d, features: [...d.features, { id: `f-${Date.now().toString(36)}`, title: "", desc: "" }] }));
-  const updateFeature = (id: string, patch: Partial<EbookFeature>) =>
-    setDraft(d => ({ ...d, features: d.features.map(f => (f.id === id ? { ...f, ...patch } : f)) }));
-  const removeFeature = (id: string) =>
-    setDraft(d => ({ ...d, features: d.features.filter(f => f.id !== id) }));
-
-  const addContent = () => setDraft(d => ({ ...d, contents: [...d.contents, ""] }));
-  const removeContent = (i: number) =>
-    setDraft(d => ({ ...d, contents: d.contents.filter((_, idx) => idx !== i) }));
+  useEffect(() => {
+    setDraft(eb);
+  }, [eb]);
 
   return (
     <Card className="p-5 md:p-6">
@@ -203,16 +262,18 @@ function EbookEditorCard({
         <div>
           <h3 className="text-lg font-semibold">{draft.title || "(Χωρίς τίτλο)"}</h3>
           <p className="text-xs text-slate-500 mt-1">
-            {draft.published ? "Δημοσιευμένο" : "Προσχέδιο"} • {draft.pages} σελίδες • Μορφή: {draft.format}
+            {draft.author || "Χωρίς συγγραφέα"} • {fmtDateHuman(draft.publishedAt)}
           </p>
         </div>
+
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setOpen(o => !o)}
+            onClick={() => setOpen((o) => !o)}
             className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
           >
             {open ? "Σύμπτυξη" : "Επέκταση"}
           </button>
+
           <button
             onClick={() => onDelete(draft.id)}
             disabled={busy}
@@ -225,229 +286,133 @@ function EbookEditorCard({
 
       {open && (
         <div className="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Form */}
           <div className="lg:col-span-2 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-slate-700">Τίτλος</label>
                 <input
                   value={draft.title}
-                  onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}
+                  onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-slate-700">Υπότιτλος (προαιρετικό)</label>
+                <label className="block text-sm font-medium text-slate-700">Συγγραφέας</label>
                 <input
-                  value={draft.subtitle ?? ""}
-                  onChange={e => setDraft(d => ({ ...d, subtitle: e.target.value }))}
+                  value={draft.author}
+                  onChange={(e) => setDraft((d) => ({ ...d, author: e.target.value }))}
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">Περιγραφή</label>
+              <label className="block text-sm font-medium text-slate-700">Πίνακας περιεχομένων</label>
               <textarea
-                rows={3}
-                value={draft.description}
-                onChange={e => setDraft(d => ({ ...d, description: e.target.value }))}
+                rows={8}
+                value={draft.tableOfContents}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, tableOfContents: e.target.value }))
+                }
                 className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Σελίδες</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={draft.pages}
-                  onChange={e => setDraft(d => ({ ...d, pages: Number(e.target.value) }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Μορφή</label>
-                <input
-                  value={draft.format}
-                  onChange={e => setDraft(d => ({ ...d, format: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Τελευταία ενημέρωση</label>
-                <input
-                  type="date"
-                  value={draft.lastUpdatedISO.slice(0, 10)}
-                  onChange={e => {
-                    const dt = new Date(e.target.value);
-                    setDraft(d => ({ ...d, lastUpdatedISO: dt.toISOString() }));
-                  }}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-                />
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
                 <label className="block text-sm font-medium text-slate-700">Τιμή (€)</label>
                 <input
                   type="number"
                   min={0}
-                  step={1}
-                  value={draft.priceEuro}
-                  onChange={e => setDraft(d => ({ ...d, priceEuro: Number(e.target.value) }))}
+                  step="0.01"
+                  value={draft.price}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, price: Number(e.target.value) }))
+                  }
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Ημερομηνία δημοσίευσης</label>
+                <input
+                  type="date"
+                  value={toInputDate(draft.publishedAt)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setDraft((d) => ({
+                      ...d,
+                      publishedAt: value
+                        ? new Date(`${value}T00:00:00`).toISOString()
+                        : new Date().toISOString(),
+                    }));
+                  }}
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Αρχείο ebook</label>
+                <input
+                  type="file"
+                  accept=".pdf,.epub,.doc,.docx"
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      file: e.target.files?.[0] ?? null,
+                    }))
+                  }
+                  className="mt-1 block w-full text-sm text-slate-700 file:mr-3 file:rounded-full file:border-0 file:bg-[#8484d1] file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:opacity-90"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-slate-700">Σύνδεσμος Προεπισκόπησης</label>
+                <label className="block text-sm font-medium text-slate-700">Cover image URL</label>
                 <input
-                  value={draft.previewUrl}
-                  onChange={e => setDraft(d => ({ ...d, previewUrl: e.target.value }))}
+                  value={draft.coverImageUrl}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, coverImageUrl: e.target.value }))
+                  }
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">CTA Προεπισκόπησης</label>
-                  <input
-                    value={draft.previewCta ?? "Προεπισκόπηση"}
-                    onChange={e => setDraft(d => ({ ...d, previewCta: e.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">CTA Αγοράς</label>
-                  <input
-                    value={draft.buyCta ?? "Αγορά"}
-                    onChange={e => setDraft(d => ({ ...d, buyCta: e.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-                  />
-                </div>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-slate-700">Σύνδεσμος Αγοράς</label>
+                <label className="block text-sm font-medium text-slate-700">File URL</label>
                 <input
-                  value={draft.buyUrl}
-                  onChange={e => setDraft(d => ({ ...d, buyUrl: e.target.value }))}
+                  value={draft.fileUrl ?? ""}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, fileUrl: e.target.value }))
+                  }
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                 />
               </div>
-              <div className="flex items-end gap-3">
-                <input
-                  id={`published-${draft.id}`}
-                  type="checkbox"
-                  checked={draft.published}
-                  onChange={e => setDraft(d => ({ ...d, published: e.target.checked }))}
-                />
-                <label htmlFor={`published-${draft.id}`} className="text-sm">Δημοσιευμένο</label>
-              </div>
             </div>
 
-            {/* Features */}
-            <div>
-              <div className="flex items-center justify-between">
-                <label className="block text-sm font-semibold text-slate-700">Κάρτες χαρακτηριστικών</label>
-                <button
-                  onClick={addFeature}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
-                >
-                  + Προσθήκη κάρτας
-                </button>
-              </div>
-              <div className="mt-3 space-y-2">
-                {draft.features.map(f => (
-                  <div key={f.id} className="grid grid-cols-1 md:grid-cols-5 gap-2">
-                    <input
-                      placeholder="Τίτλος"
-                      value={f.title}
-                      onChange={e => updateFeature(f.id, { title: e.target.value })}
-                      className="md:col-span-2 rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-                    />
-                    <input
-                      placeholder="Περιγραφή"
-                      value={f.desc}
-                      onChange={e => updateFeature(f.id, { desc: e.target.value })}
-                      className="md:col-span-3 rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-                    />
-                    <div className="md:col-span-5 flex justify-end">
-                      <button
-                        onClick={() => removeFeature(f.id)}
-                        className="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-sm text-rose-700 hover:border-rose-300"
-                      >
-                        Διαγραφή
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                {draft.features.length === 0 && (
-                  <p className="text-sm text-slate-500">Δεν υπάρχουν κάρτες ακόμη.</p>
-                )}
-              </div>
-            </div>
-
-            {/* Contents list */}
-            <div>
-              <div className="flex items-center justify-between">
-                <label className="block text-sm font-semibold text-slate-700">Τι θα βρείτε μέσα (bullets)</label>
-                <button
-                  onClick={addContent}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
-                >
-                  + Προσθήκη στοιχείου
-                </button>
-              </div>
-              <div className="mt-3 space-y-2">
-                {draft.contents.map((c, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <span className="mt-2 text-slate-500 select-none">•</span>
-                    <textarea
-                      rows={2}
-                      value={c}
-                      onChange={e => setDraft(d => {
-                        const arr = [...d.contents];
-                        arr[i] = e.target.value;
-                        return { ...d, contents: arr };
-                      })}
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-                    />
-                    <button
-                      onClick={() => removeContent(i)}
-                      className="shrink-0 rounded-full border border-rose-200 bg-white px-2 py-1 text-xs text-rose-700 hover:border-rose-300"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-                {draft.contents.length === 0 && (
-                  <p className="text-sm text-slate-500">Καμία καταχώριση ακόμη.</p>
-                )}
-              </div>
-            </div>
-
-            {/* Actions */}
             <div className="flex flex-wrap items-center gap-3">
               <button
                 onClick={() => onSave(draft)}
                 disabled={busy}
                 className={cx(
                   "rounded-full px-4 py-2 text-sm font-semibold transition",
-                  busy ? "bg-[#8484d1]/70 text-white cursor-wait" : "bg-[#8484d1] text-white hover:shadow"
+                  busy
+                    ? "bg-[#8484d1]/70 text-white cursor-wait"
+                    : "bg-[#8484d1] text-white hover:shadow"
                 )}
               >
                 {busy ? "Αποθήκευση…" : "Αποθήκευση"}
               </button>
+
               <button
                 onClick={() => setDraft(eb)}
                 className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[#8484d1]"
               >
                 Επαναφορά αλλαγών
               </button>
+
               <button
                 onClick={() => onDelete(draft.id)}
                 disabled={busy}
@@ -458,68 +423,52 @@ function EbookEditorCard({
             </div>
           </div>
 
-          {/* Live preview (layout inspired by your screenshots) */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-4">
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
               <div className="aspect-[4/5] bg-slate-100 relative">
-                {draft.coverUrl ? (
-                  <>
-                    <Image src={draft.coverUrl} alt="" fill className="object-cover" />
-                  </>
+                {draft.coverImageUrl ? (
+                  <Image
+                    src={draft.coverImageUrl}
+                    alt={draft.title || "ebook cover"}
+                    fill
+                    className="object-cover"
+                  />
                 ) : (
                   <div className="h-full w-full grid place-items-center text-slate-400 text-sm">
-                    Προσθέστε εικόνα (URL)
+                    Δεν υπάρχει cover image URL
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
               <h4 className="text-2xl font-bold">EBOOK</h4>
               <h5 className="mt-1 text-xl font-semibold">{draft.title || "Τίτλος"}</h5>
-              {draft.subtitle && <p className="text-slate-600">{draft.subtitle}</p>}
-              <p className="mt-2 text-slate-600">{draft.description}</p>
+              <p className="mt-1 text-slate-600">{draft.author || "Συγγραφέας"}</p>
 
               <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-700">
-                <span className="rounded-full bg-slate-100 px-2 py-1">{draft.pages} σελίδες</span>
-                <span className="rounded-full bg-slate-100 px-2 py-1">Μορφή: {draft.format}</span>
                 <span className="rounded-full bg-slate-100 px-2 py-1">
-                  Τελευταία ενημέρωση: {fmtDateHuman(draft.lastUpdatedISO)}
+                  {draft.price}€
+                </span>
+                <span className="rounded-full bg-slate-100 px-2 py-1">
+                  {fmtDateHuman(draft.publishedAt)}
                 </span>
               </div>
 
-              <div className="mt-4 flex gap-2">
-                <a className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm">
-                  {draft.previewCta || "Προεπισκόπηση"} →
-                </a>
-                <a className="rounded-full bg-[#8484d1] text-white px-3 py-1.5 text-sm">
-                  {(draft.buyCta || "Αγορά") + ` — ${draft.priceEuro}€`}
-                </a>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-3">
-              {draft.features.slice(0, 3).map(f => (
-                <div key={f.id} className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="font-semibold">{f.title || "Τίτλος"}</div>
-                  <div className="text-sm text-slate-600">{f.desc}</div>
+              <div className="mt-4">
+                <div className="text-sm font-medium text-slate-700 mb-2">
+                  Πίνακας περιεχομένων
                 </div>
-              ))}
-            </div>
-
-            <div className="mt-4 rounded-2xl bg-[#8484d1] text-white p-4">
-              <div className="flex items-center justify-between">
-                <div className="font-semibold">Τι θα βρείτε μέσα</div>
-                <div className="rounded-full bg-white/20 px-3 py-1 text-sm">
-                  Αγορά τώρα — {draft.priceEuro}€
+                <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600 whitespace-pre-wrap">
+                  {draft.tableOfContents || "Δεν υπάρχουν περιεχόμενα."}
                 </div>
               </div>
-              <ul className="mt-3 list-disc pl-5 space-y-1 text-sm">
-                {draft.contents.slice(0, 8).map((c, i) => (
-                  <li key={i}>{c}</li>
-                ))}
-              </ul>
-              <p className="mt-2 text-xs text-white/90">Ασφαλής πληρωμή — Άμεση πρόσβαση.</p>
+
+              {(draft.fileUrl || draft.file) && (
+                <div className="mt-4 text-sm text-slate-600">
+                  {draft.file ? "Έχει επιλεγεί νέο αρχείο για upload." : "Υπάρχει αποθηκευμένο file URL."}
+                </div>
+              )}
             </div>
           </div>
         </div>

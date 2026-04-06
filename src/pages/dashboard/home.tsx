@@ -1,36 +1,105 @@
 import Head from "next/head";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 import {
-  DEFAULT_HOME,
-  fetchHomeContent,
-  updateHomeContent,
-  type HomeContent,
-} from "@/lib/mgmtHomeAPI";
-import Image
- from "next/image";
+  MainPagesApi,
+  type MainPageGetDto,
+  type MainPagePostDto,
+} from "@/api/MainPagesController";
+
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
-const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({ className, children }) => (
-  <div className={cx("rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-200/50", className)}>
+
+const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
+  className,
+  children,
+}) => (
+  <div
+    className={cx(
+      "rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-200/50",
+      className
+    )}
+  >
     {children}
   </div>
 );
 
+type HomeFormState = {
+  id: number | null;
+  title: string;
+  info: string;
+  biography: string;
+  phylosophy: string;
+  mainPictureId?: number | null;
+};
+
+const EMPTY_HOME: HomeFormState = {
+  id: null,
+  title: "",
+  info: "",
+  biography: "",
+  phylosophy: "",
+  mainPictureId: null,
+};
+
+function mapDtoToState(dto: MainPageGetDto): HomeFormState {
+  return {
+    id: dto.id,
+    title: dto.title ?? "",
+    info: dto.info ?? "",
+    biography: dto.biography ?? "",
+    phylosophy: dto.phylosophy ?? "",
+    mainPictureId: dto.mainPictureId ?? null,
+  };
+}
+
 export default function ManagementHomePage() {
-  const [data, setData] = useState<HomeContent>(DEFAULT_HOME);
+  const [data, setData] = useState<HomeFormState>(EMPTY_HOME);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null);
 
-  // Load from "API"
-  useEffect(() => {
-    (async () => {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [remoteImageUrl, setRemoteImageUrl] = useState<string | null>(null);
+
+  const hasValidPreview = useMemo(() => {
+    return Boolean(filePreview || remoteImageUrl);
+  }, [filePreview, remoteImageUrl]);
+
+  const loadHome = async () => {
+    try {
       setLoading(true);
-      const payload = await fetchHomeContent();
-      setData(payload);
+
+      const items = await MainPagesApi.list();
+      const first = items?.[0];
+
+      if (!first) {
+        setData(EMPTY_HOME);
+        setRemoteImageUrl(null);
+        return;
+      }
+
+      setData(mapDtoToState(first));
+
+      try {
+        const imageRes = await MainPagesApi.getMainPictureUrl(first.id);
+        const url = imageRes?.url?.trim();
+        setRemoteImageUrl(url ? url : null);
+      } catch {
+        setRemoteImageUrl(null);
+      }
+    } catch {
+      setToast("Αποτυχία φόρτωσης.");
+      setData(EMPTY_HOME);
+      setRemoteImageUrl(null);
+    } finally {
       setLoading(false);
-    })();
+    }
+  };
+
+  useEffect(() => {
+    loadHome();
   }, []);
 
   useEffect(() => {
@@ -40,29 +109,85 @@ export default function ManagementHomePage() {
   }, [toast]);
 
   const onSave = async () => {
-    setSaving(true);
-    // pretend API call
-    await updateHomeContent(data);
-    setSaving(false);
-    setToast("Αποθηκεύτηκε!");
+    try {
+      setSaving(true);
+
+      const payload: MainPagePostDto = {
+        title: data.title,
+        info: data.info,
+        biography: data.biography,
+        phylosophy: data.phylosophy,
+        mainPicture: selectedFile,
+        mainPictureId: data.mainPictureId ?? null,
+      };
+
+      if (data.id) {
+        await MainPagesApi.update(data.id, payload);
+      } else {
+        const created = await MainPagesApi.create(payload);
+        setData(mapDtoToState(created));
+      }
+
+      await loadHome();
+      setSelectedFile(null);
+      setFilePreview(null);
+      setToast("Αποθηκεύτηκε!");
+    } catch {
+      setToast("Αποτυχία αποθήκευσης.");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const onResetDefaults = () => {
-    setData(DEFAULT_HOME);
+  const onResetLocal = () => {
+    setData(EMPTY_HOME);
+    setSelectedFile(null);
     setFilePreview(null);
-    setToast("Επαναφορά προεπιλογών.");
+    setRemoteImageUrl(null);
+    setToast("Τοπική επαναφορά.");
   };
 
   const onReloadFromApi = async () => {
-    setLoading(true);
-    const payload = await fetchHomeContent();
-    setData(payload);
+    setSelectedFile(null);
     setFilePreview(null);
-    setLoading(false);
-    setToast("Φόρτωση από το API.");
+    await loadHome();
+    setToast("Φόρτωση από API.");
   };
 
-  const previewSrc = filePreview || data.heroImageUrl;
+  function normalizeImageUrl(url?: string | null) {
+    if (!url) return null;
+
+    const clean = url.trim();
+    if (!clean) return null;
+
+    if (
+      clean.startsWith("http://") ||
+      clean.startsWith("https://") ||
+      clean.startsWith("data:")
+    ) {
+      return clean;
+    }
+
+    if (clean.startsWith("/")) {
+      return clean;
+    }
+
+    return `/${clean}`;
+  }
+
+  function isSafeImageSrc(src?: string | null) {
+    if (!src) return false;
+
+    return (
+      src.startsWith("/") ||
+      src.startsWith("http://") ||
+      src.startsWith("https://") ||
+      src.startsWith("data:")
+    );
+  }
+
+  const previewSrc = normalizeImageUrl(filePreview || remoteImageUrl);
+  const canRenderImage = isSafeImageSrc(previewSrc);
 
   return (
     <>
@@ -84,7 +209,6 @@ export default function ManagementHomePage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Editor */}
             <Card className="lg:col-span-2 p-5 md:p-6">
               <h2 className="text-lg font-semibold">Επεξεργασία Περιεχομένου</h2>
 
@@ -92,93 +216,97 @@ export default function ManagementHomePage() {
                 <p className="mt-3 text-slate-600">Φόρτωση…</p>
               ) : (
                 <>
-                  {/* Image */}
                   <div className="mt-4">
-                    <label className="block text-sm font-medium text-slate-700">Εικόνα Αρχικής (URL)</label>
-                    <input
-                      type="url"
-                      placeholder="https://..."
-                      value={data.heroImageUrl}
-                      onChange={e => setData(s => ({ ...s, heroImageUrl: e.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-                    />
-                    <div className="mt-3 flex items-center gap-3">
+                    <label className="block text-sm font-medium text-slate-700">
+                      Κεντρική Εικόνα
+                    </label>
+
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
                       <label className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm cursor-pointer hover:border-[#8484d1]">
                         <input
                           type="file"
                           accept="image/*"
                           className="hidden"
-                          onChange={e => {
+                          onChange={(e) => {
                             const f = e.target.files?.[0];
                             if (!f) return;
-                            const r = new FileReader();
-                            r.onload = () => setFilePreview(r.result as string);
-                            r.readAsDataURL(f);
-                            setToast("Τοπική προεπισκόπηση εικόνας (δεν ανεβαίνει στο API).");
+
+                            setSelectedFile(f);
+
+                            const reader = new FileReader();
+                            reader.onload = () => setFilePreview(reader.result as string);
+                            reader.readAsDataURL(f);
+
+                            setToast("Τοπική προεπισκόπηση εικόνας.");
                           }}
                         />
-                        Επιλογή αρχείου για προεπισκόπηση
+                        Επιλογή αρχείου
                       </label>
-                      {filePreview && (
-                        <button className="text-xs underline underline-offset-2" onClick={() => setFilePreview(null)}>
-                          Καθαρισμός προεπισκόπησης
+
+                      {(filePreview || selectedFile) && (
+                        <button
+                          type="button"
+                          className="text-xs underline underline-offset-2"
+                          onClick={() => {
+                            setSelectedFile(null);
+                            setFilePreview(null);
+                          }}
+                        >
+                          Καθαρισμός επιλογής
                         </button>
                       )}
                     </div>
                   </div>
 
-                  {/* Welcome */}
-                  <div className="mt-6 grid grid-cols-1 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700">Τίτλος Καλωσορίσματος</label>
-                      <input
-                        type="text"
-                        value={data.welcomeTitle}
-                        onChange={e => setData(s => ({ ...s, welcomeTitle: e.target.value }))}
-                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700">Κείμενο Καλωσορίσματος</label>
-                      <textarea
-                        rows={3}
-                        value={data.welcomeParagraph}
-                        onChange={e => setData(s => ({ ...s, welcomeParagraph: e.target.value }))}
-                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Bio */}
                   <div className="mt-6">
-                    <label className="block text-sm font-medium text-slate-700">Βιογραφικό — Παράγραφος</label>
-                    <textarea
-                      rows={4}
-                      value={data.bioParagraph}
-                      onChange={e => setData(s => ({ ...s, bioParagraph: e.target.value }))}
+                    <label className="block text-sm font-medium text-slate-700">Τίτλος</label>
+                    <input
+                      type="text"
+                      value={data.title}
+                      onChange={(e) => setData((s) => ({ ...s, title: e.target.value }))}
                       className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                     />
                   </div>
 
-                  {/* Philosophy */}
                   <div className="mt-6">
-                    <label className="block text-sm font-medium text-slate-700">Φιλοσοφία — Παράγραφος</label>
+                    <label className="block text-sm font-medium text-slate-700">Πληροφορίες</label>
                     <textarea
                       rows={4}
-                      value={data.philosophyParagraph}
-                      onChange={e => setData(s => ({ ...s, philosophyParagraph: e.target.value }))}
+                      value={data.info}
+                      onChange={(e) => setData((s) => ({ ...s, info: e.target.value }))}
                       className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                     />
                   </div>
 
-                  {/* Actions */}
+                  <div className="mt-6">
+                    <label className="block text-sm font-medium text-slate-700">Βιογραφικό</label>
+                    <textarea
+                      rows={5}
+                      value={data.biography}
+                      onChange={(e) => setData((s) => ({ ...s, biography: e.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                    />
+                  </div>
+
+                  <div className="mt-6">
+                    <label className="block text-sm font-medium text-slate-700">Φιλοσοφία</label>
+                    <textarea
+                      rows={5}
+                      value={data.phylosophy}
+                      onChange={(e) => setData((s) => ({ ...s, phylosophy: e.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                    />
+                  </div>
+
                   <div className="mt-6 flex flex-wrap items-center gap-3">
                     <button
                       onClick={onSave}
                       disabled={saving}
                       className={cx(
                         "inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition",
-                        saving ? "bg-[#8484d1]/70 text-white cursor-wait" : "bg-[#8484d1] text-white hover:shadow"
+                        saving
+                          ? "bg-[#8484d1]/70 text-white cursor-wait"
+                          : "bg-[#8484d1] text-white hover:shadow"
                       )}
                     >
                       {saving ? "ΑΠΟΘΗΚΕΥΣΗ…" : "ΑΠΟΘΗΚΕΥΣΗ"}
@@ -192,39 +320,68 @@ export default function ManagementHomePage() {
                     </button>
 
                     <button
-                      onClick={onResetDefaults}
+                      onClick={onResetLocal}
                       className="inline-flex items-center justify-center rounded-full border border-rose-200 bg-white px-4 py-2 text-sm text-rose-700 hover:border-rose-300 transition"
                     >
-                      Επαναφορά προεπιλογών
+                      Τοπική επαναφορά
                     </button>
                   </div>
                 </>
               )}
             </Card>
 
-            {/* Live preview */}
             <Card className="p-5 md:p-6">
               <h3 className="text-lg font-semibold">Ζωντανή Προεπισκόπηση</h3>
+
               <div className="mt-3 space-y-4">
-              <div className="aspect-[16/9] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 relative">
-                  <Image alt="Hero preview" src={previewSrc} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" />
+                <div className="aspect-[16/9] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 relative">
+                  {canRenderImage && previewSrc ? (
+                    <Image
+                      alt="Hero preview"
+                      src={previewSrc}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-slate-500">
+                      Δεν υπάρχει εικόνα
+                    </div>
+                  )}
                 </div>
+
                 <div>
-                  <h4 className="text-xl font-semibold">{data.welcomeTitle}</h4>
-                  <p className="mt-1 text-slate-600">{data.welcomeParagraph}</p>
+                  <h4 className="text-xl font-semibold">{data.title || "Χωρίς τίτλο"}</h4>
+                  <p className="mt-1 text-slate-600">{data.info || "Χωρίς πληροφορίες"}</p>
                 </div>
+
                 <div>
                   <h5 className="font-semibold">Βιογραφικό</h5>
-                  <p className="mt-1 text-slate-600">{data.bioParagraph}</p>
+                  <p className="mt-1 text-slate-600">{data.biography || "—"}</p>
                 </div>
+
                 <div>
                   <h5 className="font-semibold">Φιλοσοφία</h5>
-                  <p className="mt-1 text-slate-600">{data.philosophyParagraph}</p>
+                  <p className="mt-1 text-slate-600">{data.phylosophy || "—"}</p>
                 </div>
+
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-                  <p className="mb-1 font-medium">JSON (για API):</p>
+                  <p className="mb-1 font-medium">JSON προς backend:</p>
                   <pre className="whitespace-pre-wrap break-words">
-                    {JSON.stringify(data, null, 2)}
+                    {JSON.stringify(
+                      {
+                        id: data.id,
+                        title: data.title,
+                        info: data.info,
+                        biography: data.biography,
+                        phylosophy: data.phylosophy,
+                        mainPictureId: data.mainPictureId,
+                        selectedFileName: selectedFile?.name ?? null,
+                      },
+                      null,
+                      2
+                    )}
                   </pre>
                 </div>
               </div>
