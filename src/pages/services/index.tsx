@@ -384,7 +384,7 @@ export default function ServicesPage() {
                         <div className="flex flex-wrap gap-2">
                           <Pill>Διάρκεια: {service.duration}’</Pill>
                           <Pill>Τιμή: {formatPrice(service.priceIncludingVAT)}</Pill>
-                          <Pill>Διάστημα: {service.interval} ημέρες</Pill>
+                          <Pill>Διάστημα: {service.intervalInDays} ημέρες</Pill>
                           <Pill>Κατηγορία: {service.category}</Pill>
                         </div>
                       </div>

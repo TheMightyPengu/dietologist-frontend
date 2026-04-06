@@ -465,64 +465,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-bg">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-          <div className="flex items-end justify-between gap-4">
-            <h2 className="text-2xl md:text-3xl font-semibold">
-              Πρόσφατα από το Blog
-            </h2>
-            <Link
-              href="/blog"
-              className="text-sm font-medium text-[#8484d1] hover:opacity-90"
-            >
-              Δείτε όλα →
-            </Link>
-          </div>
-
-          <div className="mt-6 grid gap-6 md:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <article
-                key={i}
-                className={`rounded-2xl bg-white ${
-                  i === 1
-                    ? "ring-2 ring-warm/50 shadow-[0_10px_25px_rgba(255,230,150,0.12)]"
-                    : "ring-1 ring-black/5 shadow-sm"
-                } p-5`}
-              >
-                <div
-                  className={`aspect-[16/9] w-full overflow-hidden rounded-xl ${
-                    i === 1 ? "bg-warm/10" : "bg-slate-100"
-                  } mb-4 relative`}
-                >
-                  {i === 1 && (
-                    <span className="absolute top-2 right-2 inline-flex items-center rounded-full bg-warm/70 px-2 py-1 text-xs font-medium text-slate-800">
-                      ✨ Προτεινόμενο
-                    </span>
-                  )}
-                </div>
-                <h3 className="font-medium">
-                  {i === 1 ? "Ενημερωμένο άρθρο" : `Τίτλος άρθρου #${i}`}
-                </h3>
-                <p
-                  className={`mt-2 text-sm ${
-                    i === 1 ? "text-warm font-medium" : "text-slate-600"
-                  }`}
-                >
-                  {i === 1
-                    ? "Προτεινόμενη ανάγνωση για εσάς."
-                    : "Σύντομη περιγραφή άρθρου για προεπισκόπηση."}
-                </p>
-                <Link
-                  href="/blog/articles/sample"
-                  className="mt-3 inline-block text-sm font-medium navbar-link"
-                >
-                  Διαβάστε περισσότερα →
-                </Link>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
+      
 
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
         <div
