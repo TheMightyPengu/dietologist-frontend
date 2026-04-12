@@ -218,7 +218,7 @@ export default function HomePage() {
   return (
     <>
       <Head>
-        <title>Αρχική — {siteName}</title>
+        <title>{`Αρχική | ${siteName}`}</title>
         <meta
           name="description"
           content="Καλωσήρθατε στο Διαιτολογικό Κέντρο — Επιστημονική υποστήριξη, εξατομικευμένα προγράμματα και ζεστή προσέγγιση στη διατροφή."

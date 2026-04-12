@@ -36,6 +36,25 @@ html {
   letter-spacing: 0 !important;
 }
 
+/* Custom scrollbar for tables */
+.table-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background: rgb(var(--primary));
+  border-radius: 4px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgb(100, 100, 160);
+  cursor: pointer;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: rgb(var(--bg));
+}
+
 /* Basic reset-ish */
 *,
 *::before,

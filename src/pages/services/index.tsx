@@ -174,7 +174,7 @@ export default function ServicesPage() {
   return (
     <>
       <Head>
-        <title>Υπηρεσίες — {siteName}</title>
+        <title>{`Υπηρεσίες | ${siteName}`}</title>
         <meta
           name="description"
           content="Όλες οι διαθέσιμες υπηρεσίες διατροφής και τα στοιχεία επικοινωνίας."
