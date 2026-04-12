@@ -187,7 +187,7 @@ export default function BookPage() {
           duration: item.duration,
           description: item.description,
           priceIncludingVAT: item.priceIncludingVAT,
-          interval: item.interval,
+          interval: item.intervalInDays,
         }));
 
         setServices(mapped);
@@ -379,7 +379,7 @@ export default function BookPage() {
         <title>Κλείστε Ραντεβού — Επικοινωνία</title>
         <meta
           name="description"
-          content="Κλείστε ραντεβού εύκολα. Επιλέξτε υπηρεσία, διαθέσιμη ημερομηνία και ώρα — θα σας καλέσουμε για επιβεβαίωση."
+          content="Κλείστε ραντεβού εύκολα. Επιλέξτε υπηρεσία, διαθέσιμη ημερομηνία και ώρα — θα σας στείλουμε email για επιβεβαίωση."
         />
         <link rel="canonical" href="https://example.gr/contact/book" />
       </Head>
@@ -390,14 +390,14 @@ export default function BookPage() {
             <h1 className="text-3xl md:text-4xl font-semibold text-slate-900">Κλείστε Ραντεβού</h1>
             <p className="mt-2 max-w-2xl text-slate-700 leading-relaxed">
               Επιλέξτε υπηρεσία και θα εμφανιστούν <span className="font-medium">μόνο</span> οι διαθέσιμες ημέρες/ώρες.
-              Συμπληρώστε τη φόρμα και θα σας καλέσουμε για επιβεβαίωση.
+              Συμπληρώστε τη φόρμα και θα σας στείλουμε email για επιβεβαίωση.
             </p>
           </header>
 
           {successPayload && (
             <div className="mb-6 rounded-2xl bg-white p-6 ring-1 ring-accent/25 shadow-[0_16px_34px_rgba(164,199,126,0.14)]">
               <h2 className="text-xl font-semibold text-slate-900">Το αίτημά σας υποβλήθηκε</h2>
-              <p className="mt-1 text-base text-slate-700">Θα σας καλέσουμε για επιβεβαίωση.</p>
+              <p className="mt-1 text-base text-slate-700">Θα σας στείλουμε email για επιβεβαίωση.</p>
 
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-[15px] text-slate-800">
                 <div className="rounded-xl bg-white ring-1 ring-accent/20 p-3">
@@ -725,7 +725,7 @@ export default function BookPage() {
                     {loading ? "Αποστολή..." : "Αίτημα Ραντεβού"}
                   </button>
 
-                  <p className="mt-2 text-sm text-slate-600">Θα σας καλέσουμε για επιβεβαίωση.</p>
+                  <p className="mt-2 text-sm text-slate-600">Θα σας στείλουμε email για επιβεβαίωση.</p>
 
                   <div className="mt-3">
                     <Link

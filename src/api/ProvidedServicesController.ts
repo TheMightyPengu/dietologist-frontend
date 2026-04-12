@@ -4,6 +4,7 @@ export type ProvidedServicesGetDto = {
   id: number;
   category: string;
   duration: number;
+  title: string;
   description: string;
   priceIncludingVAT: number;
   intervalInDays: number;
@@ -12,6 +13,7 @@ export type ProvidedServicesGetDto = {
 export type ProvidedServicesPostDto = {
   category: string;
   duration: number;
+  title: string;
   description: string;
   priceIncludingVAT: number;
   intervalInDays: number;
@@ -42,7 +44,9 @@ export const ProvidedServicesApi = {
     try {
       const { data } = await api.post(base, payload);
       return data;
-    } catch (e) {
+    } catch (e: any) {
+      console.log("POST payload:", payload);
+      console.log("Backend error:", e?.response?.data);
       throw toApiError(e);
     }
   },
