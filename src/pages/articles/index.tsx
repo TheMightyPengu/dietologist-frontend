@@ -285,14 +285,28 @@ export default function ArticlesIndex(props: Props) {
     // Ταξινόμηση
     list = list.sort((a, b) => {
       switch (sortKey) {
-        case "newest":
-          return a.dateISO < b.dateISO ? 1 : -1;
-        case "oldest":
-          return a.dateISO > b.dateISO ? 1 : -1;
-        case "readAsc":
-          return a.readMinutes - b.readMinutes;
-        case "readDesc":
-          return b.readMinutes - a.readMinutes;
+        case "newest": {
+          const diff =
+            new Date(b.dateISO).getTime() - new Date(a.dateISO).getTime();
+          return diff !== 0 ? diff : b.id - a.id;
+        }
+
+        case "oldest": {
+          const diff =
+            new Date(a.dateISO).getTime() - new Date(b.dateISO).getTime();
+          return diff !== 0 ? diff : a.id - b.id;
+        }
+
+        case "readAsc": {
+          const diff = a.readMinutes - b.readMinutes;
+          return diff !== 0 ? diff : a.id - b.id;
+        }
+
+        case "readDesc": {
+          const diff = b.readMinutes - a.readMinutes;
+          return diff !== 0 ? diff : b.id - a.id;
+        }
+
         default:
           return 0;
       }
