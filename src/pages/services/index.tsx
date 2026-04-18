@@ -70,7 +70,7 @@ function TitleRow({
   children: React.ReactNode;
   size?: "section" | "card" | "cta";
 }) {
-  const Tag = as as any;
+  const Tag: React.ElementType = as;
 
   const titleClass =
     size === "section"
@@ -114,7 +114,7 @@ const SectionCard: React.FC<
 );
 
 export default function ServicesPage() {
-  const [tab, setTab] = useState<"all">("all");
+  //const [tab, setTab] = useState<"all">("all");
   const [copied, setCopied] = useState<null | "phone" | "email">(null);
 
   const [services, setServices] = useState<ProvidedServicesGetDto[]>([]);

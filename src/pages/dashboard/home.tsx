@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   MainPagesApi,
   type MainPageGetDto,
@@ -63,9 +63,9 @@ export default function ManagementHomePage() {
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [remoteImageUrl, setRemoteImageUrl] = useState<string | null>(null);
 
-  const hasValidPreview = useMemo(() => {
-    return Boolean(filePreview || remoteImageUrl);
-  }, [filePreview, remoteImageUrl]);
+  // const hasValidPreview = useMemo(() => {
+  //   return Boolean(filePreview || remoteImageUrl);
+  // }, [filePreview, remoteImageUrl]);
 
   const loadHome = async () => {
     try {

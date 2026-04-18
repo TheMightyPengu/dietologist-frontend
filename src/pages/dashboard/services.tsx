@@ -1,6 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ProvidedServicesApi,
   type ProvidedServicesGetDto,
@@ -47,16 +47,12 @@ export default function ManagementServicesPage() {
     useState<ProvidedServicesPostDto>(EMPTY_CREATE_FORM);
 
   useEffect(() => {
-    loadServices();
-  }, []);
-
-  useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 1800);
     return () => clearTimeout(t);
   }, [toast]);
 
-  async function loadServices() {
+  const loadServices = useCallback(async () => {
     try {
       setLoading(true);
       const data = await ProvidedServicesApi.list();
@@ -71,7 +67,7 @@ export default function ManagementServicesPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [activeCategory]);
 
   const categories = useMemo(() => {
     return Array.from(new Set(all.map((s) => s.category).filter(Boolean)));
@@ -156,6 +152,10 @@ export default function ManagementServicesPage() {
       setBusyId(null);
     }
   }
+
+  useEffect(() => {
+    loadServices();
+  }, [loadServices]);
 
   async function handleDelete(id: number) {
     if (!confirm("Διαγραφή υπηρεσίας; Η ενέργεια δεν μπορεί να αναιρεθεί.")) {

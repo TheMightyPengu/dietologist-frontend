@@ -1,5 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
+import Image from "next/image";
 import HomeHero from "@/components/home/HomeHeader";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -7,7 +8,7 @@ import {
   type MainPageGetDto,
 } from "@/api/MainPagesController";
 
-type NewsletterStep = { title: string; desc: string };
+//type NewsletterStep = { title: string; desc: string };
 
 function splitTextToParagraphs(text?: string | null): string[] {
   if (!text) return [];
@@ -148,7 +149,7 @@ export default function HomePage() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  async function apiNewsletterStart(payload: { name: string; email: string }) {
+  async function apiNewsletterStart() {
     await new Promise((r) => setTimeout(r, 650));
     return { ok: true };
   }
@@ -182,7 +183,7 @@ export default function HomePage() {
 
     setNlLoading(true);
     try {
-      await apiNewsletterStart({ name, email });
+      await apiNewsletterStart();
       setNlStep("verify");
     } catch {
       setNlError("Κάτι πήγε στραβά. Δοκίμασε ξανά.");
@@ -204,8 +205,8 @@ export default function HomePage() {
     try {
       await apiNewsletterVerify({ email, code });
       setNlStep("done");
-    } catch (err: any) {
-      setNlError(err?.message || "Κάτι πήγε στραβά. Δοκίμασε ξανά.");
+    } catch (err: unknown) {
+      setNlError(err instanceof Error ? err.message : "Κάτι πήγε στραβά. Δοκίμασε ξανά.");
     } finally {
       setNlLoading(false);
     }
@@ -218,7 +219,7 @@ export default function HomePage() {
   return (
     <>
       <Head>
-        <title>{`Αρχική | ${siteName}`}</title>
+        <title>{`Αρχική — ${siteName}`}</title>
         <meta
           name="description"
           content="Καλωσήρθατε στο Διαιτολογικό Κέντρο — Επιστημονική υποστήριξη, εξατομικευμένα προγράμματα και ζεστή προσέγγιση στη διατροφή."
@@ -314,14 +315,15 @@ export default function HomePage() {
           <div className="md:col-span-5">
             <div className="sticky top-28">
               <div className="overflow-hidden rounded-3xl bg-white ring-1 ring-accent/25 shadow-sm">
-                <img
+                <Image
                   src={
                     mainPictureUrl ||
                     "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?auto=format&fit=crop&w=1200&q=80"
                   }
                   alt="Βασιλική Χύτα — Διαιτολόγος"
+                  width={900}
+                  height={1125}
                   className="h-auto w-full object-cover aspect-[4/5]"
-                  loading="lazy"
                 />
               </div>
             </div>
@@ -443,11 +445,12 @@ export default function HomePage() {
                     "aspect-[4/3]",
                   ].join(" ")}
                 >
-                  <img
+                  <Image
                     src={c.img}
                     alt={c.alt}
+                    width={1200}
+                    height={900}
                     className="h-full w-full object-cover object-center"
-                    loading="lazy"
                   />
                 </div>
               </div>
@@ -778,10 +781,7 @@ export default function HomePage() {
                         setNlLoading(true);
                         setNlError(null);
                         try {
-                          await apiNewsletterStart({
-                            name: nlForm.name.trim(),
-                            email: nlForm.email.trim(),
-                          });
+                          await apiNewsletterStart();
                         } catch {
                           setNlError("Δεν έγινε επαναποστολή. Δοκίμασε ξανά.");
                         } finally {

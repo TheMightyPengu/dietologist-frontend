@@ -44,9 +44,9 @@ export const ProvidedServicesApi = {
     try {
       const { data } = await api.post(base, payload);
       return data;
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.log("POST payload:", payload);
-      console.log("Backend error:", e?.response?.data);
+      console.log("Backend error:", e);
       throw toApiError(e);
     }
   },

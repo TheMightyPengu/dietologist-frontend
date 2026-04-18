@@ -200,11 +200,15 @@ export default function EbookPage() {
         // This page is a single landing page, so for now we display the first ebook.
         // If later there are many ebooks, replace this with slug/id routing.
         setEbook(mapDtoToViewModel(items[0]));
-      } catch (err: any) {
-        if (!active) return;
-        setError(err?.message || "Κάτι πήγε στραβά.");
-      } finally {
-        if (active) setLoading(false);
+        } catch (err: unknown) {
+          if (!active) return;
+
+          const message =
+            err instanceof Error ? err.message : "Κάτι πήγε στραβά.";
+
+          setError(message);
+        } finally {
+          if (active) setLoading(false);
       }
     };
 
