@@ -23,7 +23,6 @@ type Service = {
   duration: number;
   description: string;
   priceIncludingVAT: number;
-  interval: number;
 };
 
 type Slot = {
@@ -115,7 +114,6 @@ export default function BookPage() {
           duration: item.duration,
           description: item.description,
           priceIncludingVAT: item.priceIncludingVAT,
-          interval: item.intervalInDays ?? item.intervalInDays ?? 0,
         }));
 
         setServices(mapped);

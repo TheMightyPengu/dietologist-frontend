@@ -9,6 +9,7 @@ import Link from "next/link";
 
 const TABS = [
   { key: "home", label: "ΑΡΧΙΚΗ", href: "/dashboard/home" },
+  { key: "navbar", label: "NAVBAR", href: "/dashboard/navbar" },
   { key: "services", label: "ΥΠΗΡΕΣΙΕΣ", href: "/dashboard/services" },
   { key: "seminars", label: "ΣΕΜΙΝΑΡΙΑ", href: "/dashboard/seminars" },
   { key: "ebook", label: "EBOOK", href: "/dashboard/ebook" },

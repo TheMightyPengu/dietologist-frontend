@@ -384,7 +384,6 @@ export default function ServicesPage() {
                         <div className="flex flex-wrap gap-2">
                           <Pill>Διάρκεια: {service.duration}’</Pill>
                           <Pill>Τιμή: {formatPrice(service.priceIncludingVAT)}</Pill>
-                          <Pill>Διάστημα: {service.intervalInDays} ημέρες</Pill>
                           <Pill>Κατηγορία: {service.category}</Pill>
                         </div>
                       </div>
@@ -394,40 +393,6 @@ export default function ServicesPage() {
               </SectionCard>
             ))
           )}
-        </div>
-
-        <div
-          className={[
-            "rounded-3xl bg-white",
-            "ring-1 ring-accent/25",
-            "shadow-sm shadow-[0_16px_38px_rgba(164,199,126,0.14)]",
-            "p-7 sm:p-10",
-            "flex flex-col lg:flex-row items-start lg:items-center gap-6 justify-between",
-          ].join(" ")}
-        >
-          <div className="max-w-2xl">
-            <TitleRow as="h3" size="cta">
-              Κλείστε ραντεβού
-            </TitleRow>
-            <p className="mt-2 text-[15px] text-slate-700 leading-relaxed">
-              Επιλέξτε διαθέσιμη ημέρα και ώρα για το ραντεβού σας.
-            </p>
-          </div>
-
-          <div className="w-full lg:w-auto">
-            <Link
-              href={bookHref}
-              className={classNames(
-                "inline-flex w-full lg:w-auto items-center justify-center rounded-2xl px-6 py-3 transition text-sm font-medium",
-                "bg-primary text-white",
-                "shadow-[0_14px_30px_rgba(122,122,196,0.22)]",
-                "hover:shadow-[0_18px_38px_rgba(122,122,196,0.28)]",
-                "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
-              )}
-            >
-              Κλείστε Ραντεβού
-            </Link>
-          </div>
         </div>
       </main>
     </>

@@ -9,7 +9,6 @@ export type ProvidedServices = {
   description: string;
   priceIncludingVAT: number;
   interval?: number;
-  intervalInDays?: number;
 };
 
 export type AppointmentsGetDto = {

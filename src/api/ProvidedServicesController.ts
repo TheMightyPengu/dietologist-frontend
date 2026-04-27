@@ -7,7 +7,6 @@ export type ProvidedServicesGetDto = {
   title: string;
   description: string;
   priceIncludingVAT: number;
-  intervalInDays: number;
 };
 
 export type ProvidedServicesPostDto = {
@@ -16,7 +15,6 @@ export type ProvidedServicesPostDto = {
   title: string;
   description: string;
   priceIncludingVAT: number;
-  intervalInDays: number;
 };
 
 const base = '/ProvidedServices';

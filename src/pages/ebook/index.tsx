@@ -1,22 +1,23 @@
 import Head from "next/head";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { EbooksApi, type EbooksGetDto } from "../../api/EbooksController";
 
-/**
- * EBOOK — Landing page connected to backend
- *
- * Notes:
- * - Backend currently gives us:
- *   id, title, author, tableOfContents, coverImageUrl, price, fileUrl, publishedAt
- * - Fields like subtitle, pages, format, bonus templates, sampleUrl, buyUrl do NOT exist yet.
- *   We keep safe frontend fallbacks/comments until backend adds them.
- */
+type EbookCard = {
+  title: string;
+  description: string;
+};
+
+type EbookContentData = {
+  description: string;
+  toc: string[];
+  bonusTemplates: string[];
+  cards: EbookCard[];
+};
 
 type EbookViewModel = {
   id: number;
   title: string;
-  subtitle: string;
   author: string;
   cover: string;
   priceEUR?: number;
@@ -24,40 +25,36 @@ type EbookViewModel = {
   bonusTemplates: string[];
   sampleUrl?: string;
   buyUrl?: string;
-  lastUpdatedISO: string;
   format: "PDF";
+  description: string;
+  cards: EbookCard[];
 };
+
+const DEFAULT_CARDS: EbookCard[] = [
+  {
+    title: "Πρακτικός Οδηγός",
+    description:
+      "Καθαρή δομή και εύκολη ανάγνωση για άμεση εφαρμογή στην καθημερινότητα.",
+  },
+  {
+    title: "Άμεση Χρήση",
+    description:
+      "Χρήσιμο περιεχόμενο που μπορεί να αξιοποιηθεί χωρίς περιττή θεωρία.",
+  },
+  {
+    title: "Οργανωμένο Περιεχόμενο",
+    description:
+      "Το ebook έρχεται οργανωμένο με σαφή ενότητες και εύχρηστο υλικό.",
+  },
+];
 
 function IconCheckList(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden {...props}>
-      <path
-        d="M9 6h12M9 12h12M9 18h12"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M3.5 6.2l1.2 1.3L7 5.2"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M3.5 12.2l1.2 1.3L7 11.2"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M3.5 18.2l1.2 1.3L7 17.2"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M9 6h12M9 12h12M9 18h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M3.5 6.2l1.2 1.3L7 5.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3.5 12.2l1.2 1.3L7 11.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3.5 18.2l1.2 1.3L7 17.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -65,37 +62,11 @@ function IconCheckList(props: React.SVGProps<SVGSVGElement>) {
 function IconTarget(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden {...props}>
-      <path
-        d="M12 21a9 9 0 1 1 9-9"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M12 17a5 5 0 1 1 5-5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M12 13a1 1 0 1 1 1-1"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M21 3l-7.2 7.2"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M15.8 3H21v5.2"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M12 21a9 9 0 1 1 9-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 17a5 5 0 1 1 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 13a1 1 0 1 1 1-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M21 3l-7.2 7.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M15.8 3H21v5.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -103,74 +74,90 @@ function IconTarget(props: React.SVGProps<SVGSVGElement>) {
 function IconBeaker(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden {...props}>
-      <path
-        d="M9 3h6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M10 3v6l-4.8 8.6A3 3 0 0 0 7.8 22h8.4a3 3 0 0 0 2.6-4.4L14 9V3"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M8 16h8"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+      <path d="M9 3h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M10 3v6l-4.8 8.6A3 3 0 0 0 7.8 22h8.4a3 3 0 0 0 2.6-4.4L14 9V3" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M8 16h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
 
-function parseTableOfContents(raw?: string | null): string[] {
-  if (!raw) return [];
+function parseEbookContent(raw?: string | null, author?: string): EbookContentData {
+  const fallbackDescription = `Ένας πρακτικός οδηγός από τον/την ${
+    author || "διαιτολόγο"
+  }.`;
 
-  // Case 1: backend sends JSON string array
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      return parsed
-        .map((x) => String(x).trim())
-        .filter(Boolean);
-    }
-  } catch {
-    // ignore and continue
+  if (!raw) {
+    return {
+      description: fallbackDescription,
+      toc: [],
+      bonusTemplates: ["Πρακτικό υλικό", "Οδηγός εφαρμογής"],
+      cards: DEFAULT_CARDS,
+    };
   }
 
-  // Case 2: newline-separated / semicolon-separated / comma-separated plain text
-  return raw
-    .split(/\r?\n|;|,/)
-    .map((x) => x.trim())
-    .filter(Boolean);
+  try {
+    const parsed = JSON.parse(raw);
+
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return {
+        description: parsed.description || fallbackDescription,
+        toc: Array.isArray(parsed.toc) ? parsed.toc.map(String).filter(Boolean) : [],
+        bonusTemplates: Array.isArray(parsed.bonusTemplates)
+          ? parsed.bonusTemplates.map(String).filter(Boolean)
+          : ["Πρακτικό υλικό", "Οδηγός εφαρμογής"],
+        cards:
+          Array.isArray(parsed.cards) && parsed.cards.length
+            ? parsed.cards
+                .map((card: Partial<EbookCard>) => ({
+                  title: String(card.title || "").trim(),
+                  description: String(card.description || "").trim(),
+                }))
+                .filter((card: EbookCard) => card.title || card.description)
+            : DEFAULT_CARDS,
+      };
+    }
+
+    if (Array.isArray(parsed)) {
+      return {
+        description: fallbackDescription,
+        toc: parsed.map(String).filter(Boolean),
+        bonusTemplates: ["Πρακτικό υλικό", "Οδηγός εφαρμογής"],
+        cards: DEFAULT_CARDS,
+      };
+    }
+  } catch {
+    // plain text fallback
+  }
+
+  return {
+    description: fallbackDescription,
+    toc: raw
+      .split(/\r?\n|;|,/)
+      .map((x) => x.trim())
+      .filter(Boolean),
+    bonusTemplates: ["Πρακτικό υλικό", "Οδηγός εφαρμογής"],
+    cards: DEFAULT_CARDS,
+  };
 }
 
 function mapDtoToViewModel(dto: EbooksGetDto): EbookViewModel {
-  const toc = parseTableOfContents(dto.tableOfContents);
+  const content = parseEbookContent(dto.tableOfContents, dto.author);
 
   return {
     id: dto.id,
     title: dto.title,
     author: dto.author,
-    subtitle:
-      `Ένας πρακτικός οδηγός από τον/την ${dto.author}.`,
     cover:
       dto.coverImageUrl ||
       "https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?q=80&w=1200&auto=format&fit=crop",
     priceEUR: dto.price,
-    toc,
-    bonusTemplates: [
-      // Backend does not provide bonus templates yet.
-      // Keep placeholders or remove this block later if not needed.
-      "Πρακτικό υλικό",
-      "Οδηγός εφαρμογής",
-    ],
-    sampleUrl: dto.fileUrl || undefined, // backend has no dedicated sample URL yet
-    buyUrl: dto.fileUrl || undefined, // temporary fallback until checkout flow exists
-    lastUpdatedISO: dto.publishedAt,
-    format: "PDF", // backend does not provide format yet
+    toc: content.toc,
+    bonusTemplates: content.bonusTemplates,
+    cards: content.cards,
+    description: content.description,
+    sampleUrl: dto.fileUrl || undefined,
+    buyUrl: dto.fileUrl || undefined,
+    format: "PDF",
   };
 }
 
@@ -182,7 +169,7 @@ export default function EbookPage() {
   useEffect(() => {
     let active = true;
 
-    const run = async () => {
+    async function run() {
       try {
         setLoading(true);
         setError(null);
@@ -197,20 +184,14 @@ export default function EbookPage() {
           return;
         }
 
-        // This page is a single landing page, so for now we display the first ebook.
-        // If later there are many ebooks, replace this with slug/id routing.
         setEbook(mapDtoToViewModel(items[0]));
-        } catch (err: unknown) {
-          if (!active) return;
-
-          const message =
-            err instanceof Error ? err.message : "Κάτι πήγε στραβά.";
-
-          setError(message);
-        } finally {
-          if (active) setLoading(false);
+      } catch (err: unknown) {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : "Κάτι πήγε στραβά.");
+      } finally {
+        if (active) setLoading(false);
       }
-    };
+    }
 
     run();
 
@@ -219,22 +200,13 @@ export default function EbookPage() {
     };
   }, []);
 
-  const lastUpdatedReadable = useMemo(() => {
-    if (!ebook) return "";
-    const d = new Date(ebook.lastUpdatedISO);
-    if (isNaN(d.getTime())) return "";
-    return d.toLocaleDateString("el-GR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-  }, [ebook]);
-
   const primaryCtaClass =
     "inline-flex items-center gap-2 rounded-xl border border-[#8484d1]/20 bg-[#8484d1] text-white px-4 py-2 font-medium shadow hover:opacity-95 transition";
 
   const quietLinkClass =
     "inline-flex items-center gap-2 text-[#8484d1] font-medium underline underline-offset-4 decoration-[#8484d1]/30 hover:decoration-[#8484d1]/70 transition";
+
+  const icons = [IconCheckList, IconTarget, IconBeaker];
 
   return (
     <>
@@ -271,9 +243,7 @@ export default function EbookPage() {
                     className={[
                       "relative rounded-2xl overflow-hidden",
                       "ring-1 ring-[#8484d1]/15 shadow-[0_18px_50px_rgba(2,6,23,0.10)]",
-                      "bg-white",
-                      "aspect-[4/5]",
-                      "transform-gpu",
+                      "bg-white aspect-[4/5] transform-gpu",
                       "md:[transform:perspective(1200px)_rotateY(-6deg)_rotateX(2deg)]",
                       "md:hover:[transform:perspective(1200px)_rotateY(-3deg)_rotateX(1deg)]",
                       "transition-transform duration-500",
@@ -299,7 +269,7 @@ export default function EbookPage() {
                 </h2>
 
                 <p className="mt-2 text-slate-600 leading-relaxed md:leading-7 max-w-prose">
-                  {ebook.subtitle}
+                  {ebook.description}
                 </p>
 
                 <div className="mt-3 text-sm text-slate-500">
@@ -309,9 +279,6 @@ export default function EbookPage() {
                 <div className="mt-5 flex flex-wrap items-center gap-3 text-sm">
                   <span className="inline-flex items-center rounded-full bg-white px-3 py-1 border border-slate-200 shadow-sm">
                     Μορφή: {ebook.format}
-                  </span>
-                  <span className="inline-flex items-center rounded-full bg-white px-3 py-1 border border-slate-200 shadow-sm">
-                    Τελευταία ενημέρωση: {lastUpdatedReadable}
                   </span>
                 </div>
 
@@ -334,11 +301,15 @@ export default function EbookPage() {
                       target="_blank"
                       rel="noreferrer"
                     >
-                      {ebook.priceEUR ? `Αγορά — ${ebook.priceEUR}€` : "Κατέβασμα"}
+                      {ebook.priceEUR
+                        ? `Αγορά — ${ebook.priceEUR}€`
+                        : "Κατέβασμα"}
                     </a>
                   ) : (
                     <Link href="/contact" className={primaryCtaClass}>
-                      {ebook.priceEUR ? `Αγορά — ${ebook.priceEUR}€` : "Κατέβασμα"}
+                      {ebook.priceEUR
+                        ? `Αγορά — ${ebook.priceEUR}€`
+                        : "Κατέβασμα"}
                     </Link>
                   )}
                 </div>
@@ -354,40 +325,31 @@ export default function EbookPage() {
         {!loading && !error && ebook && (
           <div className="mx-auto max-w-6xl px-4 sm:px-6 pb-14">
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {[
-                {
-                  t: "Πρακτικός Οδηγός",
-                  d: "Καθαρή δομή και εύκολη ανάγνωση για άμεση εφαρμογή στην καθημερινότητα.",
-                  Ico: IconCheckList,
-                },
-                {
-                  t: "Άμεση Χρήση",
-                  d: "Χρήσιμο περιεχόμενο που μπορεί να αξιοποιηθεί χωρίς περιττή θεωρία.",
-                  Ico: IconTarget,
-                },
-                {
-                  t: "Οργανωμένο Περιεχόμενο",
-                  d: "Το ebook έρχεται οργανωμένο με σαφή ενότητες και εύχρηστο υλικό.",
-                  Ico: IconBeaker,
-                },
-              ].map((f, i) => (
-                <div
-                  key={i}
-                  className="rounded-2xl bg-white border border-slate-200 shadow-sm p-5"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#8484d1]/8 text-[#8484d1] ring-1 ring-[#8484d1]/15">
-                      <f.Ico className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="font-semibold text-lg">{f.t}</h3>
-                      <p className="text-slate-600 mt-1 line-clamp-2">
-                        {f.d}
-                      </p>
+              {ebook.cards.map((card, i) => {
+                const Ico = icons[i % icons.length];
+
+                return (
+                  <div
+                    key={`${card.title}-${i}`}
+                    className="rounded-2xl bg-white border border-slate-200 shadow-sm p-5"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#8484d1]/10 text-[#8484d1] ring-1 ring-[#8484d1]/15">
+                        <Ico className="h-5 w-5" />
+                      </div>
+
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-lg text-slate-900">
+                          {card.title}
+                        </h3>
+                        <p className="text-slate-600 mt-1 leading-relaxed">
+                          {card.description}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -400,13 +362,15 @@ export default function EbookPage() {
                   <div>
                     <h3 className="text-xl font-semibold">Περιεχόμενα</h3>
                     <ul className="mt-3 space-y-2 text-white/95">
-                      {(ebook.toc || []).length > 0 ? (
+                      {ebook.toc.length > 0 ? (
                         ebook.toc.map((entry, idx) => (
                           <li
                             key={idx}
                             className="flex items-start gap-2 leading-relaxed"
                           >
-                            <span className="mt-1 select-none text-white/90">•</span>
+                            <span className="mt-1 select-none text-white/90">
+                              •
+                            </span>
                             <span>{entry}</span>
                           </li>
                         ))
@@ -421,12 +385,14 @@ export default function EbookPage() {
                   <div>
                     <h3 className="text-xl font-semibold">Bonus templates</h3>
                     <ul className="mt-3 space-y-2 text-white/95">
-                      {(ebook.bonusTemplates || []).map((entry, idx) => (
+                      {ebook.bonusTemplates.map((entry, idx) => (
                         <li
                           key={idx}
                           className="flex items-start gap-2 leading-relaxed"
                         >
-                          <span className="mt-1 select-none text-white/90">•</span>
+                          <span className="mt-1 select-none text-white/90">
+                            •
+                          </span>
                           <span>{entry}</span>
                         </li>
                       ))}

@@ -973,8 +973,6 @@ function AppointmentRow({
         duration: service.duration,
         description: service.description,
         priceIncludingVAT: service.priceIncludingVAT,
-        interval: service.intervalInDays,
-        intervalInDays: service.intervalInDays,
       },
     }));
   }

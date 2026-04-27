@@ -30,7 +30,6 @@ const EMPTY_CREATE_FORM: ProvidedServicesPostDto = {
   title: "",
   description: "",
   priceIncludingVAT: 0,
-  intervalInDays: 7,
 };
 
 export default function ManagementServicesPage() {
@@ -102,7 +101,6 @@ export default function ManagementServicesPage() {
         title: createForm.title.trim(),
         description: createForm.description.trim(),
         priceIncludingVAT: Number(createForm.priceIncludingVAT),
-        intervalInDays: Number(createForm.intervalInDays),
       };
 
       const created = await ProvidedServicesApi.create(payload);
@@ -138,7 +136,6 @@ export default function ManagementServicesPage() {
         title: service.title,
         description: service.description,
         priceIncludingVAT: service.priceIncludingVAT,
-        intervalInDays: service.intervalInDays,
       };
 
       await ProvidedServicesApi.update(service.id, payload);
@@ -395,23 +392,6 @@ function CreateServiceModal({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700">
-                Interval σε ημέρες
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={form.intervalInDays}
-                onChange={(e) =>
-                  setForm((d) => ({
-                    ...d,
-                    intervalInDays: Number(e.target.value),
-                  }))
-                }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-              />
-            </div>
           </div>
 
           <div>
@@ -582,23 +562,6 @@ function ServiceEditorCard({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700">
-                Interval σε ημέρες
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={draft.intervalInDays}
-                onChange={(e) =>
-                  setDraft((d) => ({
-                    ...d,
-                    intervalInDays: Number(e.target.value),
-                  }))
-                }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-              />
-            </div>
           </div>
 
           <div>
@@ -627,7 +590,6 @@ function ServiceEditorCard({
                   title: draft.title,
                   description: draft.description,
                   priceIncludingVAT: draft.priceIncludingVAT,
-                  intervalInDays: draft.intervalInDays,
                 },
                 null,
                 2
