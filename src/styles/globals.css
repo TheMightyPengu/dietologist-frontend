@@ -69,8 +69,30 @@ body {
     Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; */
 
   background-color: rgb(var(--bg));
+  background-image:
+    radial-gradient(circle at top left, rgba(var(--primary), 0.18), transparent 32%),
+    radial-gradient(circle at 88% 15%, rgba(var(--accent), 0.16), transparent 28%),
+    linear-gradient(180deg, rgba(var(--primary), 0.08) 0%, rgba(var(--accent), 0.08) 50%, rgba(var(--bg), 1) 100%);
+  background-attachment: fixed;
+  background-size: 220% 220%;
+  background-repeat: no-repeat;
+  animation: background-drift 18s ease infinite;
+
   color: rgb(var(--ink));
   line-height: 1.6;
+}
+
+/* Subtle slow gradient motion */
+@keyframes background-drift {
+  0%, 100% {
+    background-position: 0% 0%, 100% 20%, 0% 0%;
+  }
+  33% {
+    background-position: 10% 10%, 92% 8%, 2% 4%;
+  }
+  66% {
+    background-position: 4% 8%, 86% 26%, 1% 2%;
+  }
 }
 
 /* Simple headings */

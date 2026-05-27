@@ -62,9 +62,9 @@ export default function HomeHero({
 
             <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center">
               <div className="relative group">
-                <LeafBurstButton text="ΖΗΤΗΣΤΕ ΕΝΑ ΡΑΝΤΕΒΟΥ" />
+                <LeafBurstButton text="ΠΡΟΓΡΑΜΜΑΤΙΣΜΟΣ ΣΥΝΕΔΡΙΑΣ" />
                 <div
-                  className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-lg"
+                  className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-lg pointer-events-none"
                   style={{ background: "rgba(255,230,150,0.2)" }}
                 />
               </div>

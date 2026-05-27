@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import HomeHero from "@/components/home/HomeHeader";
 import { useEffect, useMemo, useState } from "react";
+import { SectionReveal } from "@/components/SectionReveal";
 import {
   MainPagesApi,
   type MainPageGetDto,
@@ -238,9 +239,9 @@ export default function HomePage() {
         loading={mainPageLoading}
       />
 
-      <section
-        id="bio"
+      <SectionReveal
         className="scroll-mt-28 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-12 md:pt-16 pb-8"
+        id="bio"
       >
         <div className="grid gap-10 md:grid-cols-12 md:items-start">
           <div className="md:col-span-7">
@@ -329,15 +330,15 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-      </section>
+      </SectionReveal>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-1">
         <div className="h-[2px] bg-gradient-to-r from-transparent via-warm/60 to-transparent" />
       </div>
 
-      <section
-        id="philosophy"
+      <SectionReveal
         className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 md:pt-12 pb-12 md:pb-16"
+        id="philosophy"
       >
         <div className="prose prose-slate max-w-none leading-8 space-y-6">
           <div className="flex items-center gap-3 mb-6">
@@ -400,9 +401,9 @@ export default function HomePage() {
             </>
           )}
         </div>
-      </section>
+      </SectionReveal>
 
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12 md:pb-16 pt-8 md:pt-12">
+      <SectionReveal className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12 md:pb-16 pt-8 md:pt-12">
         <h3 className="text-center text-xl md:text-2xl font-semibold text-slate-900">
           Στο τέλος της συνεργασίας θα έχεις καταφέρει
         </h3>
@@ -466,11 +467,11 @@ export default function HomePage() {
             </div>
           ))}
         </div>
-      </section>
+      </SectionReveal>
 
       
 
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
+      <SectionReveal className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
         <div
           className={[
             R_BIG,
@@ -559,7 +560,7 @@ export default function HomePage() {
             </form>
           </div>
         </div>
-      </section>
+      </SectionReveal>
 
       {openNewsletter && (
         <div
