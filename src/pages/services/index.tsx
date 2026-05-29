@@ -1,7 +1,7 @@
 import Head from "next/head";
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { SectionReveal } from "@/components/SectionReveal";
+import LeafBurstButton from "@/components/decorative/LeafBurstButton";
 import {
   ContactInfoApi,
   type ContactInfoGetDto,
@@ -170,7 +170,7 @@ export default function ServicesPage() {
   const location = contactInfo?.location ?? "";
 
   const phoneRaw = phone.replace(/\s+/g, "");
-  const bookHref = "/book";
+  const bookHref = "/contact/book";
 
   return (
     <>
@@ -331,18 +331,11 @@ export default function ServicesPage() {
             </div>
 
             <div className="lg:justify-self-end">
-              <Link
+              <LeafBurstButton
                 href={bookHref}
-                className={classNames(
-                  "inline-flex w-full lg:w-auto items-center justify-center rounded-2xl px-6 py-3 transition text-sm font-medium",
-                  "bg-primary text-white",
-                  "shadow-[0_14px_30px_rgba(122,122,196,0.22)]",
-                  "hover:shadow-[0_18px_38px_rgba(122,122,196,0.28)]",
-                  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25"
-                )}
-              >
-                Κλείστε Ραντεβού
-              </Link>
+                text="ΠΡΟΓΡΑΜΜΑΤΙΣΜΟΣ ΣΥΝΕΔΡΙΑΣ"
+                className="w-full lg:w-auto"
+              />
             </div>
           </div>
 

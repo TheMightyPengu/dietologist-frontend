@@ -137,10 +137,12 @@ function parseIngredients(value: string | null | undefined): string[] {
 }
 
 function mapRecipe(dto: RecipesGetDto): Recipe {
+  const title = dto.title ?? "";
+
   return {
     id: dto.id,
-    slug: String(dto.id),
-    title: dto.title ?? "",
+    slug: `${toGreekSlug(title) || "recipe"}-${dto.id}`,
+    title,
     category: dto.category ?? "",
     minutes: dto.timeToPrepare ?? 0,
     description: dto.description ?? "",
@@ -696,14 +698,13 @@ export default function RecipesIndex() {
               ) : (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-6">
                   {paged.map((r) => {
-                    const pretty = toGreekSlug(r.title);
+                    // const pretty = toGreekSlug(r.title);
                     const hasImage = Boolean(r.image);
 
                     return (
                       <Link
                         key={r.id}
-                        href={{ pathname: "/recipes/[slug]", query: { slug: r.slug } }}
-                        as={`/recipes/${pretty}`}
+                        href={`/recipes/${r.slug}`}
                         className={classNames(
                           "group relative flex flex-col overflow-hidden rounded-2xl",
                           "bg-white/90 ring-1 ring-black/5 shadow-[0_10px_24px_rgba(15,23,42,0.06)]",

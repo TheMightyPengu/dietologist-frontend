@@ -3,43 +3,59 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { GetServerSideProps } from "next";
 import Image from "next/image";
-import { ArticlesApi, type ArticlesGetDto } from "@/api/ArticlesController";
+import { RecipesApi, type RecipesGetDto } from "@/api/RecipesController";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 
-type Article = {
+type Recipe = {
   id: number;
   slug: string;
   title: string;
-  subtitle: string;
-  heading: string;
-  excerpt: string;
-  category: "Διατροφή" | "Ευεξία" | "Συνταγές" | "Επιστήμη";
-  dateISO: string;
-  readMinutes: number;
-  hero: string;
-  tags: string[];
-  contentHtml: string;
+  category: string;
+  minutes: number;
+  description: string;
+  instructions: string;
+  ingredients: string[];
+  image: string;
+  createdAt: string;
 };
 
-function slugifyArticle(title: string, id: number) {
-  const base = (title || `article-${id}`)
+const CATEGORY_LABELS: Record<string, string> = {
+  Breakfast: "Πρωινό",
+  Main: "Κυρίως",
+  Snack: "Σνακ",
+  Drink: "Ρόφημα",
+  Dessert: "Γλυκό",
+  Salad: "Σαλάτα",
+};
+
+function stripGreekAccents(s: string) {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ς/g, "σ");
+}
+
+function toGreekSlug(s: string) {
+  return stripGreekAccents(s)
     .toLowerCase()
+    .replace(/[^a-z0-9\u0370-\u03FF\s-]/g, "")
     .trim()
-    .replace(/ά/g, "α")
-    .replace(/έ/g, "ε")
-    .replace(/ή/g, "η")
-    .replace(/ί/g, "ι")
-    .replace(/ό/g, "ο")
-    .replace(/ύ/g, "υ")
-    .replace(/ώ/g, "ω")
-    .replace(/ϊ|ΐ/g, "ι")
-    .replace(/ϋ|ΰ/g, "υ")
-    .replace(/ς/g, "σ")
-    .replace(/[^a-z0-9α-ω\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
+}
 
-  return `${base || "article"}-${id}`;
+function getIdFromSlug(slug: string) {
+  const match = slug.match(/-(\d+)$/);
+  return match ? Number(match[1]) : Number(slug);
+}
+
+function parseIngredients(value: string | null | undefined): string[] {
+  if (!value) return [];
+
+  return value
+    .split(/[\n,;•]+/g)
+    .map((x) => x.trim())
+    .filter(Boolean);
 }
 
 function stripHtml(value: string) {
@@ -49,68 +65,64 @@ function stripHtml(value: string) {
     .trim();
 }
 
-function estimateReadMinutes(text: string) {
-  const words = stripHtml(text).split(/\s+/).filter(Boolean).length;
-  return Math.max(1, Math.ceil(words / 200));
+function formatMin(m: number) {
+  return m <= 60 ? `${m}′` : `${Math.floor(m / 60)} ώ ${m % 60}′`;
 }
 
-function mapArticleDtoToUi(dto: ArticlesGetDto): Article {
-  const plainContent = stripHtml(dto.content);
+function mapRecipe(dto: RecipesGetDto): Recipe {
+  const title = dto.title ?? "";
 
   return {
     id: dto.id,
-    slug: slugifyArticle(dto.title, dto.id),
-    title: dto.title,
-    subtitle: dto.subtitle ?? "",
-    heading: dto.heading ?? "",
-    excerpt: dto.subtitle?.trim() || plainContent.slice(0, 160) || "",
-    category: "Διατροφή",
-    dateISO: dto.publishedAt,
-    readMinutes: estimateReadMinutes(dto.content),
-    hero:
-      dto.imageUrl ||
-      "https://via.placeholder.com/1200x750?text=Article+Image",
-    tags: [],
-    contentHtml: dto.content || "",
+    slug: `${toGreekSlug(title) || "recipe"}-${dto.id}`,
+    title,
+    category: dto.category ?? "",
+    minutes: dto.timeToPrepare ?? 0,
+    description: dto.description ?? "",
+    instructions: dto.instructions ?? "",
+    ingredients: parseIngredients(dto.ingredients),
+    image: dto.imageUrl ?? "",
+    createdAt: dto.createdAt ?? "",
   };
 }
 
 type PageProps = {
-  article: Article;
+  recipe: Recipe;
 };
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
   try {
     const slug = String(ctx.params?.slug || "");
-    const data = await ArticlesApi.list();
-    const articles = data.map(mapArticleDtoToUi);
-    const article = articles.find((a) => a.slug === slug);
+    const id = getIdFromSlug(slug);
 
-    if (!article) {
+    if (!Number.isFinite(id) || id <= 0) {
       return { notFound: true };
     }
 
+    const data = await RecipesApi.get(id);
+    const recipe = mapRecipe(data);
+
     return {
       props: {
-        article,
+        recipe,
       },
     };
   } catch (error) {
-    console.error("Failed to fetch article by slug:", error);
+    console.error("Failed to fetch recipe by slug:", error);
     return { notFound: true };
   }
 };
 
-export default function ArticlePage({ article }: { article: Article }) {
-  const formattedDate = useMemo(
-    () =>
-      new Date(article.dateISO).toLocaleDateString("el-GR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }),
-    [article.dateISO]
-  );
+export default function RecipePage({ recipe }: PageProps) {
+  const formattedDate = useMemo(() => {
+    if (!recipe.createdAt) return "";
+
+    return new Date(recipe.createdAt).toLocaleDateString("el-GR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  }, [recipe.createdAt]);
 
   const [progress, setProgress] = useState(0);
 
@@ -131,21 +143,26 @@ export default function ArticlePage({ article }: { article: Article }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const categoryLabel = CATEGORY_LABELS[recipe.category] ?? recipe.category;
+  const metaDescription =
+    stripHtml(recipe.description).slice(0, 160) ||
+    `Συνταγή: ${recipe.title}`;
+
   return (
     <>
       <Head>
-        <title>{`${article.title} — Άρθρα`}</title>
-        <meta name="description" content={article.excerpt} />
+        <title>{`${recipe.title} — Συνταγές`}</title>
+        <meta name="description" content={metaDescription} />
         <link
           rel="canonical"
-          href={`https://example.com/articles/${encodeURIComponent(
-            article.slug
+          href={`https://example.gr/recipes/${encodeURIComponent(
+            recipe.slug
           )}`}
         />
         <meta property="og:type" content="article" />
-        <meta property="og:title" content={`${article.title} — Άρθρα`} />
-        <meta property="og:description" content={article.excerpt} />
-        <meta property="og:image" content={article.hero} />
+        <meta property="og:title" content={`${recipe.title} — Συνταγές`} />
+        <meta property="og:description" content={metaDescription} />
+        {recipe.image ? <meta property="og:image" content={recipe.image} /> : null}
         <meta property="og:locale" content="el_GR" />
         <meta name="twitter:card" content="summary_large_image" />
       </Head>
@@ -158,86 +175,146 @@ export default function ArticlePage({ article }: { article: Article }) {
         />
       </div>
 
-      <article className="mx-auto max-w-4xl px-4 md:px-6 lg:px-8 py-8">
+      <article className="mx-auto max-w-5xl px-4 md:px-6 lg:px-8 py-8">
         <div className="mb-4">
           <Link
-            href="/articles"
+            href="/recipes"
             className="inline-flex items-center gap-2 rounded-xl bg-white/70 px-3 py-2 text-sm font-medium text-slate-800 ring-1 ring-slate-200 hover:bg-white transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
           >
             <span aria-hidden>←</span>
-            Πίσω στα άρθρα
+            Πίσω στις συνταγές
           </Link>
         </div>
 
         <header className="mb-7">
           <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
-            <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white/95">
-              {article.category}
-            </span>
+            {categoryLabel ? (
+              <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white/95">
+                {categoryLabel}
+              </span>
+            ) : null}
 
-            <span className="inline-flex items-center gap-1.5 tabular-nums">
-              <span aria-hidden>📅</span>
-              <span>Δημοσίευση: {formattedDate}</span>
-            </span>
+            {formattedDate ? (
+              <>
+                <span className="inline-flex items-center gap-1.5 tabular-nums">
+                  <span aria-hidden>📅</span>
+                  <span>Δημοσίευση: {formattedDate}</span>
+                </span>
 
-            <span className="text-slate-300" aria-hidden>
-              •
-            </span>
+                <span className="text-slate-300" aria-hidden>
+                  •
+                </span>
+              </>
+            ) : null}
 
             <span className="inline-flex items-center gap-1.5 tabular-nums">
               <span aria-hidden>⏱</span>
-              <span>{article.readMinutes}′ ανάγνωση</span>
+              <span>{formatMin(recipe.minutes)}</span>
             </span>
           </div>
 
           <h1 className="mt-2 max-w-[22ch] text-3xl md:text-4xl font-semibold tracking-tight leading-[1.1] text-slate-900">
-            {article.title}
+            {recipe.title}
           </h1>
 
-          {article.subtitle ? (
-            <p className="mt-4 max-w-3xl text-lg leading-relaxed text-slate-700">
-              {article.subtitle}
-            </p>
+          {recipe.description ? (
+            <div className="mt-4 max-w-3xl text-lg leading-relaxed text-slate-700">
+              <RichHtmlRenderer
+                html={recipe.description}
+                className="recipe-rich-description"
+              />
+            </div>
           ) : null}
         </header>
 
-        <div className="relative overflow-hidden rounded-3xl bg-slate-100 shadow-[0_18px_45px_rgba(15,23,42,0.12)]">
-          <div className="relative aspect-[16/9]">
-            <Image
-              src={article.hero}
-              alt={article.title}
-              fill
-              priority
-              className="object-cover"
-            />
+        {recipe.image ? (
+          <div className="relative overflow-hidden rounded-3xl bg-slate-100 shadow-[0_18px_45px_rgba(15,23,42,0.12)]">
+            <div className="relative aspect-[16/9]">
+              <Image
+                src={recipe.image}
+                alt={recipe.title}
+                fill
+                priority
+                className="object-cover"
+              />
+            </div>
           </div>
-        </div>
-
-        <div className="mt-8 rounded-3xl bg-white/85 ring-1 ring-accent/20 shadow-[0_12px_35px_rgba(164,199,126,0.12)] p-6 md:p-8">
-          {article.heading ? (
-            <h2 className="mb-5 text-2xl md:text-3xl font-semibold tracking-tight text-slate-900">
-              {article.heading}
-            </h2>
-          ) : null}
-
-          <RichHtmlRenderer
-            html={article.contentHtml}
-            className="article-rich-content"
-          />
-        </div>
-
-        {article.tags.length > 0 ? (
-          <footer className="mt-8 flex flex-wrap gap-2">
-            {article.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full bg-white px-3 py-1 text-sm text-slate-700 ring-1 ring-slate-200"
-              >
-                #{tag}
-              </span>
-            ))}
-          </footer>
         ) : null}
+
+        <div className="mt-8 grid gap-6 lg:grid-cols-[320px_1fr]">
+          <aside className="space-y-6">
+            <section className="rounded-3xl bg-white/85 ring-1 ring-accent/20 shadow-[0_12px_35px_rgba(164,199,126,0.12)] p-6">
+              <h2 className="text-xl font-semibold tracking-tight text-slate-900">
+                Υλικά
+              </h2>
+
+              {recipe.ingredients.length > 0 ? (
+                <ul className="mt-4 space-y-2 text-slate-700">
+                  {recipe.ingredients.map((ingredient, index) => (
+                    <li key={`${ingredient}-${index}`} className="flex gap-2">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>{ingredient}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-4 text-sm text-slate-600">
+                  Δεν υπάρχουν καταχωρημένα υλικά.
+                </p>
+              )}
+            </section>
+
+            <section className="rounded-3xl bg-white/85 ring-1 ring-accent/20 shadow-[0_12px_35px_rgba(164,199,126,0.12)] p-6">
+              <h2 className="text-xl font-semibold tracking-tight text-slate-900">
+                Πληροφορίες
+              </h2>
+
+              <dl className="mt-4 space-y-3 text-sm">
+                {categoryLabel ? (
+                  <div className="flex items-center justify-between gap-4">
+                    <dt className="text-slate-500">Κατηγορία</dt>
+                    <dd className="font-medium text-slate-800">
+                      {categoryLabel}
+                    </dd>
+                  </div>
+                ) : null}
+
+                <div className="flex items-center justify-between gap-4">
+                  <dt className="text-slate-500">Χρόνος</dt>
+                  <dd className="font-medium text-slate-800">
+                    {formatMin(recipe.minutes)}
+                  </dd>
+                </div>
+
+                {formattedDate ? (
+                  <div className="flex items-center justify-between gap-4">
+                    <dt className="text-slate-500">Ημερομηνία</dt>
+                    <dd className="font-medium text-slate-800">
+                      {formattedDate}
+                    </dd>
+                  </div>
+                ) : null}
+              </dl>
+            </section>
+          </aside>
+
+          <section className="rounded-3xl bg-white/85 ring-1 ring-accent/20 shadow-[0_12px_35px_rgba(164,199,126,0.12)] p-6 md:p-8">
+            <h2 className="mb-5 text-2xl md:text-3xl font-semibold tracking-tight text-slate-900">
+              Εκτέλεση
+            </h2>
+
+            {recipe.instructions ? (
+              <RichHtmlRenderer
+                html={recipe.instructions}
+                className="recipe-rich-content"
+              />
+            ) : (
+              <p className="text-slate-600">
+                Δεν υπάρχουν καταχωρημένες οδηγίες εκτέλεσης.
+              </p>
+            )}
+          </section>
+        </div>
       </article>
     </>
   );
