@@ -7,6 +7,8 @@ import {
   type EbooksGetDto,
   type EbooksPostDto,
 } from "@/api/EbooksController";
+import RichTextEditor from "@/components/admin/RichTextEditor";
+import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 
 const cx = (...c: (string | false | null | undefined)[]) =>
   c.filter(Boolean).join(" ");
@@ -86,15 +88,21 @@ function parseEditableContent(raw?: string | null): EditableEbookContent {
         toc: parseTextList(parsed.toc),
         bonusTemplates:
           parseTextList(parsed.bonusTemplates) || DEFAULT_CONTENT.bonusTemplates,
-        card1Title: String(parsed.cards?.[0]?.title || DEFAULT_CONTENT.card1Title),
+        card1Title: String(
+          parsed.cards?.[0]?.title || DEFAULT_CONTENT.card1Title
+        ),
         card1Description: String(
           parsed.cards?.[0]?.description || DEFAULT_CONTENT.card1Description
         ),
-        card2Title: String(parsed.cards?.[1]?.title || DEFAULT_CONTENT.card2Title),
+        card2Title: String(
+          parsed.cards?.[1]?.title || DEFAULT_CONTENT.card2Title
+        ),
         card2Description: String(
           parsed.cards?.[1]?.description || DEFAULT_CONTENT.card2Description
         ),
-        card3Title: String(parsed.cards?.[2]?.title || DEFAULT_CONTENT.card3Title),
+        card3Title: String(
+          parsed.cards?.[2]?.title || DEFAULT_CONTENT.card3Title
+        ),
         card3Description: String(
           parsed.cards?.[2]?.description || DEFAULT_CONTENT.card3Description
         ),
@@ -143,6 +151,7 @@ function buildEditableContent(c: EditableEbookContent): string {
 function fmtDateHuman(iso: string) {
   try {
     const d = new Date(iso);
+
     return new Intl.DateTimeFormat("el-GR", {
       day: "2-digit",
       month: "long",
@@ -401,6 +410,7 @@ function SingleEbookForm({
           <h2 className="text-xl font-semibold">
             {isExisting ? "Επεξεργασία ebook" : "Δημιουργία ebook"}
           </h2>
+
           <p className="mt-1 text-sm text-slate-500">
             {isExisting
               ? ""
@@ -410,6 +420,7 @@ function SingleEbookForm({
 
         {isExisting && (
           <button
+            type="button"
             onClick={onDelete}
             disabled={saving || deleting}
             className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm text-rose-700 hover:border-rose-300 disabled:opacity-60"
@@ -427,6 +438,7 @@ function SingleEbookForm({
 
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <button
+              type="button"
               onClick={() => onSubmit(draft, content)}
               disabled={saving || deleting}
               className={cx(
@@ -446,6 +458,7 @@ function SingleEbookForm({
             </button>
 
             <button
+              type="button"
               onClick={resetChanges}
               disabled={saving || deleting}
               className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[#8484d1] disabled:opacity-60"
@@ -475,6 +488,7 @@ function BasicEbookFields({
           <label className="block text-sm font-medium text-slate-700">
             Τίτλος
           </label>
+
           <input
             value={draft.title}
             onChange={(e) =>
@@ -488,6 +502,7 @@ function BasicEbookFields({
           <label className="block text-sm font-medium text-slate-700">
             Συγγραφέας
           </label>
+
           <input
             value={draft.author}
             onChange={(e) =>
@@ -503,6 +518,7 @@ function BasicEbookFields({
           <label className="block text-sm font-medium text-slate-700">
             Τιμή (€)
           </label>
+
           <input
             type="number"
             min={0}
@@ -519,6 +535,7 @@ function BasicEbookFields({
           <label className="block text-sm font-medium text-slate-700">
             Ημερομηνία δημοσίευσης
           </label>
+
           <input
             type="date"
             value={toInputDate(draft.publishedAt)}
@@ -540,6 +557,7 @@ function BasicEbookFields({
           <label className="block text-sm font-medium text-slate-700">
             Αρχείο ebook
           </label>
+
           <input
             type="file"
             accept=".pdf,.epub,.doc,.docx"
@@ -559,6 +577,7 @@ function BasicEbookFields({
           <label className="block text-sm font-medium text-slate-700">
             Cover image URL
           </label>
+
           <input
             value={draft.coverImageUrl}
             onChange={(e) =>
@@ -572,6 +591,7 @@ function BasicEbookFields({
           <label className="block text-sm font-medium text-slate-700">
             File URL
           </label>
+
           <input
             value={draft.fileUrl ?? ""}
             onChange={(e) =>
@@ -595,17 +615,17 @@ function EditableContentFields({
   return (
     <>
       <div>
-        <label className="block text-sm font-medium text-slate-700">
+        <label className="block text-sm font-medium text-slate-700 mb-2">
           Περιγραφή ebook
         </label>
-        <textarea
-          rows={3}
+
+        <RichTextEditor
           value={content.description}
-          onChange={(e) =>
-            setContent((c) => ({ ...c, description: e.target.value }))
+          onChange={(html) =>
+            setContent((c) => ({ ...c, description: html }))
           }
-          placeholder="Πιο αναλυτική περιγραφή του ebook"
-          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+          placeholder="Πιο αναλυτική περιγραφή του ebook..."
+          minHeight={180}
         />
       </div>
 
@@ -613,6 +633,7 @@ function EditableContentFields({
         <label className="block text-sm font-medium text-slate-700">
           Πίνακας περιεχομένων
         </label>
+
         <textarea
           rows={6}
           value={content.toc}
@@ -628,6 +649,7 @@ function EditableContentFields({
         <label className="block text-sm font-medium text-slate-700">
           Bonus templates
         </label>
+
         <textarea
           rows={4}
           value={content.bonusTemplates}
@@ -639,7 +661,7 @@ function EditableContentFields({
         />
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-5">
         <h4 className="font-semibold text-slate-800">Κάρτες περιεχομένου</h4>
 
         {[1, 2, 3].map((n) => {
@@ -648,7 +670,7 @@ function EditableContentFields({
             `card${n}Description` as keyof EditableEbookContent;
 
           return (
-            <div key={n} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div key={n} className="space-y-2">
               <input
                 value={content[titleKey]}
                 onChange={(e) =>
@@ -658,19 +680,19 @@ function EditableContentFields({
                   }))
                 }
                 placeholder={`Τίτλος κάρτας ${n}`}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
 
-              <input
-                value={content[descriptionKey]}
-                onChange={(e) =>
+              <RichTextEditor
+                value={String(content[descriptionKey] || "")}
+                onChange={(html) =>
                   setContent((c) => ({
                     ...c,
-                    [descriptionKey]: e.target.value,
+                    [descriptionKey]: html,
                   }))
                 }
-                placeholder={`Περιγραφή κάρτας ${n}`}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                placeholder={`Περιγραφή κάρτας ${n}...`}
+                minHeight={120}
               />
             </div>
           );
@@ -716,7 +738,10 @@ function EbookPreview({
         <p className="mt-1 text-slate-600">{draft.author || "Συγγραφέας"}</p>
 
         {content.description && (
-          <p className="mt-3 text-sm text-slate-600">{content.description}</p>
+          <RichHtmlRenderer
+            html={content.description}
+            className="ebook-rich-content mt-3 text-sm text-slate-600"
+          />
         )}
 
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-700">
@@ -751,7 +776,11 @@ function EbookPreview({
               return (
                 <div key={n} className="rounded-xl bg-slate-50 p-3">
                   <strong>{content[titleKey]}</strong>
-                  <p>{content[descriptionKey]}</p>
+
+                  <RichHtmlRenderer
+                    html={String(content[descriptionKey] || "")}
+                    className="ebook-card-rich-content mt-1"
+                  />
                 </div>
               );
             })}
@@ -761,10 +790,18 @@ function EbookPreview({
         {(draft.fileUrl || draft.file) && (
           <div className="mt-4 text-sm text-slate-600">
             {draft.file
-              ? "Έχει επιλεγεί νέο αρχείο για upload."
-              : "Υπάρχει αποθηκευμένο file URL."}
+              ? `Επιλεγμένο αρχείο: ${draft.file.name}`
+              : `File URL: ${draft.fileUrl}`}
           </div>
         )}
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <p className="text-sm text-slate-500 mb-2">JSON προς backend:</p>
+
+        <pre className="text-xs whitespace-pre-wrap break-words">
+          {buildEditableContent(content)}
+        </pre>
       </div>
     </div>
   );

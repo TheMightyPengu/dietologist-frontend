@@ -12,8 +12,11 @@ import {
   type RecipesGetDto,
   type RecipesPostDto,
 } from "@/api/RecipesController";
+import RichTextEditor from "@/components/admin/RichTextEditor";
+import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 
-const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
+const cx = (...c: (string | false | null | undefined)[]) =>
+  c.filter(Boolean).join(" ");
 
 const fieldClass =
   "mt-1 w-full rounded-lg border-2 border-black-500 bg-white px-3 py-2 shadow-sm outline-none transition " +
@@ -75,7 +78,10 @@ export default function ManagementBlogPage() {
             >
               ← Πίσω στο Dashboard
             </Link>
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">BLOG</h1>
+
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+              BLOG
+            </h1>
           </div>
 
           <Card className="p-4 md:p-5 mb-6">
@@ -86,6 +92,7 @@ export default function ManagementBlogPage() {
               ].map((t) => (
                 <button
                   key={t.key}
+                  type="button"
                   onClick={() => setActive(t.key as Tab)}
                   className={cx(
                     "px-4 py-2 rounded-full text-sm font-medium transition",
@@ -128,7 +135,8 @@ function ArticlesManager() {
     imageFile: null,
   };
 
-  const [createDraft, setCreateDraft] = useState<ArticlesPostDto>(emptyArticle);
+  const [createDraft, setCreateDraft] =
+    useState<ArticlesPostDto>(emptyArticle);
 
   async function load() {
     try {
@@ -146,6 +154,7 @@ function ArticlesManager() {
 
   useEffect(() => {
     if (!toast) return;
+
     const t = setTimeout(() => setToast(null), 1600);
     return () => clearTimeout(t);
   }, [toast]);
@@ -164,7 +173,16 @@ function ArticlesManager() {
   async function onCreateSubmit() {
     try {
       setCreating(true);
-      const created = await ArticlesApi.create(createDraft);
+
+      const created = await ArticlesApi.create({
+        ...createDraft,
+        title: createDraft.title.trim(),
+        subtitle: createDraft.subtitle.trim(),
+        heading: createDraft.heading.trim(),
+        content: createDraft.content.trim(),
+        imageUrl: createDraft.imageUrl?.trim() || "",
+      });
+
       setAll((prev) => [created, ...prev]);
       setToast("Δημιουργήθηκε.");
       setCreateOpen(false);
@@ -180,7 +198,16 @@ function ArticlesManager() {
   async function onSave(id: number, payload: ArticlesPostDto) {
     try {
       setBusyId(id);
-      await ArticlesApi.update(id, payload);
+
+      await ArticlesApi.update(id, {
+        ...payload,
+        title: payload.title.trim(),
+        subtitle: payload.subtitle.trim(),
+        heading: payload.heading.trim(),
+        content: payload.content.trim(),
+        imageUrl: payload.imageUrl?.trim() || "",
+      });
+
       const fresh = await ArticlesApi.get(id);
       setAll((prev) => prev.map((x) => (x.id === id ? fresh : x)));
       setToast("Αποθηκεύτηκε.");
@@ -212,7 +239,9 @@ function ArticlesManager() {
             placeholder="Αναζήτηση άρθρων…"
             className={searchClass}
           />
+
           <button
+            type="button"
             onClick={() => setCreateOpen(true)}
             className="rounded-full px-4 py-2 text-sm font-semibold transition bg-[#8484d1] text-white hover:shadow"
           >
@@ -255,7 +284,7 @@ function ArticlesManager() {
       )}
 
       {toast && (
-        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-slate-900 text-white text-sm px-4 py-2 shadow-lg">
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-slate-900 text-white text-sm px-4 py-2 shadow-lg z-[70]">
           {toast}
         </div>
       )}
@@ -278,10 +307,12 @@ function CreateArticleModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
-      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-slate-200">
+      <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-slate-200">
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <h3 className="text-lg font-semibold">Νέο άρθρο</h3>
+
           <button
+            type="button"
             onClick={onClose}
             className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
           >
@@ -291,34 +322,52 @@ function CreateArticleModal({
 
         <div className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
           <div>
-            <label className="block text-sm font-medium text-slate-700">Τίτλος</label>
+            <label className="block text-sm font-medium text-slate-700">
+              Τίτλος
+            </label>
+
             <input
               value={draft.title}
-              onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, title: e.target.value }))
+              }
               className={fieldClass}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Υπότιτλος</label>
+            <label className="block text-sm font-medium text-slate-700">
+              Υπότιτλος
+            </label>
+
             <input
               value={draft.subtitle}
-              onChange={(e) => setDraft((d) => ({ ...d, subtitle: e.target.value }))}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, subtitle: e.target.value }))
+              }
               className={fieldClass}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Heading</label>
+            <label className="block text-sm font-medium text-slate-700">
+              Heading
+            </label>
+
             <input
               value={draft.heading}
-              onChange={(e) => setDraft((d) => ({ ...d, heading: e.target.value }))}
-              className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, heading: e.target.value }))
+              }
+              className={fieldClass}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Ημ/νία δημοσίευσης</label>
+            <label className="block text-sm font-medium text-slate-700">
+              Ημ/νία δημοσίευσης
+            </label>
+
             <input
               type="date"
               value={draft.publishedAt.slice(0, 10)}
@@ -328,21 +377,29 @@ function CreateArticleModal({
                   publishedAt: new Date(e.target.value).toISOString(),
                 }))
               }
-              className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+              className={fieldClass}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Εικόνα URL</label>
+            <label className="block text-sm font-medium text-slate-700">
+              Εικόνα URL
+            </label>
+
             <input
               value={draft.imageUrl ?? ""}
-              onChange={(e) => setDraft((d) => ({ ...d, imageUrl: e.target.value }))}
-              className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, imageUrl: e.target.value }))
+              }
+              className={fieldClass}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Αρχείο εικόνας</label>
+            <label className="block text-sm font-medium text-slate-700">
+              Αρχείο εικόνας
+            </label>
+
             <input
               type="file"
               accept="image/*"
@@ -357,24 +414,34 @@ function CreateArticleModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Περιεχόμενο</label>
-            <textarea
-              rows={10}
-              value={draft.content}
-              onChange={(e) => setDraft((d) => ({ ...d, content: e.target.value }))}
-              className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-            />
+            <label className="block text-sm font-medium text-slate-700">
+              Περιεχόμενο
+            </label>
+
+            <div className="mt-1">
+              <RichTextEditor
+                value={draft.content}
+                onChange={(html) =>
+                  setDraft((d) => ({ ...d, content: html }))
+                }
+                placeholder="Γράψε το περιεχόμενο του άρθρου..."
+                minHeight={300}
+              />
+            </div>
           </div>
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-5 py-4">
           <button
+            type="button"
             onClick={onClose}
             className="rounded-full border border-slate-400 bg-white px-4 py-2 text-sm hover:border-[#8484d1]"
           >
             Άκυρο
           </button>
+
           <button
+            type="button"
             onClick={onSubmit}
             disabled={creating}
             className={cx(
@@ -412,6 +479,7 @@ function ArticleEditorCard({
     publishedAt: row.publishedAt,
     imageFile: null,
   });
+
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -430,18 +498,26 @@ function ArticleEditorCard({
     <Card className="p-5 md:p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold">{draft.title || "(Χωρίς τίτλο)"}</h3>
-          <p className="text-xs text-slate-500 mt-1">{fmtDate(draft.publishedAt)}</p>
+          <h3 className="text-lg font-semibold">
+            {draft.title || "(Χωρίς τίτλο)"}
+          </h3>
+
+          <p className="text-xs text-slate-500 mt-1">
+            {fmtDate(draft.publishedAt)}
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setOpen((o) => !o)}
             className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
           >
             {open ? "Σύμπτυξη" : "Επέκταση"}
           </button>
+
           <button
+            type="button"
             onClick={() => onDelete(row.id)}
             disabled={busy}
             className="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-sm text-rose-700 hover:border-rose-300"
@@ -455,34 +531,52 @@ function ArticleEditorCard({
         <div className="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700">Τίτλος</label>
+              <label className="block text-sm font-medium text-slate-700">
+                Τίτλος
+              </label>
+
               <input
                 value={draft.title}
-                onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, title: e.target.value }))
+                }
+                className={fieldClass}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">Υπότιτλος</label>
+              <label className="block text-sm font-medium text-slate-700">
+                Υπότιτλος
+              </label>
+
               <input
                 value={draft.subtitle}
-                onChange={(e) => setDraft((d) => ({ ...d, subtitle: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, subtitle: e.target.value }))
+                }
+                className={fieldClass}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">Heading</label>
+              <label className="block text-sm font-medium text-slate-700">
+                Heading
+              </label>
+
               <input
                 value={draft.heading}
-                onChange={(e) => setDraft((d) => ({ ...d, heading: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, heading: e.target.value }))
+                }
+                className={fieldClass}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">Ημ/νία δημοσίευσης</label>
+              <label className="block text-sm font-medium text-slate-700">
+                Ημ/νία δημοσίευσης
+              </label>
+
               <input
                 type="date"
                 value={draft.publishedAt.slice(0, 10)}
@@ -492,22 +586,30 @@ function ArticleEditorCard({
                     publishedAt: new Date(e.target.value).toISOString(),
                   }))
                 }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                className={fieldClass}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">Εικόνα (URL)</label>
+              <label className="block text-sm font-medium text-slate-700">
+                Εικόνα URL
+              </label>
+
               <input
                 value={draft.imageUrl ?? ""}
-                onChange={(e) => setDraft((d) => ({ ...d, imageUrl: e.target.value }))}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, imageUrl: e.target.value }))
+                }
                 placeholder="https://..."
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                className={fieldClass}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">Αρχείο εικόνας</label>
+              <label className="block text-sm font-medium text-slate-700">
+                Αρχείο εικόνας
+              </label>
+
               <input
                 type="file"
                 accept="image/*"
@@ -522,17 +624,25 @@ function ArticleEditorCard({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">Περιεχόμενο</label>
-              <textarea
-                rows={10}
-                value={draft.content}
-                onChange={(e) => setDraft((d) => ({ ...d, content: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-              />
+              <label className="block text-sm font-medium text-slate-700">
+                Περιεχόμενο
+              </label>
+
+              <div className="mt-1">
+                <RichTextEditor
+                  value={draft.content}
+                  onChange={(html) =>
+                    setDraft((d) => ({ ...d, content: html }))
+                  }
+                  placeholder="Γράψε το περιεχόμενο του άρθρου..."
+                  minHeight={320}
+                />
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
+                type="button"
                 onClick={() => onSave(row.id, draft)}
                 disabled={busy}
                 className={cx(
@@ -546,6 +656,7 @@ function ArticleEditorCard({
               </button>
 
               <button
+                type="button"
                 onClick={() =>
                   setDraft({
                     title: row.title,
@@ -568,18 +679,40 @@ function ArticleEditorCard({
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
               <div className="aspect-[16/10] bg-slate-100 relative">
                 {draft.imageUrl ? (
-                  <Image src={draft.imageUrl} alt="" fill className="object-cover" />
+                  <Image
+                    src={draft.imageUrl}
+                    alt=""
+                    fill
+                    className="object-cover"
+                  />
                 ) : null}
               </div>
+
               <div className="px-4 py-3">
                 <h4 className="text-base font-semibold">{draft.title}</h4>
+
                 {draft.subtitle && (
-                  <p className="mt-1 text-sm text-slate-600 line-clamp-2">{draft.subtitle}</p>
+                  <p className="mt-1 text-sm text-slate-600 line-clamp-2">
+                    {draft.subtitle}
+                  </p>
                 )}
+
                 {draft.heading && (
-                  <p className="mt-2 text-xs text-slate-500">{draft.heading}</p>
+                  <p className="mt-2 text-xs text-slate-500">
+                    {draft.heading}
+                  </p>
                 )}
-                <div className="mt-3 text-xs text-slate-600">{fmtDate(draft.publishedAt)}</div>
+
+                {draft.content ? (
+                  <RichHtmlRenderer
+                    html={draft.content}
+                    className="article-rich-content mt-3 text-sm text-slate-700 line-clamp-4"
+                  />
+                ) : null}
+
+                <div className="mt-3 text-xs text-slate-600">
+                  {fmtDate(draft.publishedAt)}
+                </div>
               </div>
             </div>
           </div>
@@ -630,6 +763,7 @@ function RecipesManager() {
 
   useEffect(() => {
     if (!toast) return;
+
     const t = setTimeout(() => setToast(null), 1600);
     return () => clearTimeout(t);
   }, [toast]);
@@ -648,7 +782,17 @@ function RecipesManager() {
   async function onCreateSubmit() {
     try {
       setCreating(true);
-      const created = await RecipesApi.create(createDraft);
+
+      const created = await RecipesApi.create({
+        ...createDraft,
+        title: createDraft.title.trim(),
+        ingredients: createDraft.ingredients.trim(),
+        category: createDraft.category.trim(),
+        instructions: createDraft.instructions.trim(),
+        description: createDraft.description.trim(),
+        imageUrl: createDraft.imageUrl?.trim() || "",
+      });
+
       setAll((prev) => [created, ...prev]);
       setToast("Δημιουργήθηκε.");
       setCreateOpen(false);
@@ -664,7 +808,17 @@ function RecipesManager() {
   async function onSave(id: number, payload: RecipesPostDto) {
     try {
       setBusyId(id);
-      await RecipesApi.update(id, payload);
+
+      await RecipesApi.update(id, {
+        ...payload,
+        title: payload.title.trim(),
+        ingredients: payload.ingredients.trim(),
+        category: payload.category.trim(),
+        instructions: payload.instructions.trim(),
+        description: payload.description.trim(),
+        imageUrl: payload.imageUrl?.trim() || "",
+      });
+
       const fresh = await RecipesApi.get(id);
       setAll((prev) => prev.map((x) => (x.id === id ? fresh : x)));
       setToast("Αποθηκεύτηκε.");
@@ -696,7 +850,9 @@ function RecipesManager() {
             placeholder="Αναζήτηση συνταγών…"
             className={searchClass}
           />
+
           <button
+            type="button"
             onClick={() => setCreateOpen(true)}
             className="rounded-full px-4 py-2 text-sm font-semibold transition bg-[#8484d1] text-white hover:shadow"
           >
@@ -739,7 +895,7 @@ function RecipesManager() {
       )}
 
       {toast && (
-        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-slate-900 text-white text-sm px-4 py-2 shadow-lg">
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-slate-900 text-white text-sm px-4 py-2 shadow-lg z-[70]">
           {toast}
         </div>
       )}
@@ -762,10 +918,12 @@ function CreateRecipeModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
-      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-slate-200">
+      <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-slate-200">
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <h3 className="text-lg font-semibold">Νέα συνταγή</h3>
+
           <button
+            type="button"
             onClick={onClose}
             className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
           >
@@ -775,97 +933,121 @@ function CreateRecipeModal({
 
         <div className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
           <div>
-            <label className="block text-sm font-medium text-slate-700">Τίτλος</label>
+            <label className="block text-sm font-medium text-slate-700">
+              Τίτλος
+            </label>
+
             <input
               value={draft.title}
-              onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
-              className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Κατηγορία</label>
-              <input
-                value={draft.category}
-                onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Χρόνος προετοιμασίας</label>
-              <input
-                type="number"
-                min={0}
-                value={draft.timeToPrepare}
-                onChange={(e) =>
-                  setDraft((d) => ({
-                    ...d,
-                    timeToPrepare: Number(e.target.value),
-                  }))
-                }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Περιγραφή</label>
-            <textarea
-              rows={4}
-              value={draft.description}
-              onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
-              className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, title: e.target.value }))
+              }
+              className={fieldClass}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Υλικά</label>
-            <textarea
-              rows={6}
-              value={draft.ingredients}
-              onChange={(e) => setDraft((d) => ({ ...d, ingredients: e.target.value }))}
-              className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-            />
-          </div>
+            <label className="block text-sm font-medium text-slate-700">
+              Κατηγορία
+            </label>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Οδηγίες</label>
-            <textarea
-              rows={8}
-              value={draft.instructions}
-              onChange={(e) => setDraft((d) => ({ ...d, instructions: e.target.value }))}
-              className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Ημ/νία δημιουργίας</label>
             <input
-              type="date"
-              value={draft.createdAt.slice(0, 10)}
+              value={draft.category}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, category: e.target.value }))
+              }
+              className={fieldClass}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              Χρόνος προετοιμασίας
+            </label>
+
+            <input
+              type="number"
+              min={0}
+              value={draft.timeToPrepare}
               onChange={(e) =>
                 setDraft((d) => ({
                   ...d,
-                  createdAt: new Date(e.target.value).toISOString(),
+                  timeToPrepare: Number(e.target.value),
                 }))
               }
-              className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+              className={fieldClass}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Εικόνα URL</label>
+            <label className="block text-sm font-medium text-slate-700">
+              Περιγραφή
+            </label>
+
+            <div className="mt-1">
+              <RichTextEditor
+                value={draft.description}
+                onChange={(html) =>
+                  setDraft((d) => ({ ...d, description: html }))
+                }
+                placeholder="Γράψε τη σύντομη περιγραφή της συνταγής..."
+                minHeight={180}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              Υλικά
+            </label>
+
+            <textarea
+              rows={6}
+              value={draft.ingredients}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, ingredients: e.target.value }))
+              }
+              placeholder="Ένα υλικό ανά γραμμή"
+              className={fieldClass}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              Οδηγίες
+            </label>
+
+            <div className="mt-1">
+              <RichTextEditor
+                value={draft.instructions}
+                onChange={(html) =>
+                  setDraft((d) => ({ ...d, instructions: html }))
+                }
+                placeholder="Γράψε τις οδηγίες εκτέλεσης..."
+                minHeight={260}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
+              Εικόνα URL
+            </label>
+
             <input
               value={draft.imageUrl ?? ""}
-              onChange={(e) => setDraft((d) => ({ ...d, imageUrl: e.target.value }))}
-              className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, imageUrl: e.target.value }))
+              }
+              className={fieldClass}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Αρχείο εικόνας</label>
+            <label className="block text-sm font-medium text-slate-700">
+              Αρχείο εικόνας
+            </label>
+
             <input
               type="file"
               accept="image/*"
@@ -882,12 +1064,15 @@ function CreateRecipeModal({
 
         <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-5 py-4">
           <button
+            type="button"
             onClick={onClose}
             className="rounded-full border border-slate-400 bg-white px-4 py-2 text-sm hover:border-[#8484d1]"
           >
             Άκυρο
           </button>
+
           <button
+            type="button"
             onClick={onSubmit}
             disabled={creating}
             className={cx(
@@ -927,6 +1112,7 @@ function RecipeEditorCard({
     createdAt: row.createdAt,
     imageFile: null,
   });
+
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -947,20 +1133,26 @@ function RecipeEditorCard({
     <Card className="p-5 md:p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold">{draft.title || "(Χωρίς τίτλο)"}</h3>
+          <h3 className="text-lg font-semibold">
+            {draft.title || "(Χωρίς τίτλο)"}
+          </h3>
+
           <p className="text-xs text-slate-500 mt-1">
-            {draft.category} • {draft.timeToPrepare}’
+            {draft.category || "Χωρίς κατηγορία"} • {draft.timeToPrepare}′
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setOpen((o) => !o)}
             className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
           >
             {open ? "Σύμπτυξη" : "Επέκταση"}
           </button>
+
           <button
+            type="button"
             onClick={() => onDelete(row.id)}
             disabled={busy}
             className="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-sm text-rose-700 hover:border-rose-300"
@@ -974,100 +1166,122 @@ function RecipeEditorCard({
         <div className="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700">Τίτλος</label>
+              <label className="block text-sm font-medium text-slate-700">
+                Τίτλος
+              </label>
+
               <input
                 value={draft.title}
-                onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Κατηγορία</label>
-                <input
-                  value={draft.category}
-                  onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Χρόνος προετοιμασίας</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={draft.timeToPrepare}
-                  onChange={(e) =>
-                    setDraft((d) => ({
-                      ...d,
-                      timeToPrepare: Number(e.target.value),
-                    }))
-                  }
-                  className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Περιγραφή</label>
-              <textarea
-                rows={4}
-                value={draft.description}
-                onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, title: e.target.value }))
+                }
+                className={fieldClass}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">Υλικά</label>
-              <textarea
-                rows={6}
-                value={draft.ingredients}
-                onChange={(e) => setDraft((d) => ({ ...d, ingredients: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-                placeholder="Βάλε τα υλικά όπως τα δέχεται το backend"
-              />
-            </div>
+              <label className="block text-sm font-medium text-slate-700">
+                Κατηγορία
+              </label>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Οδηγίες</label>
-              <textarea
-                rows={8}
-                value={draft.instructions}
-                onChange={(e) => setDraft((d) => ({ ...d, instructions: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-                placeholder="Βάλε τα βήματα όπως τα δέχεται το backend"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Ημ/νία δημιουργίας</label>
               <input
-                type="date"
-                value={draft.createdAt.slice(0, 10)}
+                value={draft.category}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, category: e.target.value }))
+                }
+                className={fieldClass}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700">
+                Χρόνος προετοιμασίας
+              </label>
+
+              <input
+                type="number"
+                min={0}
+                value={draft.timeToPrepare}
                 onChange={(e) =>
                   setDraft((d) => ({
                     ...d,
-                    createdAt: new Date(e.target.value).toISOString(),
+                    timeToPrepare: Number(e.target.value),
                   }))
                 }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                className={fieldClass}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">Εικόνα (URL)</label>
+              <label className="block text-sm font-medium text-slate-700">
+                Περιγραφή
+              </label>
+
+              <div className="mt-1">
+                <RichTextEditor
+                  value={draft.description}
+                  onChange={(html) =>
+                    setDraft((d) => ({ ...d, description: html }))
+                  }
+                  placeholder="Γράψε τη σύντομη περιγραφή της συνταγής..."
+                  minHeight={180}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700">
+                Υλικά
+              </label>
+
+              <textarea
+                rows={6}
+                value={draft.ingredients}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, ingredients: e.target.value }))
+                }
+                placeholder="Ένα υλικό ανά γραμμή"
+                className={fieldClass}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700">
+                Οδηγίες
+              </label>
+
+              <div className="mt-1">
+                <RichTextEditor
+                  value={draft.instructions}
+                  onChange={(html) =>
+                    setDraft((d) => ({ ...d, instructions: html }))
+                  }
+                  placeholder="Γράψε τις οδηγίες εκτέλεσης..."
+                  minHeight={280}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700">
+                Εικόνα URL
+              </label>
+
               <input
                 value={draft.imageUrl ?? ""}
-                onChange={(e) => setDraft((d) => ({ ...d, imageUrl: e.target.value }))}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, imageUrl: e.target.value }))
+                }
                 placeholder="https://..."
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                className={fieldClass}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">Αρχείο εικόνας</label>
+              <label className="block text-sm font-medium text-slate-700">
+                Αρχείο εικόνας
+              </label>
+
               <input
                 type="file"
                 accept="image/*"
@@ -1081,8 +1295,9 @@ function RecipeEditorCard({
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
+                type="button"
                 onClick={() => onSave(row.id, draft)}
                 disabled={busy}
                 className={cx(
@@ -1096,6 +1311,7 @@ function RecipeEditorCard({
               </button>
 
               <button
+                type="button"
                 onClick={() =>
                   setDraft({
                     title: row.title,
@@ -1120,18 +1336,32 @@ function RecipeEditorCard({
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
               <div className="aspect-[16/10] bg-slate-100 relative">
                 {draft.imageUrl ? (
-                  <Image src={draft.imageUrl} alt="" fill className="object-cover" />
+                  <Image
+                    src={draft.imageUrl}
+                    alt=""
+                    fill
+                    className="object-cover"
+                  />
                 ) : null}
               </div>
+
               <div className="px-4 py-3">
-                <div className="flex items-center gap-2 text-xs text-slate-600">
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5">{draft.category}</span>
-                  <span>•</span>
-                  <span>{draft.timeToPrepare}’</span>
+                <h4 className="text-base font-semibold">{draft.title}</h4>
+
+                <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
+                  <span>{draft.category}</span>
+                  <span>{draft.timeToPrepare}′</span>
                 </div>
-                <h4 className="mt-2 text-base font-semibold">{draft.title}</h4>
-                {draft.description && (
-                  <p className="mt-2 text-sm text-slate-600 line-clamp-3">{draft.description}</p>
+
+                {draft.description ? (
+                  <RichHtmlRenderer
+                    html={draft.description}
+                    className="recipe-rich-content mt-3 text-sm text-slate-700 line-clamp-4"
+                  />
+                ) : (
+                  <p className="mt-3 text-sm text-slate-500">
+                    Δεν υπάρχει περιγραφή.
+                  </p>
                 )}
               </div>
             </div>

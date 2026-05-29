@@ -4,18 +4,21 @@ import { useEffect, useMemo, useState } from "react";
 import type { GetServerSideProps } from "next";
 import Image from "next/image";
 import { ArticlesApi, type ArticlesGetDto } from "@/api/ArticlesController";
+import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 
 type Article = {
   id: number;
   slug: string;
   title: string;
+  subtitle: string;
+  heading: string;
   excerpt: string;
   category: "Διατροφή" | "Ευεξία" | "Συνταγές" | "Επιστήμη";
   dateISO: string;
   readMinutes: number;
   hero: string;
   tags: string[];
-  content: string[];
+  contentHtml: string;
 };
 
 function slugifyArticle(title: string, id: number) {
@@ -39,79 +42,36 @@ function slugifyArticle(title: string, id: number) {
   return `${base || "article"}-${id}`;
 }
 
+function stripHtml(value: string) {
+  return (value || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function estimateReadMinutes(text: string) {
-  const words = (text || "").trim().split(/\s+/).filter(Boolean).length;
+  const words = stripHtml(text).split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.ceil(words / 200));
 }
 
-function mapContentToBlocks(dto: ArticlesGetDto): string[] {
-  const blocks: string[] = [];
-
-  // Το backend έχει Heading αλλά όχι δομημένα content blocks.
-  // Προσωρινά βάζουμε το heading σαν πρώτο section title αν υπάρχει.
-  if (dto.heading?.trim()) {
-    blocks.push(`# ${dto.heading.trim()}`);
-  }
-
-  // Το backend έχει Content σαν απλό string.
-  // Προσωρινά το σπάμε σε paragraphs με διπλά line breaks.
-  const cleanContent = (dto.content || "").trim();
-
-  if (cleanContent) {
-    const paragraphs = cleanContent
-      .split(/\n\s*\n/)
-      .map((p) => p.trim())
-      .filter(Boolean);
-
-    if (paragraphs.length > 0) {
-      blocks.push(...paragraphs);
-    }
-  }
-
-  // Fallback αν λείπει content
-  if (blocks.length === 0) {
-    blocks.push("Δεν υπάρχει διαθέσιμο περιεχόμενο για αυτό το άρθρο.");
-  }
-
-  return blocks;
-}
-
 function mapArticleDtoToUi(dto: ArticlesGetDto): Article {
+  const plainContent = stripHtml(dto.content);
+
   return {
     id: dto.id,
     slug: slugifyArticle(dto.title, dto.id),
     title: dto.title,
-
-    // Το backend δεν δίνει excerpt.
-    // Προσωρινά χρησιμοποιούμε subtitle ή μικρό κομμάτι από content.
-    excerpt:
-      dto.subtitle?.trim() ||
-      dto.content?.replace(/<[^>]*>/g, "").slice(0, 160) ||
-      "",
-
-    // Το backend δεν δίνει category.
-    // Placeholder μέχρι να προστεθεί.
+    subtitle: dto.subtitle ?? "",
+    heading: dto.heading ?? "",
+    excerpt: dto.subtitle?.trim() || plainContent.slice(0, 160) || "",
     category: "Διατροφή",
-
     dateISO: dto.publishedAt,
-
-    // Το backend δεν δίνει readMinutes.
-    // Πρόχειρος υπολογισμός από το content.
     readMinutes: estimateReadMinutes(dto.content),
-
-    // Το backend δίνει imageUrl.
-    // Fallback προσωρινό αν λείπει.
     hero:
       dto.imageUrl ||
       "https://via.placeholder.com/1200x750?text=Article+Image",
-
-    // Το backend δεν δίνει tags.
-    // Placeholder μέχρι να προστεθούν.
     tags: [],
-
-    // Το backend δεν δίνει structured blocks.
-    // Τα φτιάχνουμε προσωρινά από heading + content.
-    content: mapContentToBlocks(dto),
+    contentHtml: dto.content || "",
   };
 }
 
@@ -149,7 +109,7 @@ export default function ArticlePage({ article }: { article: Article }) {
         month: "2-digit",
         year: "numeric",
       }),
-    [article.dateISO],
+    [article.dateISO]
   );
 
   const [progress, setProgress] = useState(0);
@@ -161,11 +121,13 @@ export default function ArticlePage({ article }: { article: Article }) {
       const scrollHeight = doc.scrollHeight || document.body.scrollHeight;
       const clientHeight = doc.clientHeight;
       const total = Math.max(1, scrollHeight - clientHeight);
+
       setProgress(Math.min(1, Math.max(0, scrollTop / total)));
     };
 
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
+
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
@@ -176,7 +138,9 @@ export default function ArticlePage({ article }: { article: Article }) {
         <meta name="description" content={article.excerpt} />
         <link
           rel="canonical"
-          href={`https://example.com/articles/${encodeURIComponent(article.slug)}`}
+          href={`https://example.com/articles/${encodeURIComponent(
+            article.slug
+          )}`}
         />
         <meta property="og:type" content="article" />
         <meta property="og:title" content={`${article.title} — Άρθρα`} />
@@ -226,90 +190,54 @@ export default function ArticlePage({ article }: { article: Article }) {
             </span>
           </div>
 
-          <h1 className="mt-2 max-w-[22ch] text-3xl md:text-4xl font-semibold tracking-tight leading-[1.1]">
+          <h1 className="mt-2 max-w-[22ch] text-3xl md:text-4xl font-semibold tracking-tight leading-[1.1] text-slate-900">
             {article.title}
           </h1>
 
-          <div className="mt-6 overflow-hidden rounded-3xl ring-1 ring-black/5 bg-white/90">
-            <div className="relative">
-              <Image
-                src={article.hero}
-                alt={article.title}
-                width={1000}
-                height={650}
-                className="w-full h-auto object-cover"
-                priority
-              />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/10 to-transparent" />
-            </div>
-          </div>
+          {article.subtitle ? (
+            <p className="mt-4 max-w-3xl text-lg leading-relaxed text-slate-700">
+              {article.subtitle}
+            </p>
+          ) : null}
         </header>
 
-        <div
-          className={[
-            "prose prose-slate max-w-none",
-            "prose-headings:scroll-mt-24",
-            "prose-p:leading-relaxed",
-            "prose-a:font-medium prose-a:text-primary",
-            "prose-a:no-underline hover:prose-a:underline",
-            "prose-a:focus:outline-none prose-a:focus-visible:ring-4 prose-a:focus-visible:ring-primary/20 prose-a:rounded",
-            "prose-ul:pl-6 prose-ul:my-4 prose-ul:list-disc",
-            "prose-li:my-0",
-            "prose-ul:space-y-2",
-            "prose-li:marker:text-slate-400",
-          ].join(" ")}
-        >
-          <div className="max-w-[68ch]">
-            {article.content.map((block, i) => {
-              if (block.startsWith("# ")) {
-                return (
-                  <h2 key={i} className="text-lg font-semibold mt-10 mb-3">
-                    {block.replace("# ", "")}
-                  </h2>
-                );
-              }
-
-              if (block.startsWith("## ")) {
-                return (
-                  <h3 key={i} className="text-lg font-semibold mt-10 mb-3">
-                    {block.replace("## ", "")}
-                  </h3>
-                );
-              }
-
-              if (block.startsWith("• ")) {
-                const items = block
-                  .split("• ")
-                  .filter(Boolean)
-                  .map((s) => s.trim());
-
-                return (
-                  <ul key={i} className="my-4 list-disc pl-6 space-y-2 marker:text-slate-400">
-                    {items.map((li, idx) => (
-                      <li key={idx}>{li}</li>
-                    ))}
-                  </ul>
-                );
-              }
-
-              return <p key={i}>{block}</p>;
-            })}
-
-            {article.tags.length > 0 && (
-              <div className="mt-10 flex flex-wrap gap-2">
-                {article.tags.map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/15 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
-                  >
-                    #{t}
-                  </button>
-                ))}
-              </div>
-            )}
+        <div className="relative overflow-hidden rounded-3xl bg-slate-100 shadow-[0_18px_45px_rgba(15,23,42,0.12)]">
+          <div className="relative aspect-[16/9]">
+            <Image
+              src={article.hero}
+              alt={article.title}
+              fill
+              priority
+              className="object-cover"
+            />
           </div>
         </div>
+
+        <div className="mt-8 rounded-3xl bg-white/85 ring-1 ring-accent/20 shadow-[0_12px_35px_rgba(164,199,126,0.12)] p-6 md:p-8">
+          {article.heading ? (
+            <h2 className="mb-5 text-2xl md:text-3xl font-semibold tracking-tight text-slate-900">
+              {article.heading}
+            </h2>
+          ) : null}
+
+          <RichHtmlRenderer
+            html={article.contentHtml}
+            className="article-rich-content"
+          />
+        </div>
+
+        {article.tags.length > 0 ? (
+          <footer className="mt-8 flex flex-wrap gap-2">
+            {article.tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-white px-3 py-1 text-sm text-slate-700 ring-1 ring-slate-200"
+              >
+                #{tag}
+              </span>
+            ))}
+          </footer>
+        ) : null}
       </article>
     </>
   );

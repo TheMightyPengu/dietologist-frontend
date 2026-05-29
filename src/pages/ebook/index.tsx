@@ -2,6 +2,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { EbooksApi, type EbooksGetDto } from "../../api/EbooksController";
+import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 
 type EbookCard = {
   title: string;
@@ -51,10 +52,33 @@ const DEFAULT_CARDS: EbookCard[] = [
 function IconCheckList(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden {...props}>
-      <path d="M9 6h12M9 12h12M9 18h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M3.5 6.2l1.2 1.3L7 5.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M3.5 12.2l1.2 1.3L7 11.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M3.5 18.2l1.2 1.3L7 17.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M9 6h12M9 12h12M9 18h12"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M3.5 6.2l1.2 1.3L7 5.2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M3.5 12.2l1.2 1.3L7 11.2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M3.5 18.2l1.2 1.3L7 17.2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -62,11 +86,37 @@ function IconCheckList(props: React.SVGProps<SVGSVGElement>) {
 function IconTarget(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden {...props}>
-      <path d="M12 21a9 9 0 1 1 9-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 17a5 5 0 1 1 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 13a1 1 0 1 1 1-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M21 3l-7.2 7.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M15.8 3H21v5.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M12 21a9 9 0 1 1 9-9"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 17a5 5 0 1 1 5-5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 13a1 1 0 1 1 1-1"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M21 3l-7.2 7.2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M15.8 3H21v5.2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -74,14 +124,32 @@ function IconTarget(props: React.SVGProps<SVGSVGElement>) {
 function IconBeaker(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden {...props}>
-      <path d="M9 3h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M10 3v6l-4.8 8.6A3 3 0 0 0 7.8 22h8.4a3 3 0 0 0 2.6-4.4L14 9V3" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-      <path d="M8 16h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path
+        d="M9 3h6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M10 3v6l-4.8 8.6A3 3 0 0 0 7.8 22h8.4a3 3 0 0 0 2.6-4.4L14 9V3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8 16h8"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
-function parseEbookContent(raw?: string | null, author?: string): EbookContentData {
+function parseEbookContent(
+  raw?: string | null,
+  author?: string
+): EbookContentData {
   const fallbackDescription = `Ένας πρακτικός οδηγός από τον/την ${
     author || "διαιτολόγο"
   }.`;
@@ -100,8 +168,10 @@ function parseEbookContent(raw?: string | null, author?: string): EbookContentDa
 
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
       return {
-        description: parsed.description || fallbackDescription,
-        toc: Array.isArray(parsed.toc) ? parsed.toc.map(String).filter(Boolean) : [],
+        description: String(parsed.description || fallbackDescription),
+        toc: Array.isArray(parsed.toc)
+          ? parsed.toc.map(String).filter(Boolean)
+          : [],
         bonusTemplates: Array.isArray(parsed.bonusTemplates)
           ? parsed.bonusTemplates.map(String).filter(Boolean)
           : ["Πρακτικό υλικό", "Οδηγός εφαρμογής"],
@@ -239,6 +309,7 @@ export default function EbookPage() {
               <div className="flex justify-center md:justify-start">
                 <div className="relative w-full max-w-[520px]">
                   <div className="absolute inset-0 rounded-2xl bg-white/30 blur-2xl" />
+
                   <div
                     className={[
                       "relative rounded-2xl overflow-hidden",
@@ -254,6 +325,7 @@ export default function EbookPage() {
                       className="h-full w-full bg-cover bg-center"
                       style={{ backgroundImage: `url(${ebook.cover})` }}
                     />
+
                     <div className="pointer-events-none absolute inset-0 ring-1 ring-white/20" />
                   </div>
                 </div>
@@ -268,9 +340,10 @@ export default function EbookPage() {
                   {ebook.title}
                 </h2>
 
-                <p className="mt-2 text-slate-600 leading-relaxed md:leading-7 max-w-prose">
-                  {ebook.description}
-                </p>
+                <RichHtmlRenderer
+                  html={ebook.description}
+                  className="ebook-rich-content mt-2 text-slate-600 leading-relaxed md:leading-7 max-w-prose"
+                />
 
                 <div className="mt-3 text-sm text-slate-500">
                   Συγγραφέας: {ebook.author}
@@ -342,9 +415,11 @@ export default function EbookPage() {
                         <h3 className="font-semibold text-lg text-slate-900">
                           {card.title}
                         </h3>
-                        <p className="text-slate-600 mt-1 leading-relaxed">
-                          {card.description}
-                        </p>
+
+                        <RichHtmlRenderer
+                          html={card.description}
+                          className="ebook-card-rich-content text-slate-600 mt-1 leading-relaxed"
+                        />
                       </div>
                     </div>
                   </div>
@@ -361,6 +436,7 @@ export default function EbookPage() {
                 <div className="grid sm:grid-cols-2 gap-8">
                   <div>
                     <h3 className="text-xl font-semibold">Περιεχόμενα</h3>
+
                     <ul className="mt-3 space-y-2 text-white/95">
                       {ebook.toc.length > 0 ? (
                         ebook.toc.map((entry, idx) => (
@@ -371,6 +447,7 @@ export default function EbookPage() {
                             <span className="mt-1 select-none text-white/90">
                               •
                             </span>
+
                             <span>{entry}</span>
                           </li>
                         ))
@@ -384,6 +461,7 @@ export default function EbookPage() {
 
                   <div>
                     <h3 className="text-xl font-semibold">Bonus templates</h3>
+
                     <ul className="mt-3 space-y-2 text-white/95">
                       {ebook.bonusTemplates.map((entry, idx) => (
                         <li
@@ -393,6 +471,7 @@ export default function EbookPage() {
                           <span className="mt-1 select-none text-white/90">
                             •
                           </span>
+
                           <span>{entry}</span>
                         </li>
                       ))}

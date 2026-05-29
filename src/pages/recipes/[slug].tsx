@@ -1,477 +1,244 @@
-// pages/recipes/[slug].tsx
 import Head from "next/head";
 import Link from "next/link";
-import { useRouter } from "next/router";
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import type { GetServerSideProps } from "next";
+import Image from "next/image";
+import { ArticlesApi, type ArticlesGetDto } from "@/api/ArticlesController";
+import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 
-import { RecipesApi, type RecipesGetDto } from "@/api/RecipesController";
-
-// -------------------- Types --------------------
-type Recipe = {
+type Article = {
   id: number;
   slug: string;
   title: string;
-  category: string;
-  minutes: number;
-  description: string;
-  instructions: string;
-  ingredients: string[];
-  image: string;
-  createdAt: string;
+  subtitle: string;
+  heading: string;
+  excerpt: string;
+  category: "Διατροφή" | "Ευεξία" | "Συνταγές" | "Επιστήμη";
+  dateISO: string;
+  readMinutes: number;
+  hero: string;
+  tags: string[];
+  contentHtml: string;
 };
 
-// -------------------- Labels --------------------
-const CATEGORY_LABELS: Record<string, string> = {
-  Breakfast: "Πρωινό",
-  Main: "Κυρίως",
-  Snack: "Σνακ",
-  Drink: "Ρόφημα",
-  Dessert: "Γλυκό",
-  Salad: "Σαλάτα",
-};
-
-// -------------------- Utils --------------------
-function formatMin(m: number) {
-  return m <= 60 ? `${m}′` : `${Math.floor(m / 60)} ώ ${m % 60}′`;
-}
-
-function stripGreekAccents(s: string) {
-  return s
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/ς/g, "σ");
-}
-
-function toGreekSlug(s: string) {
-  return stripGreekAccents(s)
+function slugifyArticle(title: string, id: number) {
+  const base = (title || `article-${id}`)
     .toLowerCase()
-    .replace(/[^a-z0-9\u0370-\u03FF\s-]/g, "")
     .trim()
+    .replace(/ά/g, "α")
+    .replace(/έ/g, "ε")
+    .replace(/ή/g, "η")
+    .replace(/ί/g, "ι")
+    .replace(/ό/g, "ο")
+    .replace(/ύ/g, "υ")
+    .replace(/ώ/g, "ω")
+    .replace(/ϊ|ΐ/g, "ι")
+    .replace(/ϋ|ΰ/g, "υ")
+    .replace(/ς/g, "σ")
+    .replace(/[^a-z0-9α-ω\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
+
+  return `${base || "article"}-${id}`;
 }
 
-function classNames(...xs: Array<string | false | null | undefined>) {
-  return xs.filter(Boolean).join(" ");
+function stripHtml(value: string) {
+  return (value || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-function parseIngredients(value: string | null | undefined): string[] {
-  if (!value) return [];
-
-  return value
-    .split(/[\n,;•]+/g)
-    .map((x) => x.trim())
-    .filter(Boolean);
+function estimateReadMinutes(text: string) {
+  const words = stripHtml(text).split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(words / 200));
 }
 
-function parseInstructions(value: string | null | undefined): string[] {
-  if (!value) return [];
+function mapArticleDtoToUi(dto: ArticlesGetDto): Article {
+  const plainContent = stripHtml(dto.content);
 
-  const lines = value
-    .split(/\n+/g)
-    .map((x) => x.trim())
-    .filter(Boolean);
-
-  if (lines.length > 1) return lines;
-
-  return value
-    .split(/[.;]+/g)
-    .map((x) => x.trim())
-    .filter(Boolean);
-}
-
-function mapRecipe(dto: RecipesGetDto): Recipe {
   return {
     id: dto.id,
-    slug: String(dto.id),
-    title: dto.title ?? "",
-    category: dto.category ?? "",
-    minutes: dto.timeToPrepare ?? 0,
-    description: dto.description ?? "",
-    instructions: dto.instructions ?? "",
-    ingredients: parseIngredients(dto.ingredients),
-    image: dto.imageUrl ?? "",
-    createdAt: dto.createdAt ?? "",
+    slug: slugifyArticle(dto.title, dto.id),
+    title: dto.title,
+    subtitle: dto.subtitle ?? "",
+    heading: dto.heading ?? "",
+    excerpt: dto.subtitle?.trim() || plainContent.slice(0, 160) || "",
+    category: "Διατροφή",
+    dateISO: dto.publishedAt,
+    readMinutes: estimateReadMinutes(dto.content),
+    hero:
+      dto.imageUrl ||
+      "https://via.placeholder.com/1200x750?text=Article+Image",
+    tags: [],
+    contentHtml: dto.content || "",
   };
 }
 
-// -------------------- UI bits --------------------
-function GlassChip({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <span
-      className={classNames(
-        "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold",
-        "bg-white/70 text-slate-800 ring-1 ring-black/10 backdrop-blur shadow-sm",
-        className
-      )}
-    >
-      {children}
-    </span>
-  );
-}
+type PageProps = {
+  article: Article;
+};
 
-function ClockIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
-      <path
-        d="M12 7v6l4 2"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
+export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
+  try {
+    const slug = String(ctx.params?.slug || "");
+    const data = await ArticlesApi.list();
+    const articles = data.map(mapArticleDtoToUi);
+    const article = articles.find((a) => a.slug === slug);
 
-function ImagePlaceholderIcon() {
-  return (
-    <svg
-      width="26"
-      height="26"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M4 7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-      />
-      <path
-        d="M8 14.5 10.5 12l3 3 2-2.2 2.5 2.7"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9 9.2a1.2 1.2 0 1 0 0 .01"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-// -------------------- Page --------------------
-export default function RecipeDetail() {
-  const router = useRouter();
-  const { query, isReady, asPath } = router;
-  const rawParam = (query.slug as string) || "";
-
-  const [recipe, setRecipe] = useState<Recipe | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-
-  useEffect(() => {
-    if (!isReady || !rawParam) return;
-
-    let mounted = true;
-
-    async function loadRecipe() {
-      try {
-        setIsLoading(true);
-        setNotFound(false);
-
-        const id = Number(rawParam);
-
-        if (!Number.isNaN(id)) {
-          const data = await RecipesApi.get(id);
-          if (!mounted) return;
-          setRecipe(mapRecipe(data));
-          return;
-        }
-
-        const list = await RecipesApi.list();
-        if (!mounted) return;
-
-        const mapped = list.map(mapRecipe);
-        const found = mapped.find((r) => toGreekSlug(r.title) === rawParam);
-
-        if (!found) {
-          setRecipe(null);
-          setNotFound(true);
-          return;
-        }
-
-        setRecipe(found);
-      } catch (error) {
-        if (!mounted) return;
-        console.error(error);
-        setRecipe(null);
-        setNotFound(true);
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
+    if (!article) {
+      return { notFound: true };
     }
 
-    loadRecipe();
-
-    return () => {
-      mounted = false;
+    return {
+      props: {
+        article,
+      },
     };
-  }, [isReady, rawParam]);
+  } catch (error) {
+    console.error("Failed to fetch article by slug:", error);
+    return { notFound: true };
+  }
+};
 
-  const steps = useMemo(
-    () => parseInstructions(recipe?.instructions),
-    [recipe?.instructions]
+export default function ArticlePage({ article }: { article: Article }) {
+  const formattedDate = useMemo(
+    () =>
+      new Date(article.dateISO).toLocaleDateString("el-GR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }),
+    [article.dateISO]
   );
 
-  if (!isReady || isLoading) {
-    return (
-      <main className="bg-bg text-slate-800">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10">
-          <div className="h-10 w-40 rounded-full bg-slate-200 animate-pulse" />
-          <div className="mt-6 h-10 w-2/3 rounded bg-slate-200 animate-pulse" />
-          <div className="mt-3 flex gap-2">
-            <div className="h-8 w-24 rounded-full bg-slate-200 animate-pulse" />
-            <div className="h-8 w-20 rounded-full bg-slate-200 animate-pulse" />
-          </div>
-          <div className="mt-6 aspect-[16/9] rounded-2xl bg-slate-200 animate-pulse" />
-        </div>
-      </main>
-    );
-  }
+  const [progress, setProgress] = useState(0);
 
-  if (notFound || !recipe) {
-    return (
-      <>
-        <Head>
-          <title>Συνταγή δεν βρέθηκε — NutriClinic</title>
-          <link
-            rel="canonical"
-            href={`https://example.gr${asPath.split("?")[0]}`}
-          />
-        </Head>
+  useEffect(() => {
+    const onScroll = () => {
+      const doc = document.documentElement;
+      const scrollTop = doc.scrollTop || document.body.scrollTop;
+      const scrollHeight = doc.scrollHeight || document.body.scrollHeight;
+      const clientHeight = doc.clientHeight;
+      const total = Math.max(1, scrollHeight - clientHeight);
 
-        <main className="bg-bg text-slate-800">
-          <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-12">
-            <p className="mb-6 text-slate-700">Η συνταγή δεν βρέθηκε.</p>
-            <Link
-              href="/recipes"
-              className={classNames(
-                "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold",
-                "bg-white/70 ring-1 ring-black/10 shadow-sm backdrop-blur",
-                "hover:shadow-[0_12px_28px_rgba(15,23,42,0.10)] transition",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              )}
-            >
-              <span aria-hidden="true">←</span> Επιστροφή στις συνταγές
-            </Link>
-          </div>
-        </main>
-      </>
-    );
-  }
+      setProgress(Math.min(1, Math.max(0, scrollTop / total)));
+    };
 
-  const pretty = toGreekSlug(recipe.title);
-  const hasImage = Boolean(recipe.image);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <>
       <Head>
-        <title>{recipe.title} — NutriClinic</title>
-        <meta
-          name="description"
-          content={recipe.description || `${recipe.title} • Χρόνος: ${formatMin(recipe.minutes)}`}
+        <title>{`${article.title} — Άρθρα`}</title>
+        <meta name="description" content={article.excerpt} />
+        <link
+          rel="canonical"
+          href={`https://example.com/articles/${encodeURIComponent(
+            article.slug
+          )}`}
         />
-        <link rel="canonical" href={`https://example.gr/recipes/${pretty}`} />
+        <meta property="og:type" content="article" />
+        <meta property="og:title" content={`${article.title} — Άρθρα`} />
+        <meta property="og:description" content={article.excerpt} />
+        <meta property="og:image" content={article.hero} />
+        <meta property="og:locale" content="el_GR" />
+        <meta name="twitter:card" content="summary_large_image" />
       </Head>
 
-      <main className="bg-bg text-slate-800">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10">
+      <div className="fixed left-0 top-0 z-50 h-0.5 w-full bg-transparent">
+        <div
+          className="h-full bg-primary transition-[width] duration-75"
+          style={{ width: `${progress * 100}%` }}
+          aria-hidden
+        />
+      </div>
+
+      <article className="mx-auto max-w-4xl px-4 md:px-6 lg:px-8 py-8">
+        <div className="mb-4">
           <Link
-            href="/recipes"
-            className={classNames(
-              "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold",
-              "bg-white/70 ring-1 ring-black/10 shadow-sm backdrop-blur",
-              "hover:shadow-[0_12px_28px_rgba(15,23,42,0.10)] transition",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            )}
+            href="/articles"
+            className="inline-flex items-center gap-2 rounded-xl bg-white/70 px-3 py-2 text-sm font-medium text-slate-800 ring-1 ring-slate-200 hover:bg-white transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
           >
-            <span aria-hidden="true">←</span> Πίσω στις συνταγές
+            <span aria-hidden>←</span>
+            Πίσω στα άρθρα
           </Link>
+        </div>
 
-          <header className="mt-5">
-            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-              {recipe.title}
-            </h1>
+        <header className="mb-7">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+            <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white/95">
+              {article.category}
+            </span>
 
-            <div className="mt-3 flex flex-wrap gap-2">
-              {recipe.category && (
-                <GlassChip>{CATEGORY_LABELS[recipe.category] ?? recipe.category}</GlassChip>
-              )}
-              <GlassChip>
-                <ClockIcon />
-                {formatMin(recipe.minutes)}
-              </GlassChip>
-            </div>
+            <span className="inline-flex items-center gap-1.5 tabular-nums">
+              <span aria-hidden>📅</span>
+              <span>Δημοσίευση: {formattedDate}</span>
+            </span>
 
-            {recipe.description && (
-              <p className="mt-4 max-w-3xl text-slate-600 leading-7">
-                {recipe.description}
-              </p>
-            )}
-          </header>
+            <span className="text-slate-300" aria-hidden>
+              •
+            </span>
 
-          <div
-            className={classNames(
-              "mt-6 overflow-hidden rounded-2xl",
-              "bg-white/90 ring-1 ring-black/5 shadow-[0_12px_28px_rgba(15,23,42,0.08)]"
-            )}
-          >
-            <div className="relative aspect-[16/9] w-full">
-              {hasImage ? (
-                <Image
-                  src={recipe.image}
-                  alt={recipe.title}
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 1024px"
-                  className="object-cover"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-accent/10 to-warm/15">
-                  <div className="absolute inset-0 grid place-items-center">
-                    <div className="flex flex-col items-center gap-2 text-slate-600">
-                      <ImagePlaceholderIcon />
-                      <div className="text-xs font-medium">Χωρίς εικόνα</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-                {recipe.category && (
-                  <GlassChip>{CATEGORY_LABELS[recipe.category] ?? recipe.category}</GlassChip>
-                )}
-                <GlassChip>
-                  <ClockIcon />
-                  {formatMin(recipe.minutes)}
-                </GlassChip>
-              </div>
-            </div>
+            <span className="inline-flex items-center gap-1.5 tabular-nums">
+              <span aria-hidden>⏱</span>
+              <span>{article.readMinutes}′ ανάγνωση</span>
+            </span>
           </div>
 
-          <section className="mt-8 grid gap-6 lg:grid-cols-12">
-            <aside className="lg:col-span-4">
-              <div className="lg:sticky lg:top-6">
-                <div
-                  className={classNames(
-                    "rounded-2xl bg-white/90 ring-1 ring-black/5",
-                    "shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
-                  )}
-                >
-                  <div className="px-5 pt-5">
-                    <h2 className="text-lg font-semibold">Υλικά</h2>
-                    <p className="mt-1 text-sm text-slate-600">
-                      Ό,τι θα χρειαστείς για τη συνταγή.
-                    </p>
-                  </div>
+          <h1 className="mt-2 max-w-[22ch] text-3xl md:text-4xl font-semibold tracking-tight leading-[1.1] text-slate-900">
+            {article.title}
+          </h1>
 
-                  <div className="px-5 pb-5 pt-4">
-                    {recipe.ingredients.length > 0 ? (
-                      <ul className="space-y-2">
-                        {recipe.ingredients.map((ing) => (
-                          <li
-                            key={ing}
-                            className={classNames(
-                              "flex items-start gap-3 rounded-xl px-3 py-2",
-                              "hover:bg-black/5 transition"
-                            )}
-                          >
-                            <span
-                              className={classNames(
-                                "mt-[0.55rem] h-1.5 w-1.5 shrink-0 rounded-full",
-                                "bg-accent ring-1 ring-accent/30"
-                              )}
-                              aria-hidden="true"
-                            />
-                            <span className="text-sm leading-6 text-slate-800">
-                              {ing}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-sm text-slate-600">
-                        Τα υλικά θα προστεθούν σύντομα.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </aside>
+          {article.subtitle ? (
+            <p className="mt-4 max-w-3xl text-lg leading-relaxed text-slate-700">
+              {article.subtitle}
+            </p>
+          ) : null}
+        </header>
 
-            <div className="lg:col-span-8">
-              <div
-                className={classNames(
-                  "rounded-2xl bg-white/90 ring-1 ring-black/5",
-                  "shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
-                )}
-              >
-                <div className="px-5 pt-5">
-                  <h2 className="text-lg font-semibold">Εκτέλεση</h2>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Ακολούθησε τα βήματα με τη σειρά.
-                  </p>
-                </div>
-
-                <div className="px-5 pb-6 pt-5">
-                  {steps.length ? (
-                    <ol className="space-y-3">
-                      {steps.map((step, i) => (
-                        <li
-                          key={i}
-                          className={classNames(
-                            "flex gap-3 rounded-2xl p-4",
-                            "bg-white ring-1 ring-black/5 shadow-sm"
-                          )}
-                        >
-                          <div
-                            className={classNames(
-                              "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-                              "bg-accent/10 text-accent ring-1 ring-accent/35 font-semibold text-sm"
-                            )}
-                            aria-label={`Βήμα ${i + 1}`}
-                          >
-                            {i + 1}
-                          </div>
-                          <div className="text-slate-700 text-sm leading-7">
-                            {step}
-                          </div>
-                        </li>
-                      ))}
-                    </ol>
-                  ) : recipe.instructions ? (
-                    <div className="text-slate-700 text-sm leading-7 whitespace-pre-line">
-                      {recipe.instructions}
-                    </div>
-                  ) : (
-                    <p className="text-slate-600">Τα βήματα θα προστεθούν σύντομα.</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </section>
+        <div className="relative overflow-hidden rounded-3xl bg-slate-100 shadow-[0_18px_45px_rgba(15,23,42,0.12)]">
+          <div className="relative aspect-[16/9]">
+            <Image
+              src={article.hero}
+              alt={article.title}
+              fill
+              priority
+              className="object-cover"
+            />
+          </div>
         </div>
-      </main>
+
+        <div className="mt-8 rounded-3xl bg-white/85 ring-1 ring-accent/20 shadow-[0_12px_35px_rgba(164,199,126,0.12)] p-6 md:p-8">
+          {article.heading ? (
+            <h2 className="mb-5 text-2xl md:text-3xl font-semibold tracking-tight text-slate-900">
+              {article.heading}
+            </h2>
+          ) : null}
+
+          <RichHtmlRenderer
+            html={article.contentHtml}
+            className="article-rich-content"
+          />
+        </div>
+
+        {article.tags.length > 0 ? (
+          <footer className="mt-8 flex flex-wrap gap-2">
+            {article.tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-white px-3 py-1 text-sm text-slate-700 ring-1 ring-slate-200"
+              >
+                #{tag}
+              </span>
+            ))}
+          </footer>
+        ) : null}
+      </article>
     </>
   );
 }
