@@ -2,63 +2,13 @@ import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
 import HomeHero from "@/components/home/HomeHeader";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { SectionReveal } from "@/components/SectionReveal";
 import {
   MainPagesApi,
   type MainPageGetDto,
 } from "@/api/MainPagesController";
-
-//type NewsletterStep = { title: string; desc: string };
-
-function splitTextToParagraphs(text?: string | null): string[] {
-  if (!text) return [];
-  return text
-    .split(/\n\s*\n|\r\n\s*\r\n/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-}
-
-function splitTextToLines(text?: string | null): string[] {
-  if (!text) return [];
-  return text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-function renderTextBlocks(text?: string | null) {
-  const paragraphs = splitTextToParagraphs(text);
-
-  if (paragraphs.length > 1) {
-    return paragraphs.map((p, i) => <p key={i}>{p}</p>);
-  }
-
-  const lines = splitTextToLines(text);
-
-  if (lines.length <= 1) {
-    return text ? <p>{text}</p> : null;
-  }
-
-  const bulletLines = lines.filter((line) => /^[-•*]/.test(line));
-  const normalLines = lines.filter((line) => !/^[-•*]/.test(line));
-
-  return (
-    <>
-      {normalLines.map((line, i) => (
-        <p key={`p-${i}`}>{line}</p>
-      ))}
-
-      {bulletLines.length > 0 && (
-        <ul className="list-disc pl-6 md:columns-2 md:gap-10">
-          {bulletLines.map((line, i) => (
-            <li key={`li-${i}`}>{line.replace(/^[-•*]\s*/, "")}</li>
-          ))}
-        </ul>
-      )}
-    </>
-  );
-}
+import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 
 export default function HomePage() {
   const siteName = "Διαιτολογικό Κέντρο";
@@ -113,7 +63,6 @@ export default function HomePage() {
             if (!active) return;
             setMainPictureUrl(pictureRes?.url || null);
           } catch {
-            // If the endpoint is missing or fails, keep null and use fallback image.
             if (!active) return;
             setMainPictureUrl(null);
           }
@@ -121,7 +70,6 @@ export default function HomePage() {
           setMainPictureUrl(null);
         }
       } catch {
-        // If backend data is missing for now, keep page functional with fallback content.
         if (!active) return;
         setMainPage(null);
         setMainPictureUrl(null);
@@ -137,15 +85,11 @@ export default function HomePage() {
     };
   }, []);
 
-  const biographyParagraphs = useMemo(
-    () => splitTextToParagraphs(mainPage?.biography),
-    [mainPage?.biography]
-  );
-
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") setOpenNewsletter(false);
     }
+
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
@@ -157,9 +101,11 @@ export default function HomePage() {
 
   async function apiNewsletterVerify(payload: { email: string; code: string }) {
     await new Promise((r) => setTimeout(r, 650));
+
     if (payload.code.trim() !== "123456") {
       throw new Error("Λάθος κωδικός επιβεβαίωσης.");
     }
+
     return { ok: true };
   }
 
@@ -183,6 +129,7 @@ export default function HomePage() {
     if (!/^\S+@\S+\.\S+$/.test(email)) return setNlError("Γράψε έγκυρο email.");
 
     setNlLoading(true);
+
     try {
       await apiNewsletterStart();
       setNlStep("verify");
@@ -203,11 +150,14 @@ export default function HomePage() {
     if (!code) return setNlError("Γράψε τον κωδικό επιβεβαίωσης.");
 
     setNlLoading(true);
+
     try {
       await apiNewsletterVerify({ email, code });
       setNlStep("done");
     } catch (err: unknown) {
-      setNlError(err instanceof Error ? err.message : "Κάτι πήγε στραβά. Δοκίμασε ξανά.");
+      setNlError(
+        err instanceof Error ? err.message : "Κάτι πήγε στραβά. Δοκίμασε ξανά."
+      );
     } finally {
       setNlLoading(false);
     }
@@ -251,15 +201,13 @@ export default function HomePage() {
                 <span className="hidden sm:inline-block h-px w-12 bg-gradient-to-r from-warm/60 to-warm/0" />
               </div>
 
-              {biographyParagraphs.length > 0 ? (
-                biographyParagraphs.map((paragraph, i) => (
-                  <p key={i} className={i === 0 ? "lead" : undefined}>
-                    {paragraph}
-                  </p>
-                ))
+              {mainPage?.biography ? (
+                <RichHtmlRenderer
+                  html={mainPage.biography}
+                  className="home-rich-content"
+                />
               ) : (
                 <>
-                  {/* Fallback content until backend data exists */}
                   <p className="lead">
                     Ονομάζομαι <strong>Βασιλική Χύτα</strong> και είμαι
                     Διαιτολόγος – Διατροφολόγος.
@@ -347,10 +295,12 @@ export default function HomePage() {
           </div>
 
           {mainPage?.phylosophy ? (
-            renderTextBlocks(mainPage.phylosophy)
+            <RichHtmlRenderer
+              html={mainPage.phylosophy}
+              className="home-rich-content"
+            />
           ) : (
             <>
-              {/* Fallback content until backend data exists */}
               <p className="lead">
                 Η φιλοσοφία μου στηρίζεται στο <em>βιοψυχοκοινωνικό</em> μοντέλο
                 της ιατρικής: η υγεία και η διατροφή διαμορφώνονται από το σώμα,
@@ -369,7 +319,7 @@ export default function HomePage() {
                 Στις συνεδρίες δουλεύουμε ολιστικά και ανθρωποκεντρικά, δίνοντας
                 χώρο σε όλες τις πτυχές: σώμα, νου, συναισθηματική ζωή,
                 συνήθειες και συνθήκες. Αντλώ στοιχεία από τη γνωστική–
-                συμπεριφορική θεραπεία (CBT), προσαρμόζοντάς τα στη διατροφική
+                συμπεριφορική θεραπεία CBT, προσαρμόζοντάς τα στη διατροφική
                 παρέμβαση.
               </p>
 
@@ -469,8 +419,6 @@ export default function HomePage() {
         </div>
       </SectionReveal>
 
-      
-
       <SectionReveal className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
         <div
           className={[
@@ -508,6 +456,7 @@ export default function HomePage() {
                 <label className="sr-only" htmlFor="nlEmailInline">
                   Email
                 </label>
+
                 <input
                   id="nlEmailInline"
                   type="email"
@@ -594,6 +543,7 @@ export default function HomePage() {
                         ? "Επιβεβαίωση email"
                         : "Ολοκληρώθηκε"}
                     </h3>
+
                     <p className="mt-1 text-sm text-slate-700">
                       {nlStep === "form"
                         ? "Συμπλήρωσε τα στοιχεία σου."
@@ -627,6 +577,7 @@ export default function HomePage() {
                       <label className="block text-sm font-medium text-slate-700">
                         Ονοματεπώνυμο
                       </label>
+
                       <input
                         value={nlForm.name}
                         onChange={(e) =>
@@ -649,6 +600,7 @@ export default function HomePage() {
                       <label className="block text-sm font-medium text-slate-700">
                         Email
                       </label>
+
                       <input
                         type="email"
                         value={nlForm.email}
@@ -720,6 +672,7 @@ export default function HomePage() {
                       <label className="block text-sm font-medium text-slate-700">
                         Κωδικός επιβεβαίωσης
                       </label>
+
                       <input
                         inputMode="numeric"
                         value={nlCode}
@@ -781,6 +734,7 @@ export default function HomePage() {
                       onClick={async () => {
                         setNlLoading(true);
                         setNlError(null);
+
                         try {
                           await apiNewsletterStart();
                         } catch {

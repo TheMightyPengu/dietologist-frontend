@@ -1,5 +1,6 @@
 import Link from "next/link";
 import LeafBurstButton from "../decorative/LeafBurstButton";
+import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 
 type HomeHeroProps = {
   title?: string | null;
@@ -52,11 +53,14 @@ export default function HomeHero({
               {heroTitle}
             </h1>
 
-            <div className="text-lg leading-relaxed text-slate-700 font-serif/none">
+            <div className="text-lg leading-relaxed text-slate-700 font-serif">
               {loading ? (
                 <p className="mb-0">Φόρτωση περιεχομένου…</p>
               ) : (
-                <p className="mb-0">{heroInfo}</p>
+                <RichHtmlRenderer
+                  html={heroInfo}
+                  className="hero-rich-content mb-0"
+                />
               )}
             </div>
 

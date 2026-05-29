@@ -7,8 +7,11 @@ import {
   type MainPageGetDto,
   type MainPagePostDto,
 } from "@/api/MainPagesController";
+import RichTextEditor from "@/components/admin/RichTextEditor";
+import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 
-const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
+const cx = (...c: (string | false | null | undefined)[]) =>
+  c.filter(Boolean).join(" ");
 
 const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
   className,
@@ -53,6 +56,38 @@ function mapDtoToState(dto: MainPageGetDto): HomeFormState {
   };
 }
 
+function normalizeImageUrl(url?: string | null) {
+  if (!url) return null;
+
+  const clean = url.trim();
+  if (!clean) return null;
+
+  if (
+    clean.startsWith("http://") ||
+    clean.startsWith("https://") ||
+    clean.startsWith("data:")
+  ) {
+    return clean;
+  }
+
+  if (clean.startsWith("/")) {
+    return clean;
+  }
+
+  return `/${clean}`;
+}
+
+function isSafeImageSrc(src?: string | null) {
+  if (!src) return false;
+
+  return (
+    src.startsWith("/") ||
+    src.startsWith("http://") ||
+    src.startsWith("https://") ||
+    src.startsWith("data:")
+  );
+}
+
 export default function ManagementHomePage() {
   const [data, setData] = useState<HomeFormState>(EMPTY_HOME);
   const [loading, setLoading] = useState(true);
@@ -62,10 +97,6 @@ export default function ManagementHomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [remoteImageUrl, setRemoteImageUrl] = useState<string | null>(null);
-
-  // const hasValidPreview = useMemo(() => {
-  //   return Boolean(filePreview || remoteImageUrl);
-  // }, [filePreview, remoteImageUrl]);
 
   const loadHome = async () => {
     try {
@@ -104,6 +135,7 @@ export default function ManagementHomePage() {
 
   useEffect(() => {
     if (!toast) return;
+
     const t = setTimeout(() => setToast(null), 1800);
     return () => clearTimeout(t);
   }, [toast]);
@@ -154,38 +186,6 @@ export default function ManagementHomePage() {
     setToast("Φόρτωση από API.");
   };
 
-  function normalizeImageUrl(url?: string | null) {
-    if (!url) return null;
-
-    const clean = url.trim();
-    if (!clean) return null;
-
-    if (
-      clean.startsWith("http://") ||
-      clean.startsWith("https://") ||
-      clean.startsWith("data:")
-    ) {
-      return clean;
-    }
-
-    if (clean.startsWith("/")) {
-      return clean;
-    }
-
-    return `/${clean}`;
-  }
-
-  function isSafeImageSrc(src?: string | null) {
-    if (!src) return false;
-
-    return (
-      src.startsWith("/") ||
-      src.startsWith("http://") ||
-      src.startsWith("https://") ||
-      src.startsWith("data:")
-    );
-  }
-
   const previewSrc = normalizeImageUrl(filePreview || remoteImageUrl);
   const canRenderImage = isSafeImageSrc(previewSrc);
 
@@ -205,12 +205,17 @@ export default function ManagementHomePage() {
             >
               ← Πίσω στο Dashboard
             </Link>
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">ΑΡΧΙΚΗ</h1>
+
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+              ΑΡΧΙΚΗ
+            </h1>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="lg:col-span-2 p-5 md:p-6">
-              <h2 className="text-lg font-semibold">Επεξεργασία Περιεχομένου</h2>
+              <h2 className="text-lg font-semibold">
+                Επεξεργασία Περιεχομένου
+              </h2>
 
               {loading ? (
                 <p className="mt-3 text-slate-600">Φόρτωση…</p>
@@ -234,7 +239,8 @@ export default function ManagementHomePage() {
                             setSelectedFile(f);
 
                             const reader = new FileReader();
-                            reader.onload = () => setFilePreview(reader.result as string);
+                            reader.onload = () =>
+                              setFilePreview(reader.result as string);
                             reader.readAsDataURL(f);
 
                             setToast("Τοπική προεπισκόπηση εικόνας.");
@@ -259,47 +265,68 @@ export default function ManagementHomePage() {
                   </div>
 
                   <div className="mt-6">
-                    <label className="block text-sm font-medium text-slate-700">Τίτλος</label>
+                    <label className="block text-sm font-medium text-slate-700">
+                      Τίτλος
+                    </label>
+
                     <input
                       type="text"
                       value={data.title}
-                      onChange={(e) => setData((s) => ({ ...s, title: e.target.value }))}
+                      onChange={(e) =>
+                        setData((s) => ({ ...s, title: e.target.value }))
+                      }
                       className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
                     />
                   </div>
 
                   <div className="mt-6">
-                    <label className="block text-sm font-medium text-slate-700">Πληροφορίες</label>
-                    <textarea
-                      rows={4}
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Πληροφορίες
+                    </label>
+
+                    <RichTextEditor
                       value={data.info}
-                      onChange={(e) => setData((s) => ({ ...s, info: e.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                      onChange={(html) =>
+                        setData((s) => ({ ...s, info: html }))
+                      }
+                      placeholder="Γράψε τις βασικές πληροφορίες της αρχικής..."
+                      minHeight={160}
                     />
                   </div>
 
                   <div className="mt-6">
-                    <label className="block text-sm font-medium text-slate-700">Βιογραφικό</label>
-                    <textarea
-                      rows={5}
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Βιογραφικό
+                    </label>
+
+                    <RichTextEditor
                       value={data.biography}
-                      onChange={(e) => setData((s) => ({ ...s, biography: e.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                      onChange={(html) =>
+                        setData((s) => ({ ...s, biography: html }))
+                      }
+                      placeholder="Γράψε το βιογραφικό..."
+                      minHeight={220}
                     />
                   </div>
 
                   <div className="mt-6">
-                    <label className="block text-sm font-medium text-slate-700">Φιλοσοφία</label>
-                    <textarea
-                      rows={5}
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Φιλοσοφία
+                    </label>
+
+                    <RichTextEditor
                       value={data.phylosophy}
-                      onChange={(e) => setData((s) => ({ ...s, phylosophy: e.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                      onChange={(html) =>
+                        setData((s) => ({ ...s, phylosophy: html }))
+                      }
+                      placeholder="Γράψε τη φιλοσοφία..."
+                      minHeight={220}
                     />
                   </div>
 
                   <div className="mt-6 flex flex-wrap items-center gap-3">
                     <button
+                      type="button"
                       onClick={onSave}
                       disabled={saving}
                       className={cx(
@@ -313,6 +340,7 @@ export default function ManagementHomePage() {
                     </button>
 
                     <button
+                      type="button"
                       onClick={onReloadFromApi}
                       className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[#8484d1] transition"
                     >
@@ -320,6 +348,7 @@ export default function ManagementHomePage() {
                     </button>
 
                     <button
+                      type="button"
                       onClick={onResetLocal}
                       className="inline-flex items-center justify-center rounded-full border border-rose-200 bg-white px-4 py-2 text-sm text-rose-700 hover:border-rose-300 transition"
                     >
@@ -352,22 +381,49 @@ export default function ManagementHomePage() {
                 </div>
 
                 <div>
-                  <h4 className="text-xl font-semibold">{data.title || "Χωρίς τίτλο"}</h4>
-                  <p className="mt-1 text-slate-600">{data.info || "Χωρίς πληροφορίες"}</p>
+                  <h4 className="text-xl font-semibold">
+                    {data.title || "Χωρίς τίτλο"}
+                  </h4>
+
+                  {data.info ? (
+                    <RichHtmlRenderer
+                      html={data.info}
+                      className="mt-1 text-slate-600"
+                    />
+                  ) : (
+                    <p className="mt-1 text-slate-600">Χωρίς πληροφορίες</p>
+                  )}
                 </div>
 
                 <div>
                   <h5 className="font-semibold">Βιογραφικό</h5>
-                  <p className="mt-1 text-slate-600">{data.biography || "—"}</p>
+
+                  {data.biography ? (
+                    <RichHtmlRenderer
+                      html={data.biography}
+                      className="mt-1 text-slate-600"
+                    />
+                  ) : (
+                    <p className="mt-1 text-slate-600">—</p>
+                  )}
                 </div>
 
                 <div>
                   <h5 className="font-semibold">Φιλοσοφία</h5>
-                  <p className="mt-1 text-slate-600">{data.phylosophy || "—"}</p>
+
+                  {data.phylosophy ? (
+                    <RichHtmlRenderer
+                      html={data.phylosophy}
+                      className="mt-1 text-slate-600"
+                    />
+                  ) : (
+                    <p className="mt-1 text-slate-600">—</p>
+                  )}
                 </div>
 
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
                   <p className="mb-1 font-medium">JSON προς backend:</p>
+
                   <pre className="whitespace-pre-wrap break-words">
                     {JSON.stringify(
                       {

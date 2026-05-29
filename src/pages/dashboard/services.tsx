@@ -6,6 +6,8 @@ import {
   type ProvidedServicesGetDto,
   type ProvidedServicesPostDto,
 } from "@/api/ProvidedServicesController";
+import RichTextEditor from "@/components/admin/RichTextEditor";
+import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 
 const cx = (...c: (string | false | null | undefined)[]) =>
   c.filter(Boolean).join(" ");
@@ -47,6 +49,7 @@ export default function ManagementServicesPage() {
 
   useEffect(() => {
     if (!toast) return;
+
     const t = setTimeout(() => setToast(null), 1800);
     return () => clearTimeout(t);
   }, [toast]);
@@ -54,6 +57,7 @@ export default function ManagementServicesPage() {
   const loadServices = useCallback(async () => {
     try {
       setLoading(true);
+
       const data = await ProvidedServicesApi.list();
       setAll(data);
 
@@ -82,11 +86,13 @@ export default function ManagementServicesPage() {
       ...EMPTY_CREATE_FORM,
       category: activeCategory || "",
     });
+
     setCreateModalOpen(true);
   }
 
   function closeCreateModal() {
     if (creating) return;
+
     setCreateModalOpen(false);
     setCreateForm(EMPTY_CREATE_FORM);
   }
@@ -209,9 +215,11 @@ export default function ManagementServicesPage() {
                 {categories.length > 0 ? (
                   categories.map((category) => {
                     const sel = category === activeCategory;
+
                     return (
                       <button
                         key={category}
+                        type="button"
                         onClick={() => setActiveCategory(category)}
                         className={cx(
                           "px-3 md:px-4 py-2 rounded-full text-sm font-medium transition",
@@ -232,6 +240,7 @@ export default function ManagementServicesPage() {
               </div>
 
               <button
+                type="button"
                 onClick={openCreateModal}
                 className="rounded-full px-4 py-2 text-sm font-semibold transition bg-[#8484d1] text-white hover:shadow"
               >
@@ -305,18 +314,20 @@ function CreateServiceModal({
         className="absolute inset-0 bg-slate-900/45 backdrop-blur-[2px]"
       />
 
-      <div className="relative z-[61] w-full max-w-2xl rounded-2xl border border-slate-200 bg-white shadow-2xl">
+      <div className="relative z-[61] w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl">
         <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4">
           <div>
             <h2 className="text-xl font-semibold tracking-tight">
               Νέα υπηρεσία
             </h2>
+
             <p className="mt-1 text-sm text-slate-500">
               Συμπλήρωσε πρώτα τα στοιχεία και μετά δημιούργησε την υπηρεσία.
             </p>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
             disabled={creating}
             className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1] disabled:opacity-60"
@@ -331,6 +342,7 @@ function CreateServiceModal({
               <label className="block text-sm font-medium text-slate-700">
                 Τίτλος
               </label>
+
               <input
                 type="text"
                 value={form.title}
@@ -345,6 +357,7 @@ function CreateServiceModal({
               <label className="block text-sm font-medium text-slate-700">
                 Κατηγορία
               </label>
+
               <input
                 type="text"
                 value={form.category}
@@ -359,6 +372,7 @@ function CreateServiceModal({
               <label className="block text-sm font-medium text-slate-700">
                 Διάρκεια
               </label>
+
               <input
                 type="number"
                 min={0}
@@ -377,6 +391,7 @@ function CreateServiceModal({
               <label className="block text-sm font-medium text-slate-700">
                 Τιμή με ΦΠΑ
               </label>
+
               <input
                 type="number"
                 min={0}
@@ -391,27 +406,40 @@ function CreateServiceModal({
                 className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
             </div>
-
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Περιγραφή
             </label>
-            <textarea
-              rows={5}
+
+            <RichTextEditor
               value={form.description}
-              onChange={(e) =>
-                setForm((d) => ({ ...d, description: e.target.value }))
+              onChange={(html) =>
+                setForm((d) => ({ ...d, description: html }))
               }
-              className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+              placeholder="Γράψε την περιγραφή της υπηρεσίας..."
+              minHeight={180}
             />
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm text-slate-500 mb-2">
+              Προεπισκόπηση περιγραφής
+            </p>
+
+            {form.description ? (
+              <RichHtmlRenderer html={form.description} />
+            ) : (
+              <p className="text-sm text-slate-500">Δεν υπάρχει περιγραφή.</p>
+            )}
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-sm text-slate-500 mb-2">
               Προεπισκόπηση JSON για API
             </p>
+
             <pre className="text-xs whitespace-pre-wrap break-words">
               {JSON.stringify(form, null, 2)}
             </pre>
@@ -420,6 +448,7 @@ function CreateServiceModal({
 
         <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 px-5 py-4">
           <button
+            type="button"
             onClick={onClose}
             disabled={creating}
             className="rounded-full border border-slate-400 bg-white px-4 py-2 text-sm hover:border-[#8484d1] disabled:opacity-60"
@@ -428,6 +457,7 @@ function CreateServiceModal({
           </button>
 
           <button
+            type="button"
             onClick={onSubmit}
             disabled={creating}
             className={cx(
@@ -470,14 +500,17 @@ function ServiceEditorCard({
           <h3 className="text-lg font-semibold">
             {draft.title || "(Χωρίς τίτλο)"}
           </h3>
+
           <p className="text-sm text-slate-600 mt-1">
             {draft.category || "(Χωρίς κατηγορία)"}
           </p>
+
           <p className="text-xs text-slate-500 mt-1">ID: {draft.id}</p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setOpen((o) => !o)}
             className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
           >
@@ -485,6 +518,7 @@ function ServiceEditorCard({
           </button>
 
           <button
+            type="button"
             onClick={() => onDelete(draft.id)}
             disabled={busy}
             className="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-sm text-rose-700 hover:border-rose-300 disabled:opacity-60"
@@ -501,6 +535,7 @@ function ServiceEditorCard({
               <label className="block text-sm font-medium text-slate-700">
                 Τίτλος
               </label>
+
               <input
                 type="text"
                 value={draft.title}
@@ -515,6 +550,7 @@ function ServiceEditorCard({
               <label className="block text-sm font-medium text-slate-700">
                 Κατηγορία
               </label>
+
               <input
                 type="text"
                 value={draft.category}
@@ -529,6 +565,7 @@ function ServiceEditorCard({
               <label className="block text-sm font-medium text-slate-700">
                 Διάρκεια
               </label>
+
               <input
                 type="number"
                 min={0}
@@ -547,6 +584,7 @@ function ServiceEditorCard({
               <label className="block text-sm font-medium text-slate-700">
                 Τιμή με ΦΠΑ
               </label>
+
               <input
                 type="number"
                 min={0}
@@ -561,27 +599,40 @@ function ServiceEditorCard({
                 className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
             </div>
-
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Περιγραφή
             </label>
-            <textarea
-              rows={5}
+
+            <RichTextEditor
               value={draft.description}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, description: e.target.value }))
+              onChange={(html) =>
+                setDraft((d) => ({ ...d, description: html }))
               }
-              className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+              placeholder="Γράψε την περιγραφή της υπηρεσίας..."
+              minHeight={200}
             />
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm text-slate-500 mb-2">
+              Προεπισκόπηση περιγραφής
+            </p>
+
+            {draft.description ? (
+              <RichHtmlRenderer html={draft.description} />
+            ) : (
+              <p className="text-sm text-slate-500">Δεν υπάρχει περιγραφή.</p>
+            )}
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-sm text-slate-500 mb-2">
               Προεπισκόπηση JSON για API
             </p>
+
             <pre className="text-xs whitespace-pre-wrap break-words">
               {JSON.stringify(
                 {
@@ -599,6 +650,7 @@ function ServiceEditorCard({
 
           <div className="flex flex-wrap items-center gap-3">
             <button
+              type="button"
               onClick={() => onSave(draft)}
               disabled={busy}
               className={cx(
@@ -612,6 +664,7 @@ function ServiceEditorCard({
             </button>
 
             <button
+              type="button"
               onClick={() => setDraft(svc)}
               className="rounded-full border border-slate-400 bg-white px-4 py-2 text-sm hover:border-[#8484d1]"
             >

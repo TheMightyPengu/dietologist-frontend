@@ -99,3 +99,34 @@
     margin-top: 24px;
   }
 }
+
+
+.hero-rich-content {
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+.hero-rich-content p {
+  margin: 0;
+}
+
+.hero-rich-content strong,
+.hero-rich-content b {
+  font-weight: 700;
+}
+
+
+.service-rich-content {
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+.service-rich-content p {
+  margin: 0 0 12px;
+}
+
+.service-rich-content p:last-child {
+  margin-bottom: 0;
+}

@@ -10,6 +10,7 @@ import {
   ProvidedServicesApi,
   type ProvidedServicesGetDto,
 } from "@/api/ProvidedServicesController";
+import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 
 type PillProps = { children: React.ReactNode };
 
@@ -77,8 +78,8 @@ function TitleRow({
     size === "section"
       ? "text-xl sm:text-2xl font-semibold text-slate-900"
       : size === "cta"
-        ? "text-xl sm:text-2xl font-semibold text-slate-900"
-        : "text-lg sm:text-xl font-semibold tracking-tight text-slate-900";
+      ? "text-xl sm:text-2xl font-semibold text-slate-900"
+      : "text-lg sm:text-xl font-semibold tracking-tight text-slate-900";
 
   return (
     <div className="flex items-center gap-3">
@@ -115,7 +116,6 @@ const SectionCard: React.FC<
 );
 
 export default function ServicesPage() {
-  //const [tab, setTab] = useState<"all">("all");
   const [copied, setCopied] = useState<null | "phone" | "email">(null);
 
   const [services, setServices] = useState<ProvidedServicesGetDto[]>([]);
@@ -141,7 +141,7 @@ export default function ServicesPage() {
         setContactInfo(
           Array.isArray(contactData) && contactData.length > 0
             ? contactData[0]
-            : null,
+            : null
         );
       } catch (err) {
         console.error(err);
@@ -170,7 +170,7 @@ export default function ServicesPage() {
   const location = contactInfo?.location ?? "";
 
   const phoneRaw = phone.replace(/\s+/g, "");
-  const bookHref = "/book"; // TODO: replace with real booking route if backend provides one
+  const bookHref = "/book";
 
   return (
     <>
@@ -189,7 +189,9 @@ export default function ServicesPage() {
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
               Υπηρεσίες Διατροφής
             </h1>
+
             <div className="mt-2 h-px w-24 bg-accent/35" />
+
             <p className="mt-3 text-[15px] leading-relaxed text-slate-700">
               Σε αυτή τη σελίδα θα βρείτε συγκεντρωμένες τις διαθέσιμες υπηρεσίες
               και τους βασικούς τρόπους επικοινωνίας.
@@ -232,10 +234,12 @@ export default function ServicesPage() {
                   <span className="mt-0.5 text-accent" aria-hidden="true">
                     📞
                   </span>
+
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-slate-900">
                       Τηλέφωνο
                     </p>
+
                     {phone ? (
                       <a
                         href={`tel:${phoneRaw}`}
@@ -256,6 +260,7 @@ export default function ServicesPage() {
                     type="button"
                     onClick={async () => {
                       const ok = await copyToClipboard(phone);
+
                       if (ok) {
                         setCopied("phone");
                         setTimeout(() => setCopied(null), 1200);
@@ -265,7 +270,7 @@ export default function ServicesPage() {
                       "shrink-0 inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm transition",
                       "bg-white ring-1 ring-primary/30",
                       "hover:ring-primary/55 hover:bg-primary/5",
-                      "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                      "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
                     )}
                   >
                     {copied === "phone" ? "✅ Αντιγράφηκε" : "Αντιγραφή"}
@@ -280,8 +285,12 @@ export default function ServicesPage() {
                   <span className="mt-0.5 text-accent" aria-hidden="true">
                     ✉️
                   </span>
+
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-900">Email</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      Email
+                    </p>
+
                     {email ? (
                       <a
                         href={`mailto:${email}`}
@@ -302,6 +311,7 @@ export default function ServicesPage() {
                     type="button"
                     onClick={async () => {
                       const ok = await copyToClipboard(email);
+
                       if (ok) {
                         setCopied("email");
                         setTimeout(() => setCopied(null), 1200);
@@ -311,7 +321,7 @@ export default function ServicesPage() {
                       "shrink-0 inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm transition",
                       "bg-white ring-1 ring-primary/30",
                       "hover:ring-primary/55 hover:bg-primary/5",
-                      "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
+                      "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
                     )}
                   >
                     {copied === "email" ? "✅ Αντιγράφηκε" : "Αντιγραφή"}
@@ -328,7 +338,7 @@ export default function ServicesPage() {
                   "bg-primary text-white",
                   "shadow-[0_14px_30px_rgba(122,122,196,0.22)]",
                   "hover:shadow-[0_18px_38px_rgba(122,122,196,0.28)]",
-                  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
+                  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25"
                 )}
               >
                 Κλείστε Ραντεβού
@@ -373,19 +383,26 @@ export default function ServicesPage() {
                         <div className="flex flex-col gap-4">
                           <div>
                             <h3 className="text-base font-semibold text-slate-900">
-                              Υπηρεσία #{service.id}
+                              {service.title || `Υπηρεσία #${service.id}`}
                             </h3>
 
-                            {/* Backend currently does not provide a dedicated service title/image/long structured content.
-                                Using description as the main content until those fields exist. */}
-                            <p className="mt-2 text-[15px] leading-relaxed text-slate-700">
-                              {service.description || "Δεν υπάρχει περιγραφή."}
-                            </p>
+                            {service.description ? (
+                              <RichHtmlRenderer
+                                html={service.description}
+                                className="service-rich-content mt-2 text-[15px] leading-relaxed text-slate-700"
+                              />
+                            ) : (
+                              <p className="mt-2 text-[15px] leading-relaxed text-slate-700">
+                                Δεν υπάρχει περιγραφή.
+                              </p>
+                            )}
                           </div>
 
                           <div className="flex flex-wrap gap-2">
                             <Pill>Διάρκεια: {service.duration}’</Pill>
-                            <Pill>Τιμή: {formatPrice(service.priceIncludingVAT)}</Pill>
+                            <Pill>
+                              Τιμή: {formatPrice(service.priceIncludingVAT)}
+                            </Pill>
                             <Pill>Κατηγορία: {service.category}</Pill>
                           </div>
                         </div>
