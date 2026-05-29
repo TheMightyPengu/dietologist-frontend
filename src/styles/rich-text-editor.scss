@@ -1,0 +1,153 @@
+.rich-text-editor {
+  width: 100%;
+  border: 1px solid rgba(120, 140, 120, 0.25);
+  border-radius: 16px;
+  background: var(--surface, #ffffff);
+  overflow: hidden;
+}
+
+.rich-text-editor__toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px;
+  border-bottom: 1px solid rgba(120, 140, 120, 0.18);
+  background: color-mix(in srgb, var(--surface, #ffffff) 92%, var(--accent, #8bbf73));
+}
+
+.rich-text-editor__toolbar button,
+.rich-text-editor__toolbar select {
+  min-height: 34px;
+  border: 1px solid rgba(120, 140, 120, 0.28);
+  border-radius: 10px;
+  background: var(--surface, #ffffff);
+  color: var(--text, #263326);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.rich-text-editor__toolbar button {
+  padding: 0 11px;
+  font-weight: 600;
+}
+
+.rich-text-editor__toolbar select {
+  padding: 0 10px;
+}
+
+.rich-text-editor__toolbar button:hover,
+.rich-text-editor__toolbar select:hover {
+  border-color: color-mix(in srgb, var(--accent, #8bbf73) 70%, #000000);
+  background: color-mix(in srgb, var(--surface, #ffffff) 88%, var(--accent, #8bbf73));
+}
+
+.rich-text-editor__toolbar button:active {
+  transform: scale(0.97);
+}
+
+.rich-text-editor__toolbar button.is-active {
+  border-color: var(--accent, #8bbf73);
+  background: color-mix(in srgb, var(--accent, #8bbf73) 18%, var(--surface, #ffffff));
+  color: var(--accent-dark, #3f7a3d);
+}
+
+.rich-text-editor__toolbar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.rich-text-editor__separator {
+  width: 1px;
+  height: 28px;
+  margin: 0 4px;
+  background: rgba(120, 140, 120, 0.25);
+}
+
+.rich-text-editor__content {
+  padding: 18px;
+  color: var(--text, #263326);
+  font-size: 16px;
+  line-height: 1.75;
+  outline: none;
+}
+
+.rich-text-editor__content p {
+  margin: 0 0 14px;
+}
+
+.rich-text-editor__content h2,
+.rich-text-editor__content h3,
+.rich-text-editor__content h4 {
+  margin: 22px 0 12px;
+  line-height: 1.25;
+  color: var(--heading, var(--text, #263326));
+}
+
+.rich-text-editor__content h2 {
+  font-size: 28px;
+}
+
+.rich-text-editor__content h3 {
+  font-size: 23px;
+}
+
+.rich-text-editor__content h4 {
+  font-size: 19px;
+}
+
+.rich-text-editor__content ul,
+.rich-text-editor__content ol {
+  margin: 0 0 16px 22px;
+  padding: 0;
+}
+
+.rich-text-editor__content li {
+  margin-bottom: 6px;
+}
+
+.rich-text-editor__content a {
+  color: var(--accent, #6ca85f);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.rich-text-editor__content blockquote {
+  margin: 18px 0;
+  padding: 12px 16px;
+  border-left: 4px solid var(--accent, #8bbf73);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface, #ffffff) 88%, var(--accent, #8bbf73));
+}
+
+.rich-text-editor__content .is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: rgba(80, 95, 80, 0.55);
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .rich-text-editor__toolbar {
+    gap: 5px;
+    padding: 8px;
+  }
+
+  .rich-text-editor__toolbar button,
+  .rich-text-editor__toolbar select {
+    min-height: 32px;
+    font-size: 13px;
+  }
+
+  .rich-text-editor__content {
+    padding: 14px;
+    font-size: 15px;
+  }
+}
