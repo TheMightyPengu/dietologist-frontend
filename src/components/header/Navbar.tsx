@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
+import LeafBurstButton from "../decorative/LeafBurstButton";
 
 type MenuItem = {
   label: string;
@@ -265,21 +266,10 @@ export default function Navbar() {
           {/* CTA right */}
           <div className="flex items-center">
             {/* Mobile CTA: label becomes “Ραντεβού” */}
-            <Link
+            <LeafBurstButton
+              text="Κλείστε ραντεβού"
               href="/contact/book"
-              className={[
-                "inline-flex items-center justify-center rounded-full text-sm font-semibold text-white transition",
-                // more “primary”
-                "bg-primary hover:bg-primary/90",
-                "shadow-[0_10px_24px_rgba(122,122,196,0.28)] ring-1 ring-primary/25",
-                "px-3 py-2 md:px-5 md:py-2.5",
-                "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
-              ].join(" ")}
-              onClick={closeAll}
-            >
-              <span className="md:hidden">Ραντεβού</span>
-              <span className="hidden md:inline">Κλείστε ραντεβού</span>
-            </Link>
+              onClick={closeAll}              size="sm"            />
           </div>
         </div>
 

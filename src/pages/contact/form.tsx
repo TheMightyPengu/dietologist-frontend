@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ContactMessagesApi } from "../../api/ContactMessagesController";
 import { ContactInfoApi, type ContactInfoGetDto } from "../../api/ContactInfoController";
+import LeafBurstButton from "@/components/decorative/LeafBurstButton";
 
 type FieldErrors = Partial<{
   fullName: string;
@@ -251,12 +252,11 @@ export default function ContactFormPage() {
               </div>
 
               <div className="mt-5">
-                <Link
+                <LeafBurstButton
+                  text="Στείλτε νέο μήνυμα"
                   href="/contact/form"
-                  className="inline-flex h-12 items-center rounded-xl bg-primary px-5 text-[15px] font-semibold text-white transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
-                >
-                  Στείλτε νέο μήνυμα
-                </Link>
+                  buttonClassName="inline-flex h-12 items-center rounded-xl bg-primary px-5 text-[15px] font-semibold text-white transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
+                />
               </div>
             </div>
           )}
@@ -378,13 +378,12 @@ export default function ContactFormPage() {
                 </div>
 
                 <div className="mt-6">
-                  <button
-                    type="submit"
+                  <LeafBurstButton
+                    text={loading ? "Αποστολή..." : "Αποστολή Μηνύματος"}
                     disabled={loading}
-                    className="inline-flex h-12 items-center rounded-xl bg-primary px-5 text-[15px] font-semibold text-white transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 disabled:opacity-60"
-                  >
-                    {loading ? "Αποστολή..." : "Αποστολή Μηνύματος"}
-                  </button>
+                    type="submit"
+                    buttonClassName="inline-flex h-12 items-center rounded-xl bg-primary px-5 text-[15px] font-semibold text-white transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 disabled:opacity-60"
+                  />
 
                   <div className="mt-3">
                     <Link

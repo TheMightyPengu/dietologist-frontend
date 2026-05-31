@@ -1,61 +1,46 @@
 /* === GLOBAL TOKENS & RESET === */
 
 :root {
-  /* Brand palette (Tailwind-friendly RGB for alpha support) */
-  --primary: 132 132 209; /* #8484d1 (Purple) */
-  --accent: 126 199 148;  /* #7ec7ba (Light Blue) */
-  --warm: 230 200 108;    /* #e6c86c (Warm yellow-brown) */
+  /* Brand palette */
+  --primary: 105 133 86;        /* #698556 - olive/sage green */
+  --primary-dark: 63 88 52;     /* #3f5834 - deeper green */
+  --accent: 198 139 92;         /* #c68b5c - warm terracotta */
+  --accent-soft: 226 238 217;   /* #e2eed9 - soft leafy green */
+  --warm: 244 226 198;          /* #f4e2c6 - warm sand/cream */
 
-  /* Neutrals (also RGB so you can use opacity if needed) */
-  --bg: 236 255 230;      /* #FCFCFD */
-  --surface: 255 255 255; /* #FFFFFF */
-  --ink: 31 37 51;        /* #1F2533 */
-  --muted: 91 91 102;     /* ~#5B5B66 */
-  --border: 231 231 239;  /* ~#E7E7EF */
+  /* Neutrals */
+  --bg: 251 247 239;            /* #fbf7ef - warm cream */
+  --surface: 255 255 255;       /* #ffffff */
+  --surface-soft: 247 241 231;  /* #f7f1e7 */
+  --ink: 35 49 35;              /* #233123 - natural dark green */
+  --muted: 103 116 96;          /* #677460 */
+  --border: 222 231 214;        /* #dee7d6 */
 
-  /* Role tokens (what we discussed) */
-  --link: var(--primary);         /* links = purple */
-  --link-hover: var(--accent);    /* hover = green */
+  /* Role tokens */
+  --link: var(--primary);
+  --link-hover: var(--accent);
 
-  --focus: var(--primary);        /* focus ring = purple */
-  --success: var(--accent);       /* success = green */
-  --highlight: var(--warm);       /* rare callouts = warm sand */
+  --focus: var(--primary);
+  --success: var(--primary);
+  --highlight: var(--warm);
 
   /* Component tokens */
-  --radius: 16px;
-  --shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  --radius: 24px;
+  --radius-lg: 36px;
+  --shadow: 0 18px 45px rgba(63, 88, 52, 0.10);
+  --shadow-soft: 0 8px 24px rgba(63, 88, 52, 0.08);
 }
 
-/* Smooth typography & layout defaults */
+/* === BASE === */
+
 html {
   scroll-behavior: smooth;
 }
 
-/* Fix Greek combining mark spacing issue */
 :lang(el) {
   letter-spacing: 0 !important;
 }
 
-/* Custom scrollbar for tables */
-.table-scroll::-webkit-scrollbar {
-  height: 8px;
-}
-
-.table-scroll::-webkit-scrollbar-thumb {
-  background: rgb(var(--primary));
-  border-radius: 4px;
-}
-
-.table-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgb(100, 100, 160);
-  cursor: pointer;
-}
-
-.table-scroll::-webkit-scrollbar-track {
-  background: rgb(var(--bg));
-}
-
-/* Basic reset-ish */
 *,
 *::before,
 *::after {
@@ -65,221 +50,287 @@ html {
 body {
   margin: 0;
   padding: 0;
-  /* font-family: 'Inter', 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; */
-
-  background-color: rgb(var(--bg));
-  background-image:
-    radial-gradient(circle at top left, rgba(var(--primary), 0.18), transparent 32%),
-    radial-gradient(circle at 88% 15%, rgba(var(--accent), 0.16), transparent 28%),
-    linear-gradient(180deg, rgba(var(--primary), 0.08) 0%, rgba(var(--accent), 0.08) 50%, rgba(var(--bg), 1) 100%);
+  background:
+    radial-gradient(circle at 12% 18%, rgba(var(--accent-soft), 0.95) 0, transparent 30%),
+    radial-gradient(circle at 88% 8%, rgba(var(--warm), 0.85) 0, transparent 28%),
+    radial-gradient(circle at 70% 70%, rgba(var(--primary), 0.08) 0, transparent 34%),
+    rgb(var(--bg));
   background-attachment: fixed;
-  background-size: 220% 220%;
-  background-repeat: no-repeat;
-  animation: background-drift 18s ease infinite;
-
   color: rgb(var(--ink));
-  line-height: 1.6;
+  line-height: 1.65;
 }
 
-/* Subtle slow gradient motion */
-@keyframes background-drift {
-  0%, 100% {
-    background-position: 0% 0%, 100% 20%, 0% 0%;
-  }
-  33% {
-    background-position: 10% 10%, 92% 8%, 2% 4%;
-  }
-  66% {
-    background-position: 4% 8%, 86% 26%, 1% 2%;
-  }
-}
+/* === TYPOGRAPHY === */
 
-/* Simple headings */
-h1, h2, h3, h4, h5, h6 {
-  /* font-family: 'Quicksand', 'Inter', sans-serif; */
-  font-weight: 600;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   color: rgb(var(--ink));
+  font-weight: 700;
+  line-height: 1.15;
 }
 
-/* Navbar links (purple default, green hover) */
+p {
+  color: rgb(var(--muted));
+}
+
+/* === LINKS / NAVBAR === */
+
 .navbar-link {
   position: relative;
-  color: rgb(var(--link));
+  color: rgba(var(--ink), 0.72);
   text-decoration: none;
-  transition: color 0.15s ease-out;
+  transition: color 0.2s ease;
 }
 
 .navbar-link::after {
-  content: '';
+  content: "";
   position: absolute;
-  bottom: 0;
   left: 0;
+  bottom: -6px;
   width: 100%;
-  height: 1px;
-  background-color: rgb(var(--link-hover));
+  height: 2px;
+  background: rgb(var(--accent));
+  border-radius: 999px;
   transform: scaleX(0);
   transform-origin: left;
-  transition: transform 0.15s ease-out;
+  transition: transform 0.2s ease;
 }
 
 .navbar-link:hover {
-  color: rgb(var(--link-hover));
+  color: rgb(var(--primary-dark));
 }
 
 .navbar-link:hover::after {
   transform: scaleX(1);
 }
 
-/* Disable underline for specific buttons */
 a.no-hover-underline:hover::after {
   display: none;
 }
 
-/* Focus styles (purple ring) - for buttons and form elements, not links */
+/* === FOCUS / FORMS === */
+
 :where(button, input, textarea, select, summary):focus-visible {
-  outline: 3px solid rgba(var(--focus), 0.45);
+  outline: 3px solid rgba(var(--focus), 0.35);
   outline-offset: 3px;
-  border-radius: 10px; /* slight rounding for ring */
-}
-
-/* Optional: inputs get a subtle border that turns purple on focus */
-input, textarea, select {
-  border: 1px solid rgba(var(--border), 1);
   border-radius: 12px;
-  padding: 0.65rem 0.85rem;
-  background: rgb(var(--surface));
-  color: rgb(var(--ink));
 }
 
-input:focus, textarea:focus, select:focus {
+input,
+textarea,
+select {
+  border: 1px solid rgba(var(--border), 1);
+  border-radius: 16px;
+  padding: 0.75rem 1rem;
+  background: rgba(var(--surface), 0.9);
+  color: rgb(var(--ink));
+  box-shadow: 0 4px 14px rgba(63, 88, 52, 0.04);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
   border-color: rgba(var(--primary), 0.75);
   box-shadow: 0 0 0 4px rgba(var(--primary), 0.12);
   outline: none;
 }
 
-/* Utility helpers */
+/* === LAYOUT HELPERS === */
+
 .section {
-  padding: 4rem 1rem;
   max-width: 1200px;
   margin: 0 auto;
+  padding: 5rem 1.25rem;
 }
 
-/* Cards: neutral surface, GREEN is the default accent (subtle) */
-.rounded-card {
-  border-radius: var(--radius);
-  background: rgb(var(--surface));
-  box-shadow: var(--shadow);
+.section-soft {
+  background: rgba(var(--surface), 0.52);
+  border: 1px solid rgba(var(--border), 0.7);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(14px);
+}
+
+/* === CARDS === */
+
+.rounded-card,
+.card,
+.service-card,
+.feature-card {
+  background: rgba(var(--surface), 0.82);
+  border: 1px solid rgba(var(--border), 0.9);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
   padding: 1.5rem;
-
-  border: 1px solid rgba(var(--accent), 0.25); /* green used slightly more */
+  backdrop-filter: blur(12px);
 }
 
-/* Optional helpers if you use “featured” vs “primary” accents */
+.rounded-card:hover,
+.card:hover,
+.service-card:hover,
+.feature-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
+  border-color: rgba(var(--primary), 0.28);
+  transition: all 0.22s ease;
+}
+
+/* === ACCENT CARDS === */
+
 .card-accent {
-  border-left: 6px solid rgba(var(--accent), 0.9); /* default = green */
+  border-left: 6px solid rgba(var(--primary), 0.85);
   padding-left: 1.25rem;
 }
 
 .card-primary {
-  border-left-color: rgba(var(--primary), 0.9); /* purple for key emphasis */
+  border-left-color: rgba(var(--primary-dark), 0.9);
 }
 
 .card-warm {
-  border-left-color: rgba(var(--warm), 0.9); /* rare decorative */
+  border-left-color: rgba(var(--accent), 0.9);
 }
 
-/* Warm accent divider for special sections */
-.divider-warm {
-  height: 3px;
-  background: linear-gradient(
-    90deg,
-    rgba(var(--warm), 0),
-    rgba(var(--warm), 0.8),
-    rgba(var(--warm), 0)
-  );
+/* === BUTTONS === */
+
+button.btn-primary,
+a.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgb(var(--primary));
+  color: #fff;
   border: none;
-  margin: 1.5rem 0;
+  border-radius: 999px;
+  padding: 0.8rem 1.65rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 14px 34px rgba(var(--primary-dark), 0.22);
+  cursor: pointer;
+  transition: all 0.22s ease;
 }
 
-/* Callout for special alerts/highlights (warm background) */
-.callout-warm {
-  background: rgba(var(--warm), 0.12);
-  border: 1px solid rgba(var(--warm), 0.4);
-  border-radius: var(--radius);
-  padding: 1rem 1.25rem;
+button.btn-primary:hover,
+a.btn-primary:hover {
+  background: rgb(var(--primary-dark));
+  transform: translateY(-2px);
+  box-shadow: 0 18px 42px rgba(var(--primary-dark), 0.28);
 }
 
-/* Button warm state (accent/warm toggle for CTAs) */
 button.btn-warm,
 a.btn-warm {
-  background: rgba(var(--warm), 0.9);
-  color: rgb(var(--ink));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(var(--accent));
+  color: #fff;
   border: none;
-  padding: 0.65rem 1.5rem;
-  border-radius: 12px;
-  font-weight: 600;
-  transition: all 0.2s ease;
+  border-radius: 999px;
+  padding: 0.8rem 1.65rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 14px 34px rgba(var(--accent), 0.24);
   cursor: pointer;
+  transition: all 0.22s ease;
 }
 
 button.btn-warm:hover,
 a.btn-warm:hover {
-  background: rgba(var(--warm), 1);
+  background: rgb(var(--primary-dark));
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(var(--warm), 0.3);
 }
 
-/* Warm icon accent */
+/* === CALLOUTS === */
+
+.callout-success {
+  background: rgba(var(--accent-soft), 0.7);
+  border: 1px solid rgba(var(--primary), 0.22);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+}
+
+.callout-note,
+.callout-warm {
+  background: rgba(var(--warm), 0.55);
+  border: 1px solid rgba(var(--accent), 0.22);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+}
+
+/* === DECORATION HELPERS === */
+
+.divider-warm {
+  height: 2px;
+  border: none;
+  margin: 1.5rem 0;
+  background: linear-gradient(
+    90deg,
+    rgba(var(--accent), 0),
+    rgba(var(--accent), 0.55),
+    rgba(var(--accent), 0)
+  );
+}
+
 .icon-warm {
-  color: rgba(var(--warm), 0.85);
+  color: rgb(var(--accent));
 }
 
-/* Highlight text with warm accent (underline) */
 .highlight-warm {
   position: relative;
   padding-bottom: 2px;
 }
 
 .highlight-warm::after {
-  content: '';
+  content: "";
   position: absolute;
-  bottom: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: rgba(var(--warm), 0.7);
-  border-radius: 1px;
+  bottom: 0;
+  height: 4px;
+  background: rgba(var(--accent), 0.35);
+  border-radius: 999px;
 }
 
-/* Soft panels / callouts */
-.callout-success {
-  background: rgba(var(--success), 0.14);
-  border: 1px solid rgba(var(--success), 0.35);
-  border-radius: var(--radius);
-  padding: 1rem 1.25rem;
+/* === TABLE SCROLLBAR === */
+
+.table-scroll::-webkit-scrollbar {
+  height: 8px;
 }
 
-.callout-note {
-  background: rgba(var(--highlight), 0.14);
-  border: 1px solid rgba(var(--highlight), 0.35);
-  border-radius: var(--radius);
-  padding: 1rem 1.25rem;
+.table-scroll::-webkit-scrollbar-thumb {
+  background: rgba(var(--primary), 0.85);
+  border-radius: 999px;
 }
 
-/* Scrollbar styling (optional aesthetic)
-   Use green by default (more usage), with purple as a hover cue */
+.table-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--primary-dark));
+  cursor: pointer;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: rgba(var(--surface-soft), 0.9);
+}
+
+/* === GLOBAL SCROLLBAR === */
+
 ::-webkit-scrollbar {
   width: 10px;
 }
+
 ::-webkit-scrollbar-track {
   background: rgb(var(--bg));
 }
+
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(var(--accent), 0.9);
-  border-radius: 10px;
+  background-color: rgba(var(--primary), 0.75);
+  border-radius: 999px;
   border: 2px solid rgb(var(--bg));
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(var(--primary), 0.9);
+  background-color: rgb(var(--primary-dark));
 }

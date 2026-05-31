@@ -3,6 +3,12 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AppointmentsApi } from "../../api/AppointmentsController";
 import { ProvidedServicesApi } from "../../api/ProvidedServicesController";
+import LeafBurstButton from "@/components/decorative/LeafBurstButton";
+import {
+  UsefulInfoApi,
+  type UsefulInfoGetDto,
+} from "../../api/UsefulInfoController";
+import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 
 /**
  * ΚΛΕΙΣΤΕ ΡΑΝΤΕΒΟΥ — Booking form
@@ -96,6 +102,34 @@ export default function BookPage() {
     email: string;
     message?: string;
   }>(null);
+
+  const [usefulInfo, setUsefulInfo] = useState<UsefulInfoGetDto | null>(null);
+  const [usefulInfoLoading, setUsefulInfoLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        setUsefulInfoLoading(true);
+
+        const data = await UsefulInfoApi.getSingle();
+
+        if (!mounted) return;
+
+        setUsefulInfo(data);
+      } catch {
+        if (!mounted) return;
+        setUsefulInfo(null);
+      } finally {
+        if (mounted) setUsefulInfoLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -398,12 +432,11 @@ export default function BookPage() {
               </div>
 
               <div className="mt-5">
-                <Link
+                <LeafBurstButton
+                  text="Κλείστε νέο ραντεβού"
                   href="/contact/book"
-                  className="inline-flex h-12 items-center rounded-xl bg-primary px-4 text-[15px] font-semibold text-white transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
-                >
-                  Κλείστε νέο ραντεβού
-                </Link>
+                  buttonClassName="inline-flex h-12 items-center rounded-xl bg-primary px-4 text-[15px] font-semibold text-white transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
+                />
               </div>
             </div>
           )}
@@ -698,8 +731,8 @@ export default function BookPage() {
                 </div>
 
                 <div className="mt-6">
-                  <button
-                    type="submit"
+                  <LeafBurstButton
+                    text={loading ? "Αποστολή..." : "Αίτημα Ραντεβού"}
                     disabled={
                       loading ||
                       servicesLoading ||
@@ -707,11 +740,9 @@ export default function BookPage() {
                       !selectedService ||
                       !selectedSlotId
                     }
-                    className="inline-flex h-12 items-center rounded-xl bg-primary px-5 text-[15px] font-semibold text-white transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 disabled:opacity-50"
-                  >
-                    {loading ? "Αποστολή..." : "Αίτημα Ραντεβού"}
-                  </button>
-
+                    type="submit"
+                    buttonClassName="inline-flex h-12 items-center rounded-xl bg-primary px-5 text-[15px] font-semibold text-white transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 disabled:opacity-50"
+                  />
                   <p className="mt-2 text-sm text-slate-600">Θα σας στείλουμε email για επιβεβαίωση.</p>
 
                   <div className="mt-3">
@@ -730,13 +761,36 @@ export default function BookPage() {
 
             <aside className="md:col-span-2">
               <div className="rounded-2xl bg-white p-6 shadow-[0_16px_34px_rgba(164,199,126,0.14)] ring-1 ring-accent/30">
-                <h2 className="text-xl font-semibold text-slate-900">Χρήσιμες Πληροφορίες</h2>
+                {usefulInfoLoading ? (
+                  <div className="space-y-3 animate-pulse">
+                    <div className="h-7 w-2/3 rounded bg-[rgba(var(--primary),0.12)]" />
+                    <div className="h-4 w-full rounded bg-[rgba(var(--primary),0.12)]" />
+                    <div className="h-4 w-5/6 rounded bg-[rgba(var(--primary),0.12)]" />
+                    <div className="h-4 w-4/5 rounded bg-[rgba(var(--primary),0.12)]" />
+                  </div>
+                ) : usefulInfo ? (
+                  <>
+                    <RichHtmlRenderer
+                      html={usefulInfo.title}
+                      className="useful-info-title text-xl font-semibold text-slate-900"
+                    />
 
-                <ul className="mt-3 list-disc space-y-2 pl-5 text-[15px] text-slate-700 marker:text-accent/80">
-                  <li>Ώρες λειτουργίας: Δευ–Παρ 10:00–18:00</li>
-                  <li>Το ραντεβού επιβεβαιώνεται τηλεφωνικά.</li>
-                  <li>Ακύρωση ή αλλαγή έως 24 ώρες πριν.</li>
-                </ul>
+                    <RichHtmlRenderer
+                      html={usefulInfo.info}
+                      className="useful-info-body mt-3 text-[15px] text-slate-700"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-xl font-semibold text-slate-900">
+                      Χρήσιμες Πληροφορίες
+                    </h2>
+
+                    <p className="mt-3 text-[15px] text-slate-700">
+                      Οι χρήσιμες πληροφορίες δεν είναι διαθέσιμες αυτήν τη στιγμή.
+                    </p>
+                  </>
+                )}
 
                 <div className="mt-5 h-px bg-accent/35" />
 

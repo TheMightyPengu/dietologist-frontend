@@ -15,6 +15,11 @@ import {
   ProvidedServicesApi,
   type ProvidedServicesGetDto,
 } from "@/api/ProvidedServicesController";
+import {
+  UsefulInfoApi,
+  type UsefulInfoGetDto,
+} from "@/api/UsefulInfoController";
+import RichTextEditor from "@/components/admin/RichTextEditor";
 
 const cx = (...c: (string | false | null | undefined)[]) =>
   c.filter(Boolean).join(" ");
@@ -33,7 +38,7 @@ const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
   </div>
 );
 
-type Tab = "bookings" | "messages";
+type Tab = "bookings" | "messages" | "usefulInfo";
 
 type Slot = {
   id: string;
@@ -130,6 +135,7 @@ export default function ManagementContactPage() {
               {[
                 { key: "bookings", label: "Ραντεβού" },
                 { key: "messages", label: "Μηνύματα" },
+                { key: "usefulInfo", label: "Χρήσιμες Πληροφορίες" },
               ].map((t) => (
                 <button
                   key={t.key}
@@ -137,8 +143,8 @@ export default function ManagementContactPage() {
                   className={cx(
                     "rounded-full px-4 py-2 text-sm font-medium transition",
                     active === t.key
-                      ? "bg-[#8484d1] text-white"
-                      : "border border-slate-200 bg-white hover:border-[#8484d1]"
+                      ? "bg-[rgb(var(--primary))] text-white"
+                      : "border border-[rgba(var(--border),0.9)] bg-white hover:border-[rgb(var(--primary))]"
                   )}
                 >
                   {t.label}
@@ -147,7 +153,9 @@ export default function ManagementContactPage() {
             </div>
           </Card>
 
-          {active === "bookings" ? <BookingsManager /> : <MessagesManager />}
+          {active === "bookings" && <BookingsManager />}
+          {active === "messages" && <MessagesManager />}
+          {active === "usefulInfo" && <UsefulInfoManager />}
         </div>
       </div>
     </>
@@ -1178,6 +1186,161 @@ function MessagesManager() {
               </p>
             </div>
           ))
+        )}
+      </Card>
+
+      {toast && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-sm text-white shadow-lg">
+          {toast}
+        </div>
+      )}
+    </>
+  );
+}
+
+
+/* =============== ΧΡΗΣΙΜΕΣ ΠΛΗΡΟΦΟΡΙΕΣ =============== */
+
+function UsefulInfoManager() {
+  const [item, setItem] = useState<UsefulInfoGetDto | null>(null);
+  const [title, setTitle] = useState("");
+  const [info, setInfo] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function loadUsefulInfo() {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const data = await UsefulInfoApi.getSingle();
+
+      setItem(data);
+
+      if (data) {
+        setTitle(data.title || "");
+        setInfo(data.info || "");
+      } else {
+        setTitle("");
+        setInfo("");
+      }
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Δεν ήταν δυνατή η φόρτωση των χρήσιμων πληροφοριών."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadUsefulInfo();
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+
+    const t = setTimeout(() => setToast(null), 1600);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  async function handleSave() {
+    try {
+      setSaving(true);
+      setError(null);
+
+      const saved = await UsefulInfoApi.update(item?.id ?? 1, {
+        title,
+        info,
+      });
+
+      setItem(saved);
+      setTitle(saved.title || "");
+      setInfo(saved.info || "");
+      setToast("Αποθηκεύτηκε.");
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Δεν ήταν δυνατή η αποθήκευση."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <Card className="p-4 md:p-5">
+        <div className="mb-5">
+          <h2 className="text-xl font-semibold text-slate-900">
+            Χρήσιμες Πληροφορίες
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-600">
+            Εδώ αλλάζετε το κείμενο που εμφανίζεται στη σελίδα κλεισίματος
+            ραντεβού. Υπάρχει μόνο μία εγγραφή και απλώς ενημερώνεται.
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
+            Φόρτωση χρήσιμων πληροφοριών…
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-900">
+                Τίτλος
+              </label>
+
+              <RichTextEditor
+                value={title}
+                onChange={setTitle}
+                placeholder="π.χ. Χρήσιμες Πληροφορίες"
+                minHeight={120}
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-900">
+                Πληροφορίες
+              </label>
+
+              <RichTextEditor
+                value={info}
+                onChange={setInfo}
+                placeholder="Γράψτε εδώ τις πληροφορίες που θα βλέπει ο χρήστης στη φόρμα ραντεβού."
+                minHeight={260}
+              />
+            </div>
+
+            {error && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+                {error}
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className={cx(
+                  "rounded-full px-5 py-2 text-sm font-semibold text-white transition",
+                  saving
+                    ? "cursor-wait bg-[rgba(var(--primary),0.65)]"
+                    : "bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary-dark))]"
+                )}
+              >
+                {saving ? "Αποθήκευση…" : "Αποθήκευση"}
+              </button>
+            </div>
+          </div>
         )}
       </Card>
 

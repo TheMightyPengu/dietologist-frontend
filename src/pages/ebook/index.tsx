@@ -1,8 +1,8 @@
 import Head from "next/head";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { EbooksApi, type EbooksGetDto } from "../../api/EbooksController";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
+import LeafBurstButton from "@/components/decorative/LeafBurstButton";
 
 type EbookCard = {
   title: string;
@@ -270,11 +270,29 @@ export default function EbookPage() {
     };
   }, []);
 
-  const primaryCtaClass =
-    "inline-flex items-center gap-2 rounded-xl border border-[#8484d1]/20 bg-[#8484d1] text-white px-4 py-2 font-medium shadow hover:opacity-95 transition";
+  const primaryCtaClass = [
+    "gap-2 rounded-xl",
+    "border border-[rgba(var(--primary-dark),0.16)]",
+    "bg-[rgb(var(--primary))] text-white",
+    "px-4 py-2 font-medium shadow-[var(--shadow-soft)]",
+    "hover:bg-[rgb(var(--primary-dark))]",
+    "transition-colors duration-200",
+  ].join(" ");
 
-  const quietLinkClass =
-    "inline-flex items-center gap-2 text-[#8484d1] font-medium underline underline-offset-4 decoration-[#8484d1]/30 hover:decoration-[#8484d1]/70 transition";
+  const footerCtaClass = [
+    "gap-2 rounded-xl",
+    "border border-white/25 bg-white/12 text-white",
+    "px-5 py-3 font-semibold shadow-[var(--shadow-soft)]",
+    "hover:bg-white/18 transition-colors duration-200",
+  ].join(" ");
+
+  const quietLinkClass = [
+    "inline-flex items-center gap-2",
+    "text-[rgb(var(--primary))] font-medium",
+    "underline underline-offset-4 decoration-[rgba(var(--primary),0.28)]",
+    "hover:text-[rgb(var(--accent))] hover:decoration-[rgba(var(--accent),0.65)]",
+    "transition-colors",
+  ].join(" ");
 
   const icons = [IconCheckList, IconTarget, IconBeaker];
 
@@ -288,33 +306,35 @@ export default function EbookPage() {
         />
       </Head>
 
-      <section className="bg-bg text-slate-800">
+      <section className="bg-[rgb(var(--bg))] text-[rgb(var(--ink))]">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-14 md:pt-20 pb-10">
           {loading ? (
             <div className="grid md:grid-cols-2 gap-8 items-center animate-pulse">
-              <div className="h-80 bg-slate-200 rounded-2xl" />
+              <div className="h-80 bg-[rgba(var(--primary),0.12)] rounded-2xl" />
+
               <div className="space-y-4">
-                <div className="h-10 bg-slate-200 rounded w-3/4" />
-                <div className="h-5 bg-slate-200 rounded w-full" />
-                <div className="h-5 bg-slate-200 rounded w-5/6" />
-                <div className="h-11 bg-slate-200 rounded w-40" />
+                <div className="h-10 bg-[rgba(var(--primary),0.12)] rounded w-3/4" />
+                <div className="h-5 bg-[rgba(var(--primary),0.12)] rounded w-full" />
+                <div className="h-5 bg-[rgba(var(--primary),0.12)] rounded w-5/6" />
+                <div className="h-11 bg-[rgba(var(--primary),0.12)] rounded w-40" />
               </div>
             </div>
           ) : error ? (
-            <div className="rounded-xl bg-red-50 border border-red-200 p-4">
-              <p className="text-red-700">{error}</p>
+            <div className="rounded-xl bg-[rgba(var(--warm),0.55)] border border-[rgba(var(--accent),0.28)] p-4">
+              <p className="text-[rgb(var(--ink))]">{error}</p>
             </div>
           ) : ebook ? (
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div className="flex justify-center md:justify-start">
                 <div className="relative w-full max-w-[520px]">
-                  <div className="absolute inset-0 rounded-2xl bg-white/30 blur-2xl" />
+                  <div className="absolute inset-0 rounded-2xl bg-[rgba(var(--accent-soft),0.8)] blur-2xl" />
 
                   <div
                     className={[
                       "relative rounded-2xl overflow-hidden",
-                      "ring-1 ring-[#8484d1]/15 shadow-[0_18px_50px_rgba(2,6,23,0.10)]",
-                      "bg-white aspect-[4/5] transform-gpu",
+                      "ring-1 ring-[rgba(var(--primary),0.18)]",
+                      "shadow-[0_24px_70px_rgba(63,88,52,0.16)]",
+                      "bg-[rgb(var(--surface))] aspect-[4/5] transform-gpu",
                       "md:[transform:perspective(1200px)_rotateY(-6deg)_rotateX(2deg)]",
                       "md:hover:[transform:perspective(1200px)_rotateY(-3deg)_rotateX(1deg)]",
                       "transition-transform duration-500",
@@ -326,31 +346,31 @@ export default function EbookPage() {
                       style={{ backgroundImage: `url(${ebook.cover})` }}
                     />
 
-                    <div className="pointer-events-none absolute inset-0 ring-1 ring-white/20" />
+                    <div className="pointer-events-none absolute inset-0 ring-1 ring-white/25" />
                   </div>
                 </div>
               </div>
 
               <div>
-                <div className="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#8484d1] ring-1 ring-[#8484d1]/20 shadow-sm">
+                <div className="inline-flex items-center rounded-full bg-[rgba(var(--surface),0.86)] px-3 py-1 text-xs font-semibold text-[rgb(var(--primary))] ring-1 ring-[rgba(var(--primary),0.18)] shadow-sm">
                   Νέο ebook
                 </div>
 
-                <h2 className="mt-3 text-2xl md:text-3xl font-semibold tracking-tight text-slate-900">
+                <h2 className="mt-3 text-2xl md:text-3xl font-semibold tracking-tight text-[rgb(var(--ink))]">
                   {ebook.title}
                 </h2>
 
                 <RichHtmlRenderer
                   html={ebook.description}
-                  className="ebook-rich-content mt-2 text-slate-600 leading-relaxed md:leading-7 max-w-prose"
+                  className="ebook-rich-content mt-2 text-[rgb(var(--muted))] leading-relaxed md:leading-7 max-w-prose"
                 />
 
-                <div className="mt-3 text-sm text-slate-500">
+                <div className="mt-3 text-sm text-[rgb(var(--muted))]">
                   Συγγραφέας: {ebook.author}
                 </div>
 
                 <div className="mt-5 flex flex-wrap items-center gap-3 text-sm">
-                  <span className="inline-flex items-center rounded-full bg-white px-3 py-1 border border-slate-200 shadow-sm">
+                  <span className="inline-flex items-center rounded-full bg-[rgba(var(--surface),0.86)] px-3 py-1 border border-[rgba(var(--border),0.9)] shadow-sm text-[rgb(var(--ink))]">
                     Μορφή: {ebook.format}
                   </span>
                 </div>
@@ -368,26 +388,36 @@ export default function EbookPage() {
                   )}
 
                   {ebook.buyUrl ? (
-                    <a
-                      href={ebook.buyUrl}
-                      className={primaryCtaClass}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {ebook.priceEUR
-                        ? `Αγορά — ${ebook.priceEUR}€`
-                        : "Κατέβασμα"}
-                    </a>
+                    <LeafBurstButton
+                      text={
+                        ebook.priceEUR
+                          ? `Αγορά — ${ebook.priceEUR}€`
+                          : "Κατέβασμα"
+                      }
+                      href=""
+                      onClick={() =>
+                        window.open(
+                          ebook.buyUrl!,
+                          "_blank",
+                          "noopener,noreferrer"
+                        )
+                      }
+                      buttonClassName={primaryCtaClass}
+                    />
                   ) : (
-                    <Link href="/contact" className={primaryCtaClass}>
-                      {ebook.priceEUR
-                        ? `Αγορά — ${ebook.priceEUR}€`
-                        : "Κατέβασμα"}
-                    </Link>
+                    <LeafBurstButton
+                      text={
+                        ebook.priceEUR
+                          ? `Αγορά — ${ebook.priceEUR}€`
+                          : "Κατέβασμα"
+                      }
+                      href="/contact"
+                      buttonClassName={primaryCtaClass}
+                    />
                   )}
                 </div>
 
-                <p className="mt-2 text-sm text-slate-500">
+                <p className="mt-2 text-sm text-[rgb(var(--muted))]">
                   Άμεση πρόσβαση μετά την πληρωμή.
                 </p>
               </div>
@@ -404,21 +434,26 @@ export default function EbookPage() {
                 return (
                   <div
                     key={`${card.title}-${i}`}
-                    className="rounded-2xl bg-white border border-slate-200 shadow-sm p-5"
+                    className={[
+                      "rounded-2xl bg-[rgba(var(--surface),0.82)]",
+                      "border border-[rgba(var(--border),0.9)]",
+                      "shadow-[var(--shadow-soft)] p-5",
+                      "backdrop-blur-sm",
+                    ].join(" ")}
                   >
                     <div className="flex items-start gap-3">
-                      <div className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#8484d1]/10 text-[#8484d1] ring-1 ring-[#8484d1]/15">
+                      <div className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[rgba(var(--accent-soft),0.8)] text-[rgb(var(--primary))] ring-1 ring-[rgba(var(--primary),0.16)]">
                         <Ico className="h-5 w-5" />
                       </div>
 
                       <div className="min-w-0">
-                        <h3 className="font-semibold text-lg text-slate-900">
+                        <h3 className="font-semibold text-lg text-[rgb(var(--ink))]">
                           {card.title}
                         </h3>
 
                         <RichHtmlRenderer
                           html={card.description}
-                          className="ebook-card-rich-content text-slate-600 mt-1 leading-relaxed"
+                          className="ebook-card-rich-content text-[rgb(var(--muted))] mt-1 leading-relaxed"
                         />
                       </div>
                     </div>
@@ -430,21 +465,23 @@ export default function EbookPage() {
         )}
 
         {!loading && !error && ebook && (
-          <div className="bg-[#8484d1] text-white">
+          <div className="bg-[rgb(var(--primary-dark))] text-white">
             <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10">
               <div className="grid md:grid-cols-[1.25fr_0.75fr] gap-8 items-start">
                 <div className="grid sm:grid-cols-2 gap-8">
                   <div>
-                    <h3 className="text-xl font-semibold">Περιεχόμενα</h3>
+                    <h3 className="text-xl font-semibold text-white">
+                      Περιεχόμενα
+                    </h3>
 
-                    <ul className="mt-3 space-y-2 text-white/95">
+                    <ul className="mt-3 space-y-2 text-white/92">
                       {ebook.toc.length > 0 ? (
                         ebook.toc.map((entry, idx) => (
                           <li
                             key={idx}
                             className="flex items-start gap-2 leading-relaxed"
                           >
-                            <span className="mt-1 select-none text-white/90">
+                            <span className="mt-1 select-none text-[rgb(var(--warm))]">
                               •
                             </span>
 
@@ -452,7 +489,7 @@ export default function EbookPage() {
                           </li>
                         ))
                       ) : (
-                        <li className="text-white/90">
+                        <li className="text-white/86">
                           Δεν υπάρχουν ακόμη διαθέσιμα περιεχόμενα.
                         </li>
                       )}
@@ -460,15 +497,17 @@ export default function EbookPage() {
                   </div>
 
                   <div>
-                    <h3 className="text-xl font-semibold">Bonus templates</h3>
+                    <h3 className="text-xl font-semibold text-white">
+                      Bonus templates
+                    </h3>
 
-                    <ul className="mt-3 space-y-2 text-white/95">
+                    <ul className="mt-3 space-y-2 text-white/92">
                       {ebook.bonusTemplates.map((entry, idx) => (
                         <li
                           key={idx}
                           className="flex items-start gap-2 leading-relaxed"
                         >
-                          <span className="mt-1 select-none text-white/90">
+                          <span className="mt-1 select-none text-[rgb(var(--warm))]">
                             •
                           </span>
 
@@ -481,40 +520,35 @@ export default function EbookPage() {
 
                 <div className="md:justify-self-end md:pt-1">
                   {ebook.buyUrl ? (
-                    <a
-                      href={ebook.buyUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={[
-                        "inline-flex items-center gap-2 rounded-xl",
-                        "border border-white/20 bg-white/10 text-white",
-                        "px-5 py-3 font-semibold shadow",
-                        "hover:bg-white/15 transition",
-                      ].join(" ")}
-                    >
-                      {ebook.priceEUR
-                        ? `Αγορά τώρα — ${ebook.priceEUR}€`
-                        : "Κατέβασμα τώρα"}
-                      <span aria-hidden>→</span>
-                    </a>
+                    <LeafBurstButton
+                      text={
+                        ebook.priceEUR
+                          ? `Αγορά τώρα — ${ebook.priceEUR}€ →`
+                          : "Κατέβασμα τώρα →"
+                      }
+                      href=""
+                      onClick={() =>
+                        window.open(
+                          ebook.buyUrl!,
+                          "_blank",
+                          "noopener,noreferrer"
+                        )
+                      }
+                      buttonClassName={footerCtaClass}
+                    />
                   ) : (
-                    <Link
+                    <LeafBurstButton
+                      text={
+                        ebook.priceEUR
+                          ? `Αγορά τώρα — ${ebook.priceEUR}€ →`
+                          : "Κατέβασμα τώρα →"
+                      }
                       href="/contact"
-                      className={[
-                        "inline-flex items-center gap-2 rounded-xl",
-                        "border border-white/20 bg-white/10 text-white",
-                        "px-5 py-3 font-semibold shadow",
-                        "hover:bg-white/15 transition",
-                      ].join(" ")}
-                    >
-                      {ebook.priceEUR
-                        ? `Αγορά τώρα — ${ebook.priceEUR}€`
-                        : "Κατέβασμα τώρα"}
-                      <span aria-hidden>→</span>
-                    </Link>
+                      buttonClassName={footerCtaClass}
+                    />
                   )}
 
-                  <p className="mt-2 text-white/95 text-sm">
+                  <p className="mt-2 text-white text-sm">
                     Ασφαλής πληρωμή — Άμεση πρόσβαση.
                   </p>
                 </div>

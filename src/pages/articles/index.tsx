@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { ArticlesApi, type ArticlesGetDto } from "@/api/ArticlesController";
+import LeafBurstButton from "@/components/decorative/LeafBurstButton";
 
 /**
  * ΑΡΘΡΑ — Κεντρική σελίδα καταλόγου
@@ -796,13 +797,12 @@ export default function ArticlesIndex(props: Props) {
                 <div className="text-slate-600 mb-5">
                   Δοκιμάστε να αφαιρέσετε κάποια φίλτρα ή να αλλάξετε την αναζήτηση.
                 </div>
-                <button
-                  type="button"
+                <LeafBurstButton
+                  text="Καθαρισμός φίλτρων"
                   onClick={resetAll}
-                  className="rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-white hover:opacity-95 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
-                >
-                  Καθαρισμός φίλτρων
-                </button>
+                  disabled={false}
+                  buttonClassName="rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-white hover:opacity-95 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+                />
               </div>
             ) : (
               <>
@@ -924,19 +924,17 @@ export default function ArticlesIndex(props: Props) {
                 {filteredSorted.length > 0 && (
                   <div className="mt-8 flex justify-center">
                     {canLoadMore ? (
-                      <button
-                        type="button"
+                      <LeafBurstButton
+                        text={isLoadingMore ? "Φόρτωση…" : "Φόρτωσε περισσότερα"}
                         onClick={onLoadMore}
                         disabled={isLoadingMore}
-                        className={[
+                        buttonClassName={[
                           "rounded-xl px-5 py-2.5 text-sm font-medium",
                           "bg-primary text-white hover:opacity-95 transition",
                           "disabled:opacity-60 disabled:cursor-not-allowed",
                           "focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
                         ].join(" ")}
-                      >
-                        {isLoadingMore ? "Φόρτωση…" : "Φόρτωσε περισσότερα"}
-                      </button>
+                      />
                     ) : (
                       <div className="text-sm text-slate-500">Τέλος αποτελεσμάτων.</div>
                     )}
@@ -972,15 +970,13 @@ export default function ArticlesIndex(props: Props) {
             {renderFilterSidebar(true)}
 
             <div className="mt-4 flex gap-2">
-              <button
-                type="button"
+              <LeafBurstButton
+                text="Εφαρμογή"
                 onClick={() => {
                   closeFilters();
                 }}
-                className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:opacity-95 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
-              >
-                Εφαρμογή
-              </button>
+                buttonClassName="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:opacity-95 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+              />
               <button
                 type="button"
                 onClick={resetAll}

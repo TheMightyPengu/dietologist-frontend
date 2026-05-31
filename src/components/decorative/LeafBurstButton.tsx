@@ -8,6 +8,10 @@ type LeafBurstButtonProps = {
   href?: string;
   className?: string;
   disabled?: boolean;
+  onClick?: () => void;
+  buttonClassName?: string;
+  size?: "sm" | "md" | "lg";
+  type?: "button" | "submit" | "reset";
 };
 
 export default function LeafBurstButton({
@@ -15,6 +19,10 @@ export default function LeafBurstButton({
   href = "/contact/book",
   className = "",
   disabled = false,
+  onClick: onClickProp,
+  buttonClassName,
+  size = "lg",
+  type = "button",
 }: LeafBurstButtonProps) {
   const router = useRouter();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -33,27 +41,44 @@ export default function LeafBurstButton({
 
   const handleClick = () => {
     if (!disabled) {
-      router.push(href);
+      onClickProp?.();
+      if (href) {
+        router.push(href);
+      }
     }
   };
+
+  const sizeClasses = {
+    sm: "px-3 py-2 md:px-5 md:py-2.5 text-sm rounded-full",
+    md: "px-5 py-2.5 text-sm rounded-xl",
+    lg: "px-7 py-3 text-lg rounded-2xl",
+  };
+
+  const defaultButtonClass = `relative inline-flex items-center justify-center ${sizeClasses[size]} font-medium transition-all duration-300 overflow-hidden outline-none focus-visible:ring-4 focus-visible:ring-primary/40 ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:-translate-y-0.5"} ${className}`;
+
+  const finalButtonClass = buttonClassName ? `relative inline-flex items-center justify-center overflow-hidden outline-none ${buttonClassName}` : defaultButtonClass;
 
   return (
     <button
       ref={buttonRef}
-      type="button"
+      type={type}
       onClick={handleClick}
       disabled={disabled}
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`relative inline-flex items-center justify-center rounded-2xl px-7 py-3 text-lg font-medium transition-all duration-300 overflow-hidden outline-none focus-visible:ring-4 focus-visible:ring-primary/40 ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:-translate-y-0.5"} ${className}`}
-      style={{
-        backgroundColor: "rgb(var(--primary))",
-        color: "#ffffff",
-        boxShadow: isHovered
-          ? "0 18px 40px rgba(126,199,148,0.24)"
-          : "0 10px 28px rgba(16,24,40,0.16)",
-      }}
+      className={finalButtonClass}
+      style={
+        !buttonClassName
+          ? {
+              backgroundColor: "rgb(var(--primary))",
+              color: "#ffffff",
+              boxShadow: isHovered
+                ? "0 18px 40px rgba(126,199,148,0.24)"
+                : "0 10px 28px rgba(16,24,40,0.16)",
+            }
+          : undefined
+      }
     >
       <div
         className={`pointer-events-none absolute w-[240px] h-[240px] rounded-full opacity-70 transition-transform duration-500 ease-out -translate-x-1/2 -translate-y-1/2 ${isHovered ? "scale-100" : "scale-0"}`}

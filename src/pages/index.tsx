@@ -9,6 +9,7 @@ import {
   type MainPageGetDto,
 } from "@/api/MainPagesController";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
+import LeafBurstButton from "@/components/decorative/LeafBurstButton";
 
 export default function HomePage() {
   const siteName = "Διαιτολογικό Κέντρο";
@@ -621,10 +622,11 @@ export default function HomePage() {
                     </div>
 
                     <div className="mt-2 flex flex-col sm:flex-row gap-3">
-                      <button
-                        type="submit"
+                      <LeafBurstButton
+                        text={nlLoading ? "Αποστολή…" : "Συνέχεια"}
                         disabled={nlLoading}
-                        className={[
+                        type="submit"
+                        buttonClassName={[
                           "inline-flex items-center justify-center",
                           R_CARD,
                           "px-5 py-3 font-semibold transition",
@@ -634,9 +636,7 @@ export default function HomePage() {
                             : SH_CTA + " hover:opacity-95",
                           FOCUS,
                         ].join(" ")}
-                      >
-                        {nlLoading ? "Αποστολή…" : "Συνέχεια"}
-                      </button>
+                      />
 
                       <button
                         type="button"
@@ -690,10 +690,11 @@ export default function HomePage() {
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-3">
-                      <button
-                        type="submit"
+                      <LeafBurstButton
+                        text={nlLoading ? "Επιβεβαίωση…" : "Ολοκλήρωση εγγραφής"}
                         disabled={nlLoading}
-                        className={[
+                        type="submit"
+                        buttonClassName={[
                           "inline-flex items-center justify-center",
                           R_CARD,
                           "px-5 py-3 font-semibold transition",
@@ -703,9 +704,7 @@ export default function HomePage() {
                             : SH_CTA + " hover:opacity-95",
                           FOCUS,
                         ].join(" ")}
-                      >
-                        {nlLoading ? "Επιβεβαίωση…" : "Ολοκλήρωση εγγραφής"}
-                      </button>
+                      />
 
                       <button
                         type="button"
@@ -761,10 +760,10 @@ export default function HomePage() {
                       <span className="font-semibold">{nlForm.email}</span>.
                     </div>
 
-                    <button
-                      type="button"
+                    <LeafBurstButton
+                      text="Έτοιμο"
                       onClick={closeNewsletterModal}
-                      className={[
+                      buttonClassName={[
                         "w-full inline-flex items-center justify-center",
                         R_CARD,
                         "px-5 py-3 font-semibold transition",
@@ -772,9 +771,7 @@ export default function HomePage() {
                         SH_CTA + " hover:opacity-95",
                         FOCUS,
                       ].join(" ")}
-                    >
-                      Έτοιμο
-                    </button>
+                    />
 
                     <p className="text-xs text-slate-500">
                       Με την εγγραφή συμφωνείτε να λαμβάνετε ενημερωτικά emails.
