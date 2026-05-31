@@ -1,417 +1,587 @@
-// import Head from "next/head";
-// import Link from "next/link";
-// import { useEffect, useMemo, useState } from "react";
-// import {
-//   createSeminar,
-//   deleteSeminar,
-//   getSeminars,
-//   updateSeminar,
-//   type Seminar,
-//   type SeminarMode,
-// } from "@/api/SeminarsController";
-// import Image from "next/image";
+import Head from "next/head";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import {
+  createSeminar,
+  deleteSeminar,
+  getSeminarById,
+  getSeminars,
+  updateSeminar,
+  type Seminar,
+  type SeminarPayload,
+} from "@/api/SeminarsController";
+import RichTextEditor from "@/components/admin/RichTextEditor";
+import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 
-// const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
+const cx = (...c: (string | false | null | undefined)[]) =>
+  c.filter(Boolean).join(" ");
 
-// const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({ className, children }) => (
-//   <div className={cx("rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-200/50", className)}>
-//     {children}
-//   </div>
-// );
+const IMAGE_FALLBACK =
+  "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=1200&auto=format&fit=crop";
 
-// function fmtDateHuman(iso: string) {
-//   try {
-//     const d = new Date(iso);
-//     return new Intl.DateTimeFormat("el-GR", {
-//       day: "2-digit",
-//       month: "short",
-//       year: "numeric",
-//       hour: "2-digit",
-//       minute: "2-digit",
-//     }).format(d);
-//   } catch {
-//     return iso;
-//   }
-// }
+const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
+  className,
+  children,
+}) => (
+  <div
+    className={cx(
+      "rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-[rgba(var(--border),0.8)]",
+      className
+    )}
+  >
+    {children}
+  </div>
+);
 
-// export default function ManagementSeminarsPage() {
-//   const [all, setAll] = useState<Seminar[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   const [toast, setToast] = useState<string | null>(null);
-//   const [busyId, setBusyId] = useState<string | null>(null);
-//   const [creating, setCreating] = useState(false);
-//   const [query, setQuery] = useState("");
+function fmtDateHuman(iso: string) {
+  const d = new Date(iso);
 
-//   useEffect(() => {
-//     (async () => {
-//       setLoading(true);
-//       const data = await getSeminars();
-//       setAll(data);
-//       setLoading(false);
-//     })();
-//   }, []);
+  if (!iso || isNaN(d.getTime())) {
+    return "Ημερομηνία σύντομα";
+  }
 
-//   useEffect(() => {
-//     if (!toast) return;
-//     const t = setTimeout(() => setToast(null), 1600);
-//     return () => clearTimeout(t);
-//   }, [toast]);
+  return new Intl.DateTimeFormat("el-GR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
+}
 
-//   const filtered = useMemo(() => {
-//     if (!query.trim()) return all;
-//     const q = query.toLowerCase();
-//     return all.filter((s) => [s.title, s.excerpt].some((t) => t.toLowerCase().includes(q)));
-//   }, [all, query]);
+function toDateTimeLocalValue(iso: string) {
+  const d = new Date(iso);
 
-//   async function handleCreate() {
-//     setCreating(true);
-//     const empty: Omit<Seminar, "id"> = {
-//       title: "Νέο σεμινάριο",
-//       excerpt: "",
-//       imageUrl: "",
-//       mode: "online",
-//       dateISO: new Date().toISOString(),
-//       durationMin: 60,
-//       priceEuro: null,
-//       ctaLabel: "Κράτηση θέσης",
-//       ctaUrl: "/contact#booking",
-//       published: false,
-//     };
-//     const created = await createSeminar(empty);
-//     setAll((prev) => [created, ...prev]);
-//     setCreating(false);
-//     setToast("Δημιουργήθηκε.");
-//   }
+  if (!iso || isNaN(d.getTime())) {
+    return "";
+  }
 
-//   async function handleSave(sem: Seminar) {
-//     setBusyId(sem.id);
-//     const updated = await updateSeminar(sem);
-//     setAll((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
-//     setBusyId(null);
-//     setToast("Αποθηκεύτηκε.");
-//   }
+  const pad = (value: number) => String(value).padStart(2, "0");
 
-//   async function handleDelete(id: string) {
-//     if (!confirm("Διαγραφή σεμιναρίου;")) return;
-//     setBusyId(id);
-//     await deleteSeminar(id);
-//     setAll((prev) => prev.filter((x) => x.id !== id));
-//     setBusyId(null);
-//     setToast("Διαγράφηκε.");
-//   }
+  const year = d.getFullYear();
+  const month = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+  const hours = pad(d.getHours());
+  const minutes = pad(d.getMinutes());
 
-//   return (
-//     <>
-//       <Head>
-//         <title>Διαχείριση | ΣΕΜΙΝΑΡΙΑ</title>
-//         <meta name="robots" content="noindex,nofollow" />
-//       </Head>
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
 
-//       <div className="min-h-[70vh] bg-bg text-slate-800">
-//         <div className="mx-auto max-w-6xl px-4 md:px-6 lg:px-8 py-8 md:py-12">
-//           <div className="mb-6 flex items-center gap-3">
-//             <Link
-//               href="/dashboard"
-//               className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
-//             >
-//               ← Πίσω στο Dashboard
-//             </Link>
-//             <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">ΣΕΜΙΝΑΡΙΑ</h1>
-//           </div>
+function dateTimeLocalToIso(value: string) {
+  if (!value) return "";
 
-//           <Card className="p-4 md:p-5 mb-6">
-//             <div className="flex flex-wrap items-center justify-between gap-3">
-//               <input
-//                 value={query}
-//                 onChange={(e) => setQuery(e.target.value)}
-//                 placeholder="Αναζήτηση σεμιναρίων…"
-//                 className="w-full md:w-80 rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-//               />
-//               <button
-//                 onClick={handleCreate}
-//                 disabled={creating}
-//                 className={cx(
-//                   "rounded-full px-4 py-2 text-sm font-semibold transition",
-//                   creating ? "bg-[#8484d1]/70 text-white cursor-wait" : "bg-[#8484d1] text-white hover:shadow"
-//                 )}
-//               >
-//                 {creating ? "Δημιουργία…" : "Νέο σεμινάριο"}
-//               </button>
-//             </div>
-//           </Card>
+  const d = new Date(value);
 
-//           {loading ? (
-//             <Card className="p-6">
-//               <p>Φόρτωση…</p>
-//             </Card>
-//           ) : filtered.length === 0 ? (
-//             <Card className="p-6 text-slate-600">Καμία εγγραφή.</Card>
-//           ) : (
-//             <div className="space-y-6">
-//               {filtered.map((sem) => (
-//                 <SeminarEditorCard
-//                   key={sem.id}
-//                   sem={sem}
-//                   busy={busyId === sem.id}
-//                   onSave={handleSave}
-//                   onDelete={handleDelete}
-//                 />
-//               ))}
-//             </div>
-//           )}
-//         </div>
+  if (isNaN(d.getTime())) {
+    return "";
+  }
 
-//         {toast && (
-//           <div className="fixed bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-slate-900 text-white text-sm px-4 py-2 shadow-lg">
-//             {toast}
-//           </div>
-//         )}
-//       </div>
-//     </>
-//   );
-// }
+  return d.toISOString();
+}
 
-// /* ---------------- Editor Card ---------------- */
-// function SeminarEditorCard({
-//   sem,
-//   busy,
-//   onSave,
-//   onDelete,
-// }: {
-//   sem: Seminar;
-//   busy: boolean;
-//   onSave: (s: Seminar) => void;
-//   onDelete: (id: string) => void;
-// }) {
-//   const [draft, setDraft] = useState<Seminar>(sem);
-//   const [open, setOpen] = useState(true);
+function toPayload(sem: Seminar): SeminarPayload {
+  return {
+    title: sem.title,
+    description: sem.description,
+    content: sem.content,
+    imageUrl: sem.imageUrl,
+    price: Number(sem.price) || 0,
+    duration: Number(sem.duration) || 0,
+    dateTime: sem.dateTime || new Date().toISOString(),
+    type: sem.type,
+  };
+}
 
-//   // reset when row changes
-//   useEffect(() => {
-//     setDraft(sem);
-//   }, [sem]);
+function stripHtml(value: string) {
+  return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
 
-//   const priceText = draft.priceEuro === null ? "ΔΩΡΕΑΝ" : `${draft.priceEuro}€`;
+export default function ManagementSeminarsPage() {
+  const [all, setAll] = useState<Seminar[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [query, setQuery] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-//   return (
-//     <Card className="p-5 md:p-6">
-//       {/* Header */}
-//       <div className="flex items-start justify-between gap-3">
-//         <div>
-//           <h3 className="text-lg font-semibold">{draft.title || "(Χωρίς τίτλο)"}</h3>
-//           <p className="text-xs text-slate-500 mt-1">
-//             {draft.published ? "Δημοσιευμένο" : "Προσχέδιο"} • {draft.mode === "online" ? "Online" : "Δια ζώσης"} •{" "}
-//             {fmtDateHuman(draft.dateISO)}
-//           </p>
-//         </div>
-//         <div className="flex items-center gap-2">
-//           <button
-//             onClick={() => setOpen((o) => !o)}
-//             className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
-//           >
-//             {open ? "Σύμπτυξη" : "Επέκταση"}
-//           </button>
-//           <button
-//             onClick={() => onDelete(draft.id)}
-//             disabled={busy}
-//             className="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-sm text-rose-700 hover:border-rose-300"
-//           >
-//             Διαγραφή
-//           </button>
-//         </div>
-//       </div>
+  async function loadSeminars() {
+    try {
+      setLoading(true);
+      setError(null);
 
-//       {open && (
-//         <div className="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
-//           {/* Form */}
-//           <div className="lg:col-span-2 space-y-4">
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700">Τίτλος</label>
-//               <input
-//                 value={draft.title}
-//                 onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
-//                 className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-//               />
-//             </div>
+      const data = await getSeminars();
 
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700">Περιγραφή (excerpt)</label>
-//               <textarea
-//                 rows={3}
-//                 value={draft.excerpt}
-//                 onChange={(e) => setDraft((d) => ({ ...d, excerpt: e.target.value }))}
-//                 className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-//               />
-//             </div>
+      setAll(data);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Δεν ήταν δυνατή η φόρτωση των σεμιναρίων."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
-//             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-//               <div>
-//                 <label className="block text-sm font-medium text-slate-700">Τρόπος</label>
-//                 <select
-//                   value={draft.mode}
-//                   onChange={(e) => setDraft((d) => ({ ...d, mode: e.target.value as SeminarMode }))}
-//                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-//                 >
-//                   <option value="online">Online</option>
-//                   <option value="in_person">Δια ζώσης</option>
-//                 </select>
-//               </div>
-//               <div>
-//                 <label className="block text-sm font-medium text-slate-700">Ημερομηνία & ώρα</label>
-//                 <input
-//                   type="datetime-local"
-//                   value={draft.dateISO.slice(0, 16)}
-//                   onChange={(e) => {
-//                     // keep timezone offset if any: declare as local and convert to ISO
-//                     const local = new Date(e.target.value);
-//                     setDraft((d) => ({ ...d, dateISO: local.toISOString() }));
-//                   }}
-//                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-//                 />
-//               </div>
-//               <div>
-//                 <label className="block text-sm font-medium text-slate-700">Διάρκεια (λεπτά)</label>
-//                 <input
-//                   type="number"
-//                   min={15}
-//                   step={15}
-//                   value={draft.durationMin}
-//                   onChange={(e) => setDraft((d) => ({ ...d, durationMin: Number(e.target.value) }))}
-//                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-//                 />
-//               </div>
-//             </div>
+  useEffect(() => {
+    loadSeminars();
+  }, []);
 
-//             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-//               <div>
-//                 <label className="block text-sm font-medium text-slate-700">Τιμή (€) — αφήστε κενό για ΔΩΡΕΑΝ</label>
-//                 <input
-//                   type="number"
-//                   min={0}
-//                   value={draft.priceEuro ?? ""}
-//                   onChange={(e) =>
-//                     setDraft((d) => ({
-//                       ...d,
-//                       priceEuro: e.target.value === "" ? null : Number(e.target.value),
-//                     }))
-//                   }
-//                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-//                 />
-//               </div>
-//               <div>
-//                 <label className="block text-sm font-medium text-slate-700">CTA κείμενο</label>
-//                 <input
-//                   value={draft.ctaLabel}
-//                   onChange={(e) => setDraft((d) => ({ ...d, ctaLabel: e.target.value }))}
-//                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-//                 />
-//               </div>
-//               <div>
-//                 <label className="block text-sm font-medium text-slate-700">CTA σύνδεσμος</label>
-//                 <input
-//                   value={draft.ctaUrl}
-//                   onChange={(e) => setDraft((d) => ({ ...d, ctaUrl: e.target.value }))}
-//                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-//                 />
-//               </div>
-//             </div>
+  useEffect(() => {
+    if (!toast) return;
 
-//             <div>
-//               <label className="block text-sm font-medium text-slate-700">Εικόνα (URL)</label>
-//               <input
-//                 value={draft.imageUrl}
-//                 onChange={(e) => setDraft((d) => ({ ...d, imageUrl: e.target.value }))}
-//                 placeholder="https://..."
-//                 className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
-//               />
-//             </div>
+    const t = setTimeout(() => setToast(null), 1600);
+    return () => clearTimeout(t);
+  }, [toast]);
 
-//             <div className="flex items-center gap-3">
-//               <input
-//                 id={`published-${draft.id}`}
-//                 type="checkbox"
-//                 checked={draft.published}
-//                 onChange={(e) => setDraft((d) => ({ ...d, published: e.target.checked }))}
-//               />
-//               <label htmlFor={`published-${draft.id}`} className="text-sm">
-//                 Δημοσιευμένο
-//               </label>
-//             </div>
+  const filtered = useMemo(() => {
+    if (!query.trim()) return all;
 
-//             {/* Actions */}
-//             <div className="flex flex-wrap items-center gap-3">
-//               <button
-//                 onClick={() => onSave(draft)}
-//                 disabled={busy}
-//                 className={cx(
-//                   "rounded-full px-4 py-2 text-sm font-semibold transition",
-//                   busy ? "bg-[#8484d1]/70 text-white cursor-wait" : "bg-[#8484d1] text-white hover:shadow"
-//                 )}
-//               >
-//                 {busy ? "Αποθήκευση…" : "Αποθήκευση"}
-//               </button>
-//               <button
-//                 onClick={() => setDraft(sem)}
-//                 className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[#8484d1]"
-//               >
-//                 Επαναφορά αλλαγών
-//               </button>
-//               <button
-//                 onClick={() => onDelete(draft.id)}
-//                 disabled={busy}
-//                 className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm text-rose-700 hover:border-rose-300"
-//               >
-//                 Διαγραφή
-//               </button>
-//             </div>
-//           </div>
+    const q = query.toLowerCase();
 
-//           {/* Live preview card */}
-//           <div className="lg:col-span-1">
-//             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
-//               <div className="aspect-[16/10] bg-slate-100 relative">
-//                 {draft.imageUrl ? (
-//                   <>
-//                     <Image src={draft.imageUrl} alt="" fill className="object-cover" />
-//                   </>
-//                 ) : (
-//                   <div className="h-full w-full grid place-items-center text-slate-400 text-sm">
-//                     Προσθέστε εικόνα (URL)
-//                   </div>
-//                 )}
-//               </div>
-//               <div className="px-4 py-3 border-t border-slate-200">
-//                 <div className="flex items-center gap-2 text-xs text-slate-600">
-//                   <span className="rounded-full bg-slate-100 px-2 py-0.5">
-//                     {draft.mode === "online" ? "Online" : "Δια ζώσης"}
-//                   </span>
-//                   <span>•</span>
-//                   <span>{fmtDateHuman(draft.dateISO)}</span>
-//                   <span>•</span>
-//                   <span>{draft.durationMin}’</span>
-//                 </div>
-//                 <h4 className="mt-2 text-base font-semibold">{draft.title || "Τίτλος"}</h4>
-//                 <p className="mt-1 text-sm text-slate-600">{draft.excerpt}</p>
-//                 <div className="mt-3 flex items-center justify-between">
-//                   <span className="text-sm font-semibold">{priceText}</span>
-//                   <button className="rounded-full bg-[#8484d1] text-white text-xs px-3 py-1.5">
-//                     {draft.ctaLabel || "Κράτηση θέσης"}
-//                   </button>
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//       )}
-//     </Card>
-//   );
-// }
+    return all.filter((s) =>
+      [
+        s.title,
+        stripHtml(s.description),
+        stripHtml(s.content),
+        s.type,
+        String(s.price),
+        String(s.duration),
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [all, query]);
 
-export default function SeminarsPage() {
+  async function handleCreate() {
+    try {
+      setCreating(true);
+      setError(null);
+
+      const created = await createSeminar({
+        title: "Νέο σεμινάριο",
+        description: "",
+        content: "",
+        imageUrl: "",
+        price: 0,
+        duration: 60,
+        dateTime: new Date().toISOString(),
+        type: "Online",
+      });
+
+      setAll((prev) => [created, ...prev]);
+      setToast("Δημιουργήθηκε.");
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Δεν ήταν δυνατή η δημιουργία."
+      );
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function handleSave(sem: Seminar) {
+    try {
+      setBusyId(sem.id);
+      setError(null);
+
+      await updateSeminar(sem.id, toPayload(sem));
+
+      const fresh = await getSeminarById(sem.id);
+
+      setAll((prev) => prev.map((x) => (x.id === sem.id ? fresh : x)));
+      setToast("Αποθηκεύτηκε.");
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Δεν ήταν δυνατή η αποθήκευση."
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleDelete(id: number) {
+    if (!confirm("Διαγραφή σεμιναρίου;")) return;
+
+    try {
+      setBusyId(id);
+      setError(null);
+
+      await deleteSeminar(id);
+
+      setAll((prev) => prev.filter((x) => x.id !== id));
+      setToast("Διαγράφηκε.");
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Δεν ήταν δυνατή η διαγραφή."
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
-    <div style={{ padding: "40px" }}>
-      <h1>Seminars (Coming Soon)</h1>
-      <p>This page is under construction.</p>
-    </div>
+    <>
+      <Head>
+        <title>Διαχείριση | ΣΕΜΙΝΑΡΙΑ</title>
+        <meta name="robots" content="noindex,nofollow" />
+      </Head>
+
+      <div className="min-h-[70vh] bg-[rgb(var(--bg))] text-[rgb(var(--ink))]">
+        <div className="mx-auto max-w-6xl px-4 md:px-6 lg:px-8 py-8 md:py-12">
+          <div className="mb-6 flex items-center gap-3">
+            <Link
+              href="/dashboard"
+              className="rounded-full border border-[rgba(var(--border),0.9)] bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))]"
+            >
+              ← Πίσω στο Dashboard
+            </Link>
+
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+              ΣΕΜΙΝΑΡΙΑ
+            </h1>
+          </div>
+
+          <Card className="p-4 md:p-5 mb-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Αναζήτηση σεμιναρίων…"
+                className="w-full md:w-80 rounded-xl border border-[rgba(var(--border),0.9)] bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+              />
+
+              <button
+                onClick={handleCreate}
+                disabled={creating}
+                className={cx(
+                  "rounded-full px-4 py-2 text-sm font-semibold transition",
+                  creating
+                    ? "bg-[rgba(var(--primary),0.65)] text-white cursor-wait"
+                    : "bg-[rgb(var(--primary))] text-white hover:bg-[rgb(var(--primary-dark))]"
+                )}
+              >
+                {creating ? "Δημιουργία…" : "Νέο σεμινάριο"}
+              </button>
+            </div>
+          </Card>
+
+          {error && (
+            <Card className="mb-6 p-4 border-rose-200 bg-rose-50">
+              <p className="text-sm text-rose-700">{error}</p>
+            </Card>
+          )}
+
+          {loading ? (
+            <Card className="p-6">
+              <p>Φόρτωση…</p>
+            </Card>
+          ) : filtered.length === 0 ? (
+            <Card className="p-6 text-[rgb(var(--muted))]">Καμία εγγραφή.</Card>
+          ) : (
+            <div className="space-y-6">
+              {filtered.map((sem) => (
+                <SeminarEditorCard
+                  key={sem.id}
+                  sem={sem}
+                  busy={busyId === sem.id}
+                  onSave={handleSave}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {toast && (
+          <div className="fixed bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-slate-900 text-white text-sm px-4 py-2 shadow-lg">
+            {toast}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function SeminarEditorCard({
+  sem,
+  busy,
+  onSave,
+  onDelete,
+}: {
+  sem: Seminar;
+  busy: boolean;
+  onSave: (s: Seminar) => void;
+  onDelete: (id: number) => void;
+}) {
+  const [draft, setDraft] = useState<Seminar>(sem);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    setDraft(sem);
+  }, [sem]);
+
+  const priceText = draft.price > 0 ? `${draft.price}€` : "ΔΩΡΕΑΝ";
+  const image = draft.imageUrl || IMAGE_FALLBACK;
+
+  return (
+    <Card className="p-5 md:p-6">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-semibold">
+            {draft.title || "(Χωρίς τίτλο)"}
+          </h3>
+
+          <p className="text-xs text-[rgb(var(--muted))] mt-1">
+            {draft.type || "Τύπος σύντομα"} • {fmtDateHuman(draft.dateTime)} •{" "}
+            {draft.duration || 0}′ • {priceText}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setOpen((o) => !o)}
+            className="rounded-full border border-[rgba(var(--border),0.9)] bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))]"
+          >
+            {open ? "Σύμπτυξη" : "Επέκταση"}
+          </button>
+
+          <button
+            onClick={() => onDelete(draft.id)}
+            disabled={busy}
+            className="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-sm text-rose-700 hover:border-rose-300"
+          >
+            Διαγραφή
+          </button>
+        </div>
+      </div>
+
+      {open && (
+        <div className="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-[rgb(var(--ink))]">
+                Τίτλος
+              </label>
+
+              <input
+                value={draft.title}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, title: e.target.value }))
+                }
+                className="mt-1 w-full rounded-lg border border-[rgba(var(--border),0.9)] bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[rgb(var(--ink))]">
+                Σύντομη περιγραφή
+              </label>
+
+              <RichTextEditor
+                value={draft.description}
+                onChange={(value) =>
+                  setDraft((d) => ({ ...d, description: value }))
+                }
+                placeholder="Σύντομη περιγραφή του σεμιναρίου..."
+                minHeight={150}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[rgb(var(--ink))]">
+                Αναλυτικό περιεχόμενο
+              </label>
+
+              <RichTextEditor
+                value={draft.content}
+                onChange={(value) =>
+                  setDraft((d) => ({ ...d, content: value }))
+                }
+                placeholder="Αναλυτικό περιεχόμενο σεμιναρίου..."
+                minHeight={240}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[rgb(var(--ink))]">
+                Image URL
+              </label>
+
+              <input
+                value={draft.imageUrl}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, imageUrl: e.target.value }))
+                }
+                placeholder="https://..."
+                className="mt-1 w-full rounded-lg border border-[rgba(var(--border),0.9)] bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-[rgb(var(--ink))]">
+                  Τιμή
+                </label>
+
+                <input
+                  type="number"
+                  min={0}
+                  value={draft.price}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      price: Number(e.target.value) || 0,
+                    }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-[rgba(var(--border),0.9)] bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[rgb(var(--ink))]">
+                  Διάρκεια λεπτά
+                </label>
+
+                <input
+                  type="number"
+                  min={0}
+                  value={draft.duration}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      duration: Number(e.target.value) || 0,
+                    }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-[rgba(var(--border),0.9)] bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[rgb(var(--ink))]">
+                  Τύπος
+                </label>
+
+                <input
+                  value={draft.type}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, type: e.target.value }))
+                  }
+                  placeholder="Online ή Δια ζώσης"
+                  className="mt-1 w-full rounded-lg border border-[rgba(var(--border),0.9)] bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[rgb(var(--ink))]">
+                  Ημερομηνία και ώρα
+                </label>
+
+                <input
+                  type="datetime-local"
+                  value={toDateTimeLocalValue(draft.dateTime)}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      dateTime: dateTimeLocalToIso(e.target.value),
+                    }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-[rgba(var(--border),0.9)] bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => onSave(draft)}
+                disabled={busy}
+                className={cx(
+                  "rounded-full px-4 py-2 text-sm font-semibold transition",
+                  busy
+                    ? "bg-[rgba(var(--primary),0.65)] text-white cursor-wait"
+                    : "bg-[rgb(var(--primary))] text-white hover:bg-[rgb(var(--primary-dark))]"
+                )}
+              >
+                {busy ? "Αποθήκευση…" : "Αποθήκευση"}
+              </button>
+
+              <button
+                onClick={() => setDraft(sem)}
+                className="rounded-full border border-[rgba(var(--border),0.9)] bg-white px-4 py-2 text-sm hover:border-[rgb(var(--primary))]"
+              >
+                Επαναφορά αλλαγών
+              </button>
+
+              <button
+                onClick={() => onDelete(draft.id)}
+                disabled={busy}
+                className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm text-rose-700 hover:border-rose-300"
+              >
+                Διαγραφή
+              </button>
+            </div>
+          </div>
+
+          <div className="lg:col-span-1">
+            <div className="rounded-2xl border border-[rgba(var(--border),0.9)] bg-white overflow-hidden shadow-sm">
+              <div className="aspect-[16/10] bg-[rgba(var(--primary),0.08)] relative">
+                {image ? (
+                  <img
+                    src={image}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full grid place-items-center text-slate-400 text-sm">
+                    Προσθέστε εικόνα URL
+                  </div>
+                )}
+              </div>
+
+              <div className="px-4 py-3 border-t border-[rgba(var(--border),0.9)]">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
+                  <span className="rounded-full bg-[rgba(var(--accent-soft),0.7)] px-2 py-0.5">
+                    {draft.type || "Τύπος"}
+                  </span>
+
+                  <span>•</span>
+
+                  <span>{fmtDateHuman(draft.dateTime)}</span>
+
+                  <span>•</span>
+
+                  <span>{draft.duration || 0}’</span>
+                </div>
+
+                <h4 className="mt-2 text-base font-semibold">
+                  {draft.title || "Τίτλος"}
+                </h4>
+
+                <RichHtmlRenderer
+                  html={draft.description}
+                  className="mt-1 text-sm text-[rgb(var(--muted))] line-clamp-3"
+                />
+
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-sm font-semibold">{priceText}</span>
+
+                  <button className="rounded-full bg-[rgb(var(--primary))] text-white text-xs px-3 py-1.5">
+                    Κράτηση θέσης
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }

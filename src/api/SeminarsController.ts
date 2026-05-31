@@ -1,54 +1,105 @@
-import axios from "axios";
+import { api, toApiError } from "./_axios-client";
 
 export type SeminarMode = "create" | "edit";
 
 export type Seminar = {
   id: number;
-  category: string;
-  duration: number;
   title: string;
   description: string;
+  content: string;
+  imageUrl: string;
+  price: number;
+  duration: number;
+  dateTime: string;
+  type: string;
 };
 
 export type SeminarPayload = {
-  category: string;
-  duration: number;
   title: string;
   description: string;
+  content: string;
+  imageUrl: string;
+  price: number;
+  duration: number;
+  dateTime: string;
+  type: string;
 };
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const base = "/Seminars";
 
-const seminarsApi = axios.create({
-  baseURL: `${API_BASE}/Seminars`,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+function normalizeSeminar(data: any): Seminar {
+  return {
+    id: Number(data?.id ?? data?.Id ?? 0),
+    title: String(data?.title ?? data?.Title ?? ""),
+    description: String(data?.description ?? data?.Description ?? ""),
+    content: String(data?.content ?? data?.Content ?? ""),
+    imageUrl: String(data?.imageUrl ?? data?.ImageUrl ?? ""),
+    price: Number(data?.price ?? data?.Price ?? 0),
+    duration: Number(data?.duration ?? data?.Duration ?? 0),
+    dateTime: String(data?.dateTime ?? data?.DateTime ?? ""),
+    type: String(data?.type ?? data?.Type ?? ""),
+  };
+}
 
 export async function getSeminars(): Promise<Seminar[]> {
-  const response = await seminarsApi.get<Seminar[]>("");
-  return response.data;
+  try {
+    const { data } = await api.get(base);
+
+    if (!Array.isArray(data)) {
+      return data ? [normalizeSeminar(data)] : [];
+    }
+
+    return data.map(normalizeSeminar);
+  } catch (e) {
+    throw toApiError(e);
+  }
 }
 
 export async function getSeminarById(id: number): Promise<Seminar> {
-  const response = await seminarsApi.get<Seminar>(`/${id}`);
-  return response.data;
+  try {
+    const { data } = await api.get(`${base}/${id}`);
+    return normalizeSeminar(data);
+  } catch (e) {
+    throw toApiError(e);
+  }
 }
 
-export async function createSeminar(payload: SeminarPayload): Promise<Seminar> {
-  const response = await seminarsApi.post<Seminar>("", payload);
-  return response.data;
+export async function createSeminar(
+  payload: SeminarPayload
+): Promise<Seminar> {
+  try {
+    const { data } = await api.post(base, payload);
+    return normalizeSeminar(data);
+  } catch (e) {
+    throw toApiError(e);
+  }
 }
 
 export async function updateSeminar(
   id: number,
-  payload: SeminarPayload,
+  payload: SeminarPayload
 ): Promise<void> {
-  await seminarsApi.put(`/${id}`, payload);
+  try {
+    await api.put(`${base}/${id}`, payload);
+  } catch (e) {
+    throw toApiError(e);
+  }
 }
 
 export async function deleteSeminar(id: number): Promise<void> {
-  await seminarsApi.delete(`/${id}`);
+  try {
+    await api.delete(`${base}/${id}`);
+  } catch (e) {
+    throw toApiError(e);
+  }
 }
+
+const SeminarsApi = {
+  list: getSeminars,
+  get: getSeminarById,
+  create: createSeminar,
+  update: updateSeminar,
+  delete: deleteSeminar,
+};
+
+export default SeminarsApi;
