@@ -3,11 +3,18 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import LeafBurstButton from "../decorative/LeafBurstButton";
+import { NavbarApi, type NavbarGetDto } from "@/api/NavbarController";
 
 type MenuItem = {
   label: string;
   href?: string;
   children?: { label: string; href: string; desc?: string }[];
+};
+
+const DEFAULT_NAVBAR: NavbarGetDto = {
+  id: 1,
+  title: "Dietitian",
+  imageUrl: "/logo.svg",
 };
 
 const NAV: MenuItem[] = [
@@ -28,7 +35,7 @@ const NAV: MenuItem[] = [
     ],
   },
   { label: "ΣΕΜΙΝΑΡΙΑ", href: "/seminars" },
-  { label: "ΕΒΟΟΚ", href: "/ebook" },
+  { label: "EBOOK", href: "/ebook" },
   {
     label: "BLOG",
     href: "/articles",
@@ -72,22 +79,44 @@ export default function Navbar() {
   const router = useRouter();
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [navbar, setNavbar] = useState<NavbarGetDto>(DEFAULT_NAVBAR);
   const navRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadNavbar() {
+      const data = await NavbarApi.getSingle();
+
+      if (!active) return;
+
+      setNavbar({
+        id: data?.id ?? DEFAULT_NAVBAR.id,
+        title: data?.title?.trim() || DEFAULT_NAVBAR.title,
+        imageUrl: data?.imageUrl?.trim() || DEFAULT_NAVBAR.imageUrl,
+      });
+    }
+
+    loadNavbar();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
       if (!navRef.current) return;
       if (!navRef.current.contains(e.target as Node)) setOpenIdx(null);
     }
+
     document.addEventListener("click", onDocClick);
     return () => document.removeEventListener("click", onDocClick);
   }, []);
 
   useEffect(() => {
-    // close dropdowns on route change
     setOpenIdx(null);
     setMobileOpen(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.asPath]);
 
   const closeAll = () => {
@@ -97,16 +126,18 @@ export default function Navbar() {
 
   const isItemActive = (item: MenuItem) => {
     if (!item.href) return false;
+
     const itemPath = stripHash(item.href);
     const currentPath = stripHash(router.asPath);
+
     if (itemPath === "/") return currentPath === "/";
+
     return currentPath === itemPath || currentPath.startsWith(itemPath + "/");
   };
 
   return (
     <div
       className={[
-        // TopBar height -> 44px (h-11)
         "w-full sticky top-[44px] sm:top-[44px] z-40 backdrop-blur",
         "bg-bg supports-[backdrop-filter]:bg-bg/90",
         "border-b border-accent/20",
@@ -114,9 +145,7 @@ export default function Navbar() {
       ].join(" ")}
     >
       <div ref={navRef} className="mx-auto max-w-7xl px-3">
-        {/* Header row */}
         <div className="flex h-16 md:h-20 items-center justify-between">
-          {/* Mobile: hamburger (left) */}
           <button
             className={[
               "md:hidden inline-flex items-center justify-center rounded-md p-2 transition",
@@ -146,30 +175,25 @@ export default function Navbar() {
             </svg>
           </button>
 
-          {/* Logo */}
           <Link
             href="/"
-            className={[
-              // baseline alignment on desktop feels nicer
-              "flex items-baseline gap-2",
-              "md:items-center",
-              "md:gap-2",
-            ].join(" ")}
+            className="flex items-baseline gap-2 md:items-center md:gap-2"
             onClick={closeAll}
           >
             <Image
-              src="/logo.svg"
-              alt="Dietitian Logo"
+              src={navbar.imageUrl}
+              alt={`${navbar.title} Logo`}
               width={44}
               height={44}
-              className="h-9 w-9 md:h-14 md:w-14 rounded-full ring-2 ring-accent/25 bg-white/90"
+              unoptimized
+              className="h-9 w-9 md:h-14 md:w-14 rounded-full ring-2 ring-accent/25 bg-white/90 object-cover"
             />
+
             <span className="text-sm md:text-lg font-semibold tracking-tight text-slate-800 leading-none">
-              Dietitian
+              {navbar.title}
             </span>
           </Link>
 
-          {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-2">
             {NAV.map((item, idx) => {
               const hasChildren = !!item.children?.length;
@@ -188,15 +212,14 @@ export default function Navbar() {
                       href={item.href || "#"}
                       className={[
                         "relative inline-flex items-center rounded-md px-3 py-2 text-sm md:text-[15px] transition navbar-link",
-                        // slightly more “premium”
                         "font-semibold tracking-[0.06em]",
-                        active ? "text-accent" : "text-primary hover:text-accent",
+                        active
+                          ? "text-accent"
+                          : "text-primary hover:text-accent",
                         "hover:bg-accent/10",
-                        // clear active state
                         active
                           ? "after:absolute after:left-3 after:right-3 after:-bottom-0.5 after:h-[2px] after:rounded-full after:bg-accent"
                           : "",
-                        // stronger accessibility focus
                         "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
                       ].join(" ")}
                       onClick={closeAll}
@@ -222,7 +245,9 @@ export default function Navbar() {
                         }}
                       >
                         <ChevronDown
-                          className={`h-4 w-4 transition ${isOpen ? "rotate-180" : ""}`}
+                          className={`h-4 w-4 transition ${
+                            isOpen ? "rotate-180" : ""
+                          }`}
                         />
                       </button>
                     )}
@@ -251,8 +276,11 @@ export default function Navbar() {
                           ].join(" ")}
                         >
                           <div className="font-medium">{child.label}</div>
+
                           {child.desc && (
-                            <div className="text-xs text-slate-500">{child.desc}</div>
+                            <div className="text-xs text-slate-500">
+                              {child.desc}
+                            </div>
                           )}
                         </Link>
                       ))}
@@ -263,17 +291,16 @@ export default function Navbar() {
             })}
           </nav>
 
-          {/* CTA right */}
           <div className="flex items-center">
-            {/* Mobile CTA: label becomes “Ραντεβού” */}
             <LeafBurstButton
               text="Κλείστε ραντεβού"
               href="/contact/book"
-              onClick={closeAll}              size="sm"            />
+              onClick={closeAll}
+              size="sm"
+            />
           </div>
         </div>
 
-        {/* Mobile menu drawer */}
         {mobileOpen && (
           <div className="md:hidden pb-3">
             <div className="mt-1 rounded-2xl border border-accent/15 bg-white/70 supports-[backdrop-filter]:bg-white/60 backdrop-blur">
@@ -283,7 +310,10 @@ export default function Navbar() {
                 const active = isItemActive(item);
 
                 return (
-                  <div key={item.label} className="border-t first:border-t-0 border-accent/10">
+                  <div
+                    key={item.label}
+                    className="border-t first:border-t-0 border-accent/10"
+                  >
                     <div className="flex w-full items-stretch justify-between px-2 py-1">
                       <Link
                         href={item.href || "#"}
@@ -315,7 +345,9 @@ export default function Navbar() {
                           }}
                         >
                           <ChevronDown
-                            className={`h-4 w-4 transition ${isOpen ? "rotate-180" : ""}`}
+                            className={`h-4 w-4 transition ${
+                              isOpen ? "rotate-180" : ""
+                            }`}
                           />
                         </button>
                       )}
@@ -343,7 +375,6 @@ export default function Navbar() {
                 );
               })}
 
-              {/* Mobile contact info inside drawer */}
               <div className="border-t border-accent/10 px-3 py-3">
                 <div className="flex flex-col gap-2 text-sm text-slate-700">
                   <a
@@ -352,6 +383,7 @@ export default function Navbar() {
                   >
                     +30 210 0000000
                   </a>
+
                   <a
                     href="mailto:hello@dietitian.gr"
                     className="rounded-lg px-2 py-2 text-primary hover:text-accent hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
