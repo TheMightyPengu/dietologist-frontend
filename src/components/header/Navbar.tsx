@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import LeafBurstButton from "../decorative/LeafBurstButton";
 import { NavbarApi, type NavbarGetDto } from "@/api/NavbarController";
+import { ProvidedServicesApi } from "@/api/ProvidedServicesController";
 
 type MenuItem = {
   label: string;
@@ -29,10 +30,7 @@ const NAV: MenuItem[] = [
   {
     label: "ΥΠΗΡΕΣΙΕΣ",
     href: "/services",
-    children: [
-      { label: "1:1 ΡΑΝΤΕΒΟΥ", href: "/services#one-to-one" },
-      { label: "ΟΜΑΔΙΚΕΣ ΣΥΝΑΝΤΗΣΕΙΣ", href: "/services#groups" },
-    ],
+    children: [],
   },
   { label: "ΣΕΜΙΝΑΡΙΑ", href: "/seminars" },
   { label: "EBOOK", href: "/ebook" },
@@ -75,29 +73,105 @@ function stripHash(href: string) {
   return href.split("#")[0] || "/";
 }
 
+function getServiceCategoryAnchor(category: string) {
+  const normalized = category.trim().toLowerCase().replace(/\s+/g, "-");
+  return `service-category-${encodeURIComponent(
+    normalized || "loipes-ypiresies"
+  )}`;
+}
+
+function formatServiceCategoryLabel(category: string) {
+  return category
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ς/g, "σ")
+    .toLocaleUpperCase("el-GR");
+}
+
+function getUniqueServiceCategories(
+  services: Awaited<ReturnType<typeof ProvidedServicesApi.list>>
+) {
+  const seen = new Set<string>();
+
+  for (const service of services) {
+    const category = service.category?.trim();
+
+    if (category) {
+      seen.add(category);
+    }
+  }
+
+  return Array.from(seen);
+}
+
 export default function Navbar() {
   const router = useRouter();
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [navbar, setNavbar] = useState<NavbarGetDto>(DEFAULT_NAVBAR);
+  const [serviceCategories, setServiceCategories] = useState<string[]>([]);
   const navRef = useRef<HTMLDivElement>(null);
+
+  const navItems = useMemo<MenuItem[]>(() => {
+    return NAV.map((item) => {
+      if (item.label !== "ΥΠΗΡΕΣΙΕΣ") return item;
+
+      return {
+        ...item,
+        children: serviceCategories.map((category) => ({
+          label: formatServiceCategoryLabel(category),
+          href: `/services#${getServiceCategoryAnchor(category)}`,
+        })),
+      };
+    });
+  }, [serviceCategories]);
 
   useEffect(() => {
     let active = true;
 
     async function loadNavbar() {
-      const data = await NavbarApi.getSingle();
+      try {
+        const data = await NavbarApi.getSingle();
 
-      if (!active) return;
+        if (!active) return;
 
-      setNavbar({
-        id: data?.id ?? DEFAULT_NAVBAR.id,
-        title: data?.title?.trim() || DEFAULT_NAVBAR.title,
-        imageUrl: data?.imageUrl?.trim() || DEFAULT_NAVBAR.imageUrl,
-      });
+        setNavbar({
+          id: data?.id ?? DEFAULT_NAVBAR.id,
+          title: data?.title?.trim() || DEFAULT_NAVBAR.title,
+          imageUrl: data?.imageUrl?.trim() || DEFAULT_NAVBAR.imageUrl,
+        });
+      } catch (error) {
+        console.error(error);
+      }
     }
 
     loadNavbar();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadServiceCategories() {
+      try {
+        const data = await ProvidedServicesApi.list();
+
+        if (!active) return;
+
+        setServiceCategories(
+          Array.isArray(data) ? getUniqueServiceCategories(data) : []
+        );
+      } catch (error) {
+        console.error(error);
+        if (active) setServiceCategories([]);
+      }
+    }
+
+    loadServiceCategories();
 
     return () => {
       active = false;
@@ -195,10 +269,11 @@ export default function Navbar() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-2">
-            {NAV.map((item, idx) => {
+            {navItems.map((item, idx) => {
               const hasChildren = !!item.children?.length;
               const isOpen = openIdx === idx;
               const active = isItemActive(item);
+              const isServicesMenu = item.label === "ΥΠΗΡΕΣΙΕΣ";
 
               return (
                 <div
@@ -257,33 +332,38 @@ export default function Navbar() {
                     <div
                       role="menu"
                       className={[
-                        "absolute left-0 w-64 rounded-xl p-2 shadow-xl",
+                        "absolute left-0 w-64 rounded-xl p-3 pb-4 pr-3 shadow-xl",
                         "bg-white",
                         "border border-accent/20",
+                        isServicesMenu
+                          ? "max-h-[23.5rem] overflow-y-auto pr-1 [direction:rtl]"
+                          : "",
                       ].join(" ")}
                     >
-                      {item.children!.map((child) => (
-                        <Link
-                          key={child.href}
-                          href={child.href}
-                          role="menuitem"
-                          onClick={closeAll}
-                          className={[
-                            "block rounded-lg px-3 py-2 text-sm transition navbar-link",
-                            "text-slate-700 hover:text-accent",
-                            "hover:bg-accent/10",
-                            "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
-                          ].join(" ")}
-                        >
-                          <div className="font-medium">{child.label}</div>
+                      <div className="space-y-1 [direction:ltr]">
+                        {item.children!.map((child) => (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            role="menuitem"
+                            onClick={closeAll}
+                            className={[
+                              "block rounded-lg px-3 py-2.5 text-sm transition navbar-link",
+                              "text-slate-700 hover:text-accent",
+                              "hover:bg-accent/10",
+                              "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+                            ].join(" ")}
+                          >
+                            <div className="font-medium">{child.label}</div>
 
-                          {child.desc && (
-                            <div className="text-xs text-slate-500">
-                              {child.desc}
-                            </div>
-                          )}
-                        </Link>
-                      ))}
+                            {child.desc && (
+                              <div className="text-xs text-slate-500">
+                                {child.desc}
+                              </div>
+                            )}
+                          </Link>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -293,7 +373,7 @@ export default function Navbar() {
 
           <div className="flex items-center">
             <LeafBurstButton
-              text="Κλείστε ραντεβού"
+              text="ΚΛΕΙΣΤΕ ΡΑΝΤΕΒΟΥ"
               href="/contact/book"
               onClick={closeAll}
               size="sm"
@@ -304,10 +384,11 @@ export default function Navbar() {
         {mobileOpen && (
           <div className="md:hidden pb-3">
             <div className="mt-1 rounded-2xl border border-accent/15 bg-white/70 supports-[backdrop-filter]:bg-white/60 backdrop-blur">
-              {NAV.map((item, idx) => {
+              {navItems.map((item, idx) => {
                 const hasChildren = !!item.children?.length;
                 const isOpen = openIdx === idx;
                 const active = isItemActive(item);
+                const isServicesMenu = item.label === "ΥΠΗΡΕΣΙΕΣ";
 
                 return (
                   <div
@@ -354,21 +435,30 @@ export default function Navbar() {
                     </div>
 
                     {hasChildren && isOpen && (
-                      <div className="px-2 pb-2">
-                        {item.children!.map((child) => (
-                          <Link
-                            key={child.href}
-                            href={child.href}
-                            className={[
-                              "block rounded-lg px-3 py-2 text-xs transition",
-                              "text-slate-700 hover:text-accent hover:bg-accent/10",
-                              "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
-                            ].join(" ")}
-                            onClick={closeAll}
-                          >
-                            {child.label}
-                          </Link>
-                        ))}
+                      <div
+                        className={[
+                          "px-2 pb-3",
+                          isServicesMenu
+                            ? "max-h-[19rem] overflow-y-auto [direction:rtl]"
+                            : "",
+                        ].join(" ")}
+                      >
+                        <div className="space-y-1 [direction:ltr]">
+                          {item.children!.map((child) => (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              className={[
+                                "block rounded-lg px-3 py-2.5 text-xs transition",
+                                "text-slate-700 hover:text-accent hover:bg-accent/10",
+                                "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+                              ].join(" ")}
+                              onClick={closeAll}
+                            >
+                              {child.label}
+                            </Link>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>

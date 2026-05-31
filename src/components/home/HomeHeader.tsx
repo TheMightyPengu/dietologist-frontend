@@ -24,7 +24,7 @@ export default function HomeHero({
     "https://img.freepik.com/premium-photo/diet-healthy-nutrition-portrait-dietitian-s_118454-1331.jpg";
 
   return (
-    <section className="relative bg-bg">
+    <section className="relative bg-bg pt-4 md:pt-6">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid items-center gap-10 md:grid-cols-12">
           <div className="md:col-span-6 lg:col-span-5">
@@ -84,34 +84,50 @@ export default function HomeHero({
           </div>
         </div>
 
-        <section className="py-12 md:py-16">
+        <section className="relative py-12 md:py-16">
           <div className="grid gap-6 md:grid-cols-3">
             {[
               { title: "1:1 Ραντεβού", href: "/services#one-to-one" },
               { title: "Ομαδικές Συναντήσεις", href: "/services#groups" },
               { title: "Σεμινάρια", href: "/seminars" },
-            ].map((s, i) => (
+            ].map((s) => (
               <Link
                 key={s.title}
                 href={s.href}
                 className={[
-                  "block self-center m-2 rounded-tl-full rounded-br-full rounded-2xl",
-                  "bg-accent/50",
-                  "ring-1 ring-accent/25",
-                  "text-slate-800",
-                  "text-center font-medium shadow-sm transition-all duration-200 hover:shadow",
-                  "px-4 py-3 sm:px-5 sm:py-3 md:px-6 md:py-4",
-                  "hover:bg-accent/75",
+                  "group relative block overflow-hidden",
+                  "rounded-tl-[72px] rounded-br-[72px] rounded-tr-[28px] rounded-bl-[28px]",
+                  "bg-[#fbfaf5]/90",
+                  "border border-[#6f8f5f]/25",
+                  "px-6 py-8 md:px-8 md:py-10",
+                  "text-center",
+                  "shadow-[0_18px_45px_rgba(76,92,65,0.12)]",
+                  "backdrop-blur-[10px]",
+                  "transition-all duration-300",
+                  "hover:-translate-y-1",
+                  "hover:border-[#6f8f5f]/40",
+                  "hover:bg-[#fffdf7]",
+                  "hover:shadow-[0_28px_70px_rgba(76,92,65,0.18)]",
                   "no-hover-underline",
-                  i === 0
-                    ? "shadow-[1px_1px_6px_rgba(164,199,126,0.55)] hover:shadow-[2px_2px_10px_rgba(164,199,126,0.65)]"
-                    : i === 1
-                    ? "shadow-[1px_1px_6px_rgba(164,199,126,0.45)] hover:shadow-[2px_2px_10px_rgba(164,199,126,0.60)]"
-                    : "shadow-[1px_1px_6px_rgba(122,122,196,0.35)] hover:shadow-[2px_2px_10px_rgba(122,122,196,0.50)]",
                 ].join(" ")}
               >
-                <h3 className="text-lg font-semibold text-white">{s.title}</h3>
-                <p className="mt-2 text-sm text-slate-600 text-grey/60">
+                {/* soft green wash */}
+                <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(164,199,126,0.22),transparent_34%),radial-gradient(circle_at_90%_85%,rgba(111,143,95,0.14),transparent_38%)] opacity-80 transition-opacity duration-300 group-hover:opacity-100" />
+
+                {/* stronger leaf mark */}
+                <span className="pointer-events-none absolute left-6 top-6 h-12 w-16 rounded-tl-full rounded-br-full border border-[#6f8f5f]/30 bg-white/30 rotate-[-12deg]" />
+
+                {/* small leaf vein */}
+                <span className="pointer-events-none absolute left-10 top-12 h-px w-10 origin-left rotate-[-28deg] bg-[#6f8f5f]/25" />
+
+                {/* bottom accent glow */}
+                <span className="pointer-events-none absolute -bottom-10 left-1/2 h-20 w-44 -translate-x-1/2 rounded-full bg-[#a4c77e]/20 blur-2xl transition-all duration-300 group-hover:bg-[#a4c77e]/30" />
+
+                <h3 className="relative text-lg font-semibold text-[#243322]">
+                  {s.title}
+                </h3>
+
+                <p className="relative mt-3 text-sm leading-6 text-[#66745f]">
                   Μάθετε περισσότερα για τον τρόπο που δουλεύουμε.
                 </p>
               </Link>

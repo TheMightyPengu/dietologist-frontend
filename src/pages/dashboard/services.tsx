@@ -32,6 +32,7 @@ const EMPTY_CREATE_FORM: ProvidedServicesPostDto = {
   title: "",
   description: "",
   priceIncludingVAT: 0,
+  imageUrl: "",
 };
 
 export default function ManagementServicesPage() {
@@ -107,6 +108,7 @@ export default function ManagementServicesPage() {
         title: createForm.title.trim(),
         description: createForm.description.trim(),
         priceIncludingVAT: Number(createForm.priceIncludingVAT),
+        imageUrl: createForm.imageUrl.trim(),
       };
 
       const created = await ProvidedServicesApi.create(payload);
@@ -137,11 +139,12 @@ export default function ManagementServicesPage() {
       setBusyId(service.id);
 
       const payload: ProvidedServicesPostDto = {
-        category: service.category,
-        duration: service.duration,
-        title: service.title,
-        description: service.description,
-        priceIncludingVAT: service.priceIncludingVAT,
+        category: service.category.trim(),
+        duration: Number(service.duration),
+        title: service.title.trim(),
+        description: service.description.trim(),
+        priceIncludingVAT: Number(service.priceIncludingVAT),
+        imageUrl: (service.imageUrl || "").trim(),
       };
 
       await ProvidedServicesApi.update(service.id, payload);
@@ -406,6 +409,22 @@ function CreateServiceModal({
                 className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
             </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700">
+                URL εικόνας
+              </label>
+
+              <input
+                type="url"
+                value={form.imageUrl}
+                onChange={(e) =>
+                  setForm((d) => ({ ...d, imageUrl: e.target.value }))
+                }
+                placeholder="https://..."
+                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+              />
+            </div>
           </div>
 
           <div>
@@ -599,6 +618,22 @@ function ServiceEditorCard({
                 className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
               />
             </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700">
+                URL εικόνας
+              </label>
+
+              <input
+                type="url"
+                value={draft.imageUrl || ""}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, imageUrl: e.target.value }))
+                }
+                placeholder="https://..."
+                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+              />
+            </div>
           </div>
 
           <div>
@@ -641,6 +676,7 @@ function ServiceEditorCard({
                   title: draft.title,
                   description: draft.description,
                   priceIncludingVAT: draft.priceIncludingVAT,
+                  imageUrl: draft.imageUrl,
                 },
                 null,
                 2

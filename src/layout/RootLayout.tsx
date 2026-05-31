@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </header>
 
       {/* Header height spacing: give main content room below the sticky header */}
-      <main className="pt-20 md:pt-24">{children}</main>
+      <main className="pt-5 md:pt-16">{children}</main>
     </div>
   );
 }

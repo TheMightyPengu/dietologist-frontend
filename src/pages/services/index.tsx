@@ -63,6 +63,11 @@ function formatPrice(value: number) {
   }).format(value);
 }
 
+function getServiceCategoryAnchor(category: string) {
+  const normalized = category.trim().toLowerCase().replace(/\s+/g, "-");
+  return `service-category-${encodeURIComponent(normalized || "loipes-ypiresies")}`;
+}
+
 function TitleRow({
   as = "h2",
   children,
@@ -164,6 +169,21 @@ export default function ServicesPage() {
 
     return Array.from(map.entries());
   }, [services]);
+
+  useEffect(() => {
+    if (loading || groupedServices.length === 0) return;
+    if (typeof window === "undefined") return;
+
+    const hash = window.location.hash.replace("#", "");
+    if (!hash) return;
+
+    window.requestAnimationFrame(() => {
+      document.getElementById(hash)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }, [loading, groupedServices]);
 
   const phone = contactInfo?.telephone ?? "";
   const email = contactInfo?.email ?? "";
@@ -366,37 +386,53 @@ export default function ServicesPage() {
           ) : (
             groupedServices.map(([category, items]) => (
               <SectionReveal key={category} className="space-y-6">
-                <SectionCard title={category}>
+                <SectionCard
+                  title={category}
+                  id={getServiceCategoryAnchor(category)}
+                >
                   <div className="space-y-4">
                     {items.map((service) => (
                       <div
                         key={service.id}
                         className="rounded-2xl bg-white ring-1 ring-accent/20 p-5 shadow-[0_10px_22px_rgba(164,199,126,0.08)]"
                       >
-                        <div className="flex flex-col gap-4">
-                          <div>
-                            <h3 className="text-base font-semibold text-slate-900">
-                              {service.title || `Υπηρεσία #${service.id}`}
-                            </h3>
-
-                            {service.description ? (
-                              <RichHtmlRenderer
-                                html={service.description}
-                                className="service-rich-content mt-2 text-[15px] leading-relaxed text-slate-700"
+                        <div className="flex flex-col gap-5 md:flex-row">
+                          {service.imageUrl ? (
+                            <div className="md:w-56 md:shrink-0">
+                              <img
+                                src={service.imageUrl}
+                                alt={service.title || `Υπηρεσία #${service.id}`}
+                                className="h-48 w-full rounded-2xl object-cover ring-1 ring-accent/20 md:h-full"
+                                loading="lazy"
                               />
-                            ) : (
-                              <p className="mt-2 text-[15px] leading-relaxed text-slate-700">
-                                Δεν υπάρχει περιγραφή.
-                              </p>
-                            )}
-                          </div>
+                            </div>
+                          ) : null}
 
-                          <div className="flex flex-wrap gap-2">
-                            <Pill>Διάρκεια: {service.duration}’</Pill>
-                            <Pill>
-                              Τιμή: {formatPrice(service.priceIncludingVAT)}
-                            </Pill>
-                            <Pill>Κατηγορία: {service.category}</Pill>
+                          <div className="flex min-w-0 flex-1 flex-col gap-4">
+                            <div>
+                              <h3 className="text-base font-semibold text-slate-900">
+                                {service.title || `Υπηρεσία #${service.id}`}
+                              </h3>
+
+                              {service.description ? (
+                                <RichHtmlRenderer
+                                  html={service.description}
+                                  className="service-rich-content mt-2 text-[15px] leading-relaxed text-slate-700"
+                                />
+                              ) : (
+                                <p className="mt-2 text-[15px] leading-relaxed text-slate-700">
+                                  Δεν υπάρχει περιγραφή.
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              <Pill>Διάρκεια: {service.duration}’</Pill>
+                              <Pill>
+                                Τιμή: {formatPrice(service.priceIncludingVAT)}
+                              </Pill>
+                              <Pill>Κατηγορία: {service.category}</Pill>
+                            </div>
                           </div>
                         </div>
                       </div>
