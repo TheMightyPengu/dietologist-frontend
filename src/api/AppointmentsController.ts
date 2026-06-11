@@ -5,6 +5,7 @@ export type AppointmentStatus = 0 | 1 | 2 | 3;
 export type ProvidedServices = {
   id: number;
   category: string;
+  title: string;
   duration: number;
   description: string;
   priceIncludingVAT: number;
@@ -20,7 +21,6 @@ export type AppointmentsGetDto = {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
-  isPrepaid: boolean;
   status?: AppointmentStatus;
 };
 
@@ -30,7 +30,6 @@ export type AppointmentsPostDto = {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
-  isPrepaid: boolean;
 };
 
 export type AppointmentStatusPutDto = {

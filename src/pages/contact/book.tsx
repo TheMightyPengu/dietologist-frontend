@@ -25,6 +25,7 @@ import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 type Service = {
   id: number;
   label: string;
+  title: string;
   category: string;
   duration: number;
   description: string;
@@ -75,6 +76,21 @@ function todayDateOnly() {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+function htmlToPlainText(value?: string | null) {
+  if (!value) return "";
+
+  return value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export default function BookPage() {
@@ -143,7 +159,11 @@ export default function BookPage() {
 
         const mapped: Service[] = data.map((item) => ({
           id: item.id,
-          label: item.description?.trim() || item.category,
+          label:
+            htmlToPlainText(item.title) ||
+            htmlToPlainText(item.category) ||
+            `Υπηρεσία ${item.id}`,
+          title: item.title,
           category: item.category,
           duration: item.duration,
           description: item.description,
@@ -264,9 +284,9 @@ export default function BookPage() {
 
     if (!selectedService) next.service = "Παρακαλούμε επιλέξτε υπηρεσία.";
     if (!payload.fullName?.trim()) next.fullName = "Συμπληρώστε ονοματεπώνυμο.";
-    if (!payload.phone?.trim()) next.phone = "Συμπληρώστε τηλέφωνο.";
-
-    if (payload.email?.trim()) {
+    if (!payload.email?.trim()) {
+      next.email = "Συμπληρώστε email.";
+    } else {
       const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email.trim());
       if (!ok) next.email = "Συμπληρώστε έγκυρο email.";
     }
@@ -300,9 +320,9 @@ export default function BookPage() {
       ...p,
       service: true,
       fullName: true,
-      phone: true,
+      email: true,
       slot: true,
-      email: p.email || false,
+      phone: p.phone || false,
     }));
 
     const nextErrors = validate({ fullName, phone, email });
@@ -331,7 +351,6 @@ export default function BookPage() {
         customerName: fullName.trim(),
         customerEmail: email.trim(),
         customerPhone: phone.trim(),
-        isPrepaid: false,
       });
 
       setSuccessPayload({
@@ -524,12 +543,11 @@ export default function BookPage() {
 
                   <div>
                     <label className={LABEL_BASE}>
-                      Τηλέφωνο <span className="text-rose-600">*</span>
+                      Τηλέφωνο
                     </label>
 
                     <input
                       name="phone"
-                      required
                       inputMode="tel"
                       autoComplete="tel"
                       onBlur={() => markTouched("phone")}
@@ -549,11 +567,14 @@ export default function BookPage() {
                   </div>
 
                   <div>
-                    <label className={LABEL_BASE}>Email</label>
+                    <label className={LABEL_BASE}>
+                      Email <span className="text-rose-600">*</span>
+                    </label>
 
                     <input
                       type="email"
                       name="email"
+                      required
                       autoComplete="email"
                       onBlur={() => markTouched("email")}
                       onChange={() => setFieldErrors((p) => ({ ...p, email: undefined }))}

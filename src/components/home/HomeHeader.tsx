@@ -24,7 +24,7 @@ export default function HomeHero({
     "https://img.freepik.com/premium-photo/diet-healthy-nutrition-portrait-dietitian-s_118454-1331.jpg";
 
   return (
-    <section className="relative bg-bg pt-4 md:pt-6">
+    <section className="relative bg-bg pt-10 md:pt-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid items-center gap-10 md:grid-cols-12">
           <div className="md:col-span-6 lg:col-span-5">

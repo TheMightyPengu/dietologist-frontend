@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getSeminars, type Seminar } from "@/api/SeminarsController";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
+import LeafBurstButton from "@/components/decorative/LeafBurstButton";
 
 type SortKey =
   | "upcoming"
@@ -1133,12 +1134,11 @@ export default function SeminarsPage() {
 
                   <div className="sticky bottom-0 border-t border-slate-200 bg-white/90 px-6 py-4 backdrop-blur sm:px-7">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-                      <Link
+                      <LeafBurstButton
+                        text="Κράτηση θέσης"
                         href="/contact/book"
-                        className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90"
-                      >
-                        Κράτηση θέσης
-                      </Link>
+                        size="md"
+                      />
 
                       <button
                         type="button"
