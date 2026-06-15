@@ -34,6 +34,7 @@ type HomeFormState = {
   biography: string;
   phylosophy: string;
   mainPictureId?: number | null;
+  mainPictureUrl?: string | null;
 };
 
 const EMPTY_HOME: HomeFormState = {
@@ -43,6 +44,7 @@ const EMPTY_HOME: HomeFormState = {
   biography: "",
   phylosophy: "",
   mainPictureId: null,
+  mainPictureUrl: null,
 };
 
 function mapDtoToState(dto: MainPageGetDto): HomeFormState {
@@ -53,6 +55,7 @@ function mapDtoToState(dto: MainPageGetDto): HomeFormState {
     biography: dto.biography ?? "",
     phylosophy: dto.phylosophy ?? "",
     mainPictureId: dto.mainPictureId ?? null,
+    mainPictureUrl: dto.mainPictureUrl ?? null,
   };
 }
 
@@ -113,13 +116,7 @@ export default function ManagementHomePage() {
 
       setData(mapDtoToState(first));
 
-      try {
-        const imageRes = await MainPagesApi.getMainPictureUrl(first.id);
-        const url = imageRes?.url?.trim();
-        setRemoteImageUrl(url ? url : null);
-      } catch {
-        setRemoteImageUrl(null);
-      }
+      setRemoteImageUrl(first.mainPictureUrl?.trim() || null);
     } catch {
       setToast("Αποτυχία φόρτωσης.");
       setData(EMPTY_HOME);

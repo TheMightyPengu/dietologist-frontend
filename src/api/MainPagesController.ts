@@ -7,6 +7,8 @@ export type MainPageGetDto = {
   biography: string;
   phylosophy: string;
   mainPictureId?: number | null;
+  mainPictureUrl?: string | null;
+  mainPictureAltText?: string | null;
 };
 
 export type MainPagePostDto = {
@@ -22,13 +24,20 @@ const base = '/MainPages';
 
 function buildFormData(p: MainPagePostDto): FormData {
   const fd = new FormData();
-  fd.append('Title', p.title);
-  fd.append('Info', p.info);
-  fd.append('Biography', p.biography);
-  fd.append('Phylosophy', p.phylosophy);
-  if (p.mainPicture) fd.append('MainPicture', p.mainPicture);
-  if (p.mainPictureId !== undefined && p.mainPictureId !== null)
-    fd.append('MainPictureId', String(p.mainPictureId));
+
+  fd.append("Title", p.title);
+  fd.append("Info", p.info);
+  fd.append("Biography", p.biography);
+  fd.append("Phylosophy", p.phylosophy);
+
+  if (p.mainPicture) {
+    fd.append("MainPicture", p.mainPicture);
+  }
+
+  if (p.mainPictureId !== undefined && p.mainPictureId !== null) {
+    fd.append("MainPictureId", String(p.mainPictureId));
+  }
+
   return fd;
 }
 

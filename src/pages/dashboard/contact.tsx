@@ -21,6 +21,11 @@ import {
 } from "@/api/UsefulInfoController";
 import RichTextEditor from "@/components/admin/RichTextEditor";
 
+import {
+  NewsletterSubscribersApi,
+  type NewsletterSubscriberGetDto,
+} from "@/api/NewsletterSubscribersController";
+
 const cx = (...c: (string | false | null | undefined)[]) =>
   c.filter(Boolean).join(" ");
 
@@ -38,7 +43,7 @@ const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
   </div>
 );
 
-type Tab = "bookings" | "messages" | "usefulInfo";
+type Tab = "bookings" | "messages" | "newsletter" | "usefulInfo";
 
 type Slot = {
   id: string;
@@ -206,6 +211,7 @@ export default function ManagementContactPage() {
               {[
                 { key: "bookings", label: "Ραντεβού" },
                 { key: "messages", label: "Μηνύματα" },
+                { key: "newsletter", label: "Newsletter" },
                 { key: "usefulInfo", label: "Χρήσιμες Πληροφορίες" },
               ].map((t) => (
                 <button
@@ -226,6 +232,7 @@ export default function ManagementContactPage() {
 
           {active === "bookings" && <BookingsManager />}
           {active === "messages" && <MessagesManager />}
+          {active === "newsletter" && <NewsletterManager />}
           {active === "usefulInfo" && <UsefulInfoManager />}
         </div>
       </div>
@@ -1330,6 +1337,277 @@ function AppointmentCard({
     </div>
   );
 }
+
+
+
+/* =============== NEWSLETTER =============== */
+
+function escapeCsvValue(value: string | number | boolean | null | undefined) {
+  const text = String(value ?? "");
+
+  if (/[",\n\r]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+
+  return text;
+}
+
+function formatNewsletterDate(value?: string | null) {
+  if (!value) return "";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleString("el-GR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function buildNewsletterCsv(subscribers: NewsletterSubscriberGetDto[]) {
+  const header = ["ID", "EMAIL", "FULLNAME", "SUBSCRIBED_AT"];
+
+  const rows = subscribers.map((s) => [
+    s.id,
+    s.email,
+    s.fullName,
+    formatNewsletterDate(s.subscribedAt),
+  ]);
+
+  return [header, ...rows]
+    .map((row) => row.map(escapeCsvValue).join(","))
+    .join("\n");
+}
+
+function downloadTextFile(filename: string, content: string) {
+  const blob = new Blob(["\uFEFF" + content], {
+    type: "text/csv;charset=utf-8;",
+  });
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = filename;
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+
+
+function NewsletterManager() {
+  const [subscribers, setSubscribers] = useState<NewsletterSubscriberGetDto[]>(
+    []
+  );
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await NewsletterSubscribersApi.list();
+
+        if (!active) return;
+
+        setSubscribers(res);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+
+    const t = setTimeout(() => setToast(null), 1800);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const filtered = useMemo(() => {
+    const search = q.trim().toLowerCase();
+
+    if (!search) return subscribers;
+
+    return subscribers.filter((s) => {
+      return [
+        s.id,
+        s.email,
+        s.fullName,
+        formatNewsletterDate(s.subscribedAt),
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(search);
+    });
+  }, [subscribers, q]);
+
+  const csvContent = useMemo(() => {
+    return buildNewsletterCsv(filtered);
+  }, [filtered]);
+
+  async function copyList() {
+    try {
+      await navigator.clipboard.writeText(csvContent);
+      setToast("Η λίστα αντιγράφηκε.");
+    } catch {
+      setToast("Δεν ήταν δυνατή η αντιγραφή.");
+    }
+  }
+
+  function downloadCsv() {
+    downloadTextFile("newsletter-subscribers.csv", csvContent);
+    setToast("Το CSV κατέβηκε.");
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="p-5">
+          <div className="text-sm text-slate-500">Σύνολο συνδρομητών</div>
+          <div className="mt-2 text-3xl font-semibold text-slate-900">
+            {subscribers.length}
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <div className="text-sm text-slate-500">Αποτελέσματα αναζήτησης</div>
+          <div className="mt-2 text-3xl font-semibold text-slate-900">
+            {filtered.length}
+          </div>
+        </Card>
+      </div>
+
+      <Card className="p-4 md:p-5">
+        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900">
+              Συνδρομητές Newsletter
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Προβολή, αναζήτηση, αντιγραφή και εξαγωγή λίστας συνδρομητών.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={copyList}
+              disabled={!filtered.length}
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-[rgb(var(--primary))] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Αντιγραφή λίστας
+            </button>
+
+            <button
+              type="button"
+              onClick={downloadCsv}
+              disabled={!filtered.length}
+              className="rounded-full bg-[rgb(var(--primary))] px-4 py-2 text-sm font-medium text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Λήψη CSV
+            </button>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Αναζήτηση με όνομα, email ή ID..."
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[rgb(var(--primary))] focus:ring-4 focus:ring-[rgba(var(--primary),0.12)]"
+          />
+        </div>
+
+        {toast && (
+          <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            {toast}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+            Φόρτωση συνδρομητών...
+          </div>
+        ) : !filtered.length ? (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+            Δεν βρέθηκαν συνδρομητές.
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-2xl border border-slate-200">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 text-sm">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                      ID
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                      Ονοματεπώνυμο
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                      Email
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                      Ημερομηνία εγγραφής
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {filtered.map((s) => (
+                    <tr key={s.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 font-medium text-slate-900">
+                        #{s.id}
+                      </td>
+
+                      <td className="px-4 py-3 text-slate-700">
+                        {s.fullName || "—"}
+                      </td>
+
+                      <td className="px-4 py-3 text-slate-700">
+                        {s.email}
+                      </td>
+
+                      <td className="px-4 py-3 text-slate-600">
+                        {formatNewsletterDate(s.subscribedAt) || "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-3 text-xs text-slate-500">
+          Η αντιγραφή και το CSV χρησιμοποιούν τα πεδία: ID, EMAIL, FULLNAME,
+          SUBSCRIBED_AT.
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+
+
+
+
+
+
+
 
 /* =============== ΜΗΝΥΜΑΤΑ =============== */
 

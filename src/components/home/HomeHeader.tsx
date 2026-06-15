@@ -20,7 +20,7 @@ export default function HomeHero({
     info?.trim() ||
     "Είμαι η Βασιλική Χύτα, Διαιτολόγος–Διατροφολόγος. Πιστεύω σε μια ήπια, ανθρωποκεντρική προσέγγιση που συνδέει τη γνώση με τη φροντίδα: εκπαίδευση, ευεξία και ισορροπία, πέρα από στερεότυπα και «γρήγορες λύσεις».";
   const heroImage =
-    mainPictureUrl ||
+    mainPictureUrl?.trim() ||
     "https://img.freepik.com/premium-photo/diet-healthy-nutrition-portrait-dietitian-s_118454-1331.jpg";
 
   return (

@@ -11,6 +11,8 @@ import {
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 import LeafBurstButton from "@/components/decorative/LeafBurstButton";
 
+import { NewsletterSubscribersApi } from "@/api/NewsletterSubscribersController";
+
 export default function HomePage() {
   const siteName = "Διαιτολογικό Κέντρο";
 
@@ -34,14 +36,12 @@ export default function HomePage() {
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
 
   const [openNewsletter, setOpenNewsletter] = useState(false);
-  const [nlStep, setNlStep] = useState<"form" | "verify" | "done">("form");
+  const [nlStep, setNlStep] = useState<"form" | "done">("form");
   const [nlLoading, setNlLoading] = useState(false);
   const [nlError, setNlError] = useState<string | null>(null);
   const [nlForm, setNlForm] = useState({ name: "", email: "" });
-  const [nlCode, setNlCode] = useState("");
 
   const [mainPage, setMainPage] = useState<MainPageGetDto | null>(null);
-  const [mainPictureUrl, setMainPictureUrl] = useState<string | null>(null);
   const [mainPageLoading, setMainPageLoading] = useState(true);
 
   useEffect(() => {
@@ -57,23 +57,9 @@ export default function HomePage() {
         if (!active) return;
 
         setMainPage(firstPage);
-
-        if (firstPage?.id) {
-          try {
-            const pictureRes = await MainPagesApi.getMainPictureUrl(firstPage.id);
-            if (!active) return;
-            setMainPictureUrl(pictureRes?.url || null);
-          } catch {
-            if (!active) return;
-            setMainPictureUrl(null);
-          }
-        } else {
-          setMainPictureUrl(null);
-        }
       } catch {
         if (!active) return;
         setMainPage(null);
-        setMainPictureUrl(null);
       } finally {
         if (active) setMainPageLoading(false);
       }
@@ -95,47 +81,37 @@ export default function HomePage() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  async function apiNewsletterStart() {
-    await new Promise((r) => setTimeout(r, 650));
-    return { ok: true };
-  }
-
-  async function apiNewsletterVerify(payload: { email: string; code: string }) {
-    await new Promise((r) => setTimeout(r, 650));
-
-    if (payload.code.trim() !== "123456") {
-      throw new Error("Λάθος κωδικός επιβεβαίωσης.");
-    }
-
-    return { ok: true };
-  }
-
   function openNewsletterModal() {
     setOpenNewsletter(true);
     setNlStep("form");
     setNlLoading(false);
     setNlError(null);
     setNlForm({ name: "", email: "" });
-    setNlCode("");
   }
 
   async function submitNewsletter(e: React.FormEvent) {
     e.preventDefault();
     setNlError(null);
 
-    const name = nlForm.name.trim();
+    const fullName = nlForm.name.trim();
     const email = nlForm.email.trim();
 
-    if (!name) return setNlError("Γράψε ονοματεπώνυμο.");
-    if (!/^\S+@\S+\.\S+$/.test(email)) return setNlError("Γράψε έγκυρο email.");
+    if (!fullName) return setNlError("Γράψε ονοματεπώνυμο.");
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      return setNlError("Γράψε έγκυρο email.");
+    }
 
     setNlLoading(true);
 
     try {
-      await apiNewsletterStart();
-      setNlStep("verify");
+      await NewsletterSubscribersApi.subscribe({
+        fullName,
+        email,
+      });
+
+      setNlStep("done");
     } catch {
-      setNlError("Κάτι πήγε στραβά. Δοκίμασε ξανά.");
+      setNlError("Δεν ήταν δυνατή η εγγραφή. Δοκίμασε ξανά.");
     } finally {
       setNlLoading(false);
     }
@@ -146,14 +122,11 @@ export default function HomePage() {
     setNlError(null);
 
     const email = nlForm.email.trim();
-    const code = nlCode.trim();
 
-    if (!code) return setNlError("Γράψε τον κωδικό επιβεβαίωσης.");
 
     setNlLoading(true);
 
     try {
-      await apiNewsletterVerify({ email, code });
       setNlStep("done");
     } catch (err: unknown) {
       setNlError(
@@ -186,7 +159,7 @@ export default function HomePage() {
       <HomeHero
         title={mainPage?.title}
         info={mainPage?.info}
-        mainPictureUrl={mainPictureUrl}
+        mainPictureUrl={mainPage?.mainPictureUrl}
         loading={mainPageLoading}
       />
 
@@ -267,7 +240,7 @@ export default function HomePage() {
               <div className="overflow-hidden rounded-3xl bg-white ring-1 ring-accent/25 shadow-sm">
                 <Image
                   src={
-                    mainPictureUrl ||
+                    mainPage?.mainPictureUrl?.trim() ||
                     "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?auto=format&fit=crop&w=1200&q=80"
                   }
                   alt="Βασιλική Χύτα — Διαιτολόγος"
@@ -458,25 +431,6 @@ export default function HomePage() {
                   Email
                 </label>
 
-                <input
-                  id="nlEmailInline"
-                  type="email"
-                  value={nlForm.email}
-                  onChange={(e) =>
-                    setNlForm((p) => ({ ...p, email: e.target.value }))
-                  }
-                  placeholder="π.χ. name@email.com"
-                  className={[
-                    "w-full sm:w-72",
-                    R_CARD,
-                    "px-4 py-3",
-                    "bg-white/80 ring-1 ring-accent/25",
-                    "text-slate-800 placeholder:text-slate-400",
-                    "transition",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
-                  ].join(" ")}
-                />
-
                 <button
                   type="submit"
                   className={[
@@ -538,19 +492,13 @@ export default function HomePage() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h3 className="text-lg sm:text-xl font-semibold text-slate-900">
-                      {nlStep === "form"
-                        ? "Εγγραφή στο Newsletter"
-                        : nlStep === "verify"
-                        ? "Επιβεβαίωση email"
-                        : "Ολοκληρώθηκε"}
+                      {nlStep === "form" ? "Εγγραφή στο Newsletter" : "Η εγγραφή ολοκληρώθηκε"}
                     </h3>
 
                     <p className="mt-1 text-sm text-slate-700">
                       {nlStep === "form"
-                        ? "Συμπλήρωσε τα στοιχεία σου."
-                        : nlStep === "verify"
-                        ? "Βάλε τον κωδικό επιβεβαίωσης που σου στείλαμε."
-                        : "Η εγγραφή σου έγινε με επιτυχία."}
+                        ? "Συμπλήρωσε τα στοιχεία σου για να λαμβάνεις ενημερώσεις."
+                        : "Ευχαριστούμε για την εγγραφή σου στο newsletter."}
                     </p>
                   </div>
 
@@ -622,11 +570,10 @@ export default function HomePage() {
                     </div>
 
                     <div className="mt-2 flex flex-col sm:flex-row gap-3">
-                      <LeafBurstButton
-                        text={nlLoading ? "Αποστολή…" : "Συνέχεια"}
-                        disabled={nlLoading}
+                      <button
                         type="submit"
-                        buttonClassName={[
+                        disabled={nlLoading}
+                        className={[
                           "inline-flex items-center justify-center",
                           R_CARD,
                           "px-5 py-3 font-semibold transition",
@@ -636,7 +583,9 @@ export default function HomePage() {
                             : SH_CTA + " hover:opacity-95",
                           FOCUS,
                         ].join(" ")}
-                      />
+                      >
+                        {nlLoading ? "Εγγραφή…" : "Εγγραφή"}
+                      </button>
 
                       <button
                         type="button"
@@ -653,103 +602,6 @@ export default function HomePage() {
                         Άκυρο
                       </button>
                     </div>
-
-                    <p className="text-xs text-slate-500">
-                      Demo: στο επόμενο βήμα βάλε κωδικό{" "}
-                      <span className="font-semibold">123456</span>.
-                    </p>
-                  </form>
-                )}
-
-                {nlStep === "verify" && (
-                  <form onSubmit={submitVerify} className="mt-5 space-y-4">
-                    <div className="rounded-2xl bg-white ring-1 ring-accent/20 p-4 text-sm text-slate-700">
-                      Στείλαμε κωδικό επιβεβαίωσης στο{" "}
-                      <span className="font-semibold">{nlForm.email}</span>.
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700">
-                        Κωδικός επιβεβαίωσης
-                      </label>
-
-                      <input
-                        inputMode="numeric"
-                        value={nlCode}
-                        onChange={(e) => setNlCode(e.target.value)}
-                        className={[
-                          "mt-1 w-full",
-                          R_CARD,
-                          "px-4 py-3 transition",
-                          "bg-white ring-1 ring-accent/25 hover:bg-accent/10",
-                          "text-slate-800",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
-                        ].join(" ")}
-                        placeholder="π.χ. 123456"
-                      />
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <LeafBurstButton
-                        text={nlLoading ? "Επιβεβαίωση…" : "Ολοκλήρωση εγγραφής"}
-                        disabled={nlLoading}
-                        type="submit"
-                        buttonClassName={[
-                          "inline-flex items-center justify-center",
-                          R_CARD,
-                          "px-5 py-3 font-semibold transition",
-                          "bg-primary text-white ring-1 ring-primary/20",
-                          nlLoading
-                            ? "opacity-70 cursor-wait"
-                            : SH_CTA + " hover:opacity-95",
-                          FOCUS,
-                        ].join(" ")}
-                      />
-
-                      <button
-                        type="button"
-                        disabled={nlLoading}
-                        onClick={() => {
-                          setNlError(null);
-                          setNlStep("form");
-                          setNlCode("");
-                        }}
-                        className={[
-                          "inline-flex items-center justify-center",
-                          R_CARD,
-                          "px-5 py-3 font-medium transition",
-                          "bg-white text-primary hover:text-accent",
-                          "ring-1 ring-accent/35 hover:bg-accent/10",
-                          FOCUS,
-                        ].join(" ")}
-                      >
-                        Πίσω
-                      </button>
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={nlLoading}
-                      onClick={async () => {
-                        setNlLoading(true);
-                        setNlError(null);
-
-                        try {
-                          await apiNewsletterStart();
-                        } catch {
-                          setNlError("Δεν έγινε επαναποστολή. Δοκίμασε ξανά.");
-                        } finally {
-                          setNlLoading(false);
-                        }
-                      }}
-                      className={[
-                        "text-sm font-medium text-primary hover:text-accent transition-colors",
-                        FOCUS,
-                        "rounded-md px-1 py-1 w-fit",
-                      ].join(" ")}
-                    >
-                      Επαναποστολή κωδικού
-                    </button>
                   </form>
                 )}
 
@@ -761,7 +613,7 @@ export default function HomePage() {
                     </div>
 
                     <LeafBurstButton
-                      text="Έτοιμο"
+                      text="Τέλος"
                       onClick={closeNewsletterModal}
                       buttonClassName={[
                         "w-full inline-flex items-center justify-center",
