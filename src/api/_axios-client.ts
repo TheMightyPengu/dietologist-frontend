@@ -15,6 +15,11 @@ export type ApiError = {
   details?: unknown;
 };
 
+export function toMediaUrl(path: string): string {
+  const base = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/api$/, "");
+  return `${base}${path}`;
+}
+
 export const toApiError = (e: unknown): ApiError => {
   // Axios error branch
   if (axios.isAxiosError(e)) {

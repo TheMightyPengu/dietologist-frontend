@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { NavbarApi, type NavbarGetDto } from "@/api/NavbarController";
+import { toMediaUrl } from "@/api/_axios-client";
 
 const FALLBACK_NAVBAR: NavbarGetDto = {
   id: 1,
@@ -13,7 +14,8 @@ const FALLBACK_NAVBAR: NavbarGetDto = {
 export default function DashboardNavbar() {
   const [navbar, setNavbar] = useState<NavbarGetDto | null>(null);
   const [title, setTitle] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -30,7 +32,7 @@ export default function DashboardNavbar() {
 
       setNavbar(current);
       setTitle(current.title || "");
-      setImageUrl(current.imageUrl || "");
+      setImagePreview(current.imageUrl || "");
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -70,7 +72,7 @@ export default function DashboardNavbar() {
 
       await NavbarApi.update(navbar.id, {
         title,
-        imageUrl,
+        imageFile: imageFile ?? undefined,
       });
 
       const fresh = await NavbarApi.getSingle();
@@ -78,12 +80,13 @@ export default function DashboardNavbar() {
       if (fresh) {
         setNavbar(fresh);
         setTitle(fresh.title || "");
-        setImageUrl(fresh.imageUrl || "");
+        setImageFile(null);
+        setImagePreview(fresh.imageUrl || "");
       } else {
         setNavbar({
           id: navbar.id,
           title,
-          imageUrl,
+          imageUrl: imagePreview,
         });
       }
 
@@ -150,14 +153,19 @@ export default function DashboardNavbar() {
 
                 <div>
                   <label className="block text-sm font-medium text-[rgb(var(--ink))] mb-2">
-                    Image URL / Logo
+                    Εικόνα / Logo
                   </label>
 
                   <input
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    className="w-full rounded-xl border border-[rgba(var(--border),1)] bg-white px-4 py-3 text-sm outline-none focus:border-[rgb(var(--primary))] focus:ring-2 focus:ring-[rgba(var(--primary),0.18)]"
-                    placeholder="π.χ. /logo.svg ή https://..."
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setImageFile(file);
+                      setImagePreview(URL.createObjectURL(file));
+                    }}
+                    className="w-full rounded-xl border border-[rgba(var(--border),1)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[rgb(var(--primary))] focus:ring-2 focus:ring-[rgba(var(--primary),0.18)] file:mr-3 file:rounded-lg file:border-0 file:bg-[rgba(var(--primary),0.1)] file:px-3 file:py-1 file:text-sm file:font-medium file:text-[rgb(var(--primary))] hover:file:bg-[rgba(var(--primary),0.18)]"
                   />
                 </div>
 
@@ -167,10 +175,10 @@ export default function DashboardNavbar() {
                   </p>
 
                   <div className="flex items-center gap-4 rounded-xl bg-white border border-[rgba(var(--border),0.9)] px-4 py-3">
-                    <div className="relative h-12 w-12 overflow-hidden rounded-full bg-[rgba(var(--primary),0.08)] border border-[rgba(var(--border),0.9)]">
-                      {imageUrl ? (
+                    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full bg-[rgba(var(--primary),0.08)] border border-[rgba(var(--border),0.9)]">
+                      {imagePreview ? (
                         <Image
-                          src={imageUrl}
+                          src={imagePreview.startsWith("/media") ? toMediaUrl(imagePreview) : imagePreview}
                           alt="Navbar logo preview"
                           fill
                           className="object-cover"

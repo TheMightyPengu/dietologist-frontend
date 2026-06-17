@@ -8,7 +8,7 @@ export type NavbarGetDto = {
 
 export type NavbarPostDto = {
   title: string;
-  imageUrl: string;
+  imageFile?: File;
 };
 
 const base = "/Navbar";
@@ -31,7 +31,10 @@ function buildFormData(payload: NavbarPostDto) {
   const formData = new FormData();
 
   formData.append("Title", payload.title);
-  formData.append("ImageUrl", payload.imageUrl);
+
+  if (payload.imageFile) {
+    formData.append("ImageFile", payload.imageFile);
+  }
 
   return formData;
 }
