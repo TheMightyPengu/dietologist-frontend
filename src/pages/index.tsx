@@ -117,26 +117,6 @@ export default function HomePage() {
     }
   }
 
-  async function submitVerify(e: React.FormEvent) {
-    e.preventDefault();
-    setNlError(null);
-
-    const email = nlForm.email.trim();
-
-
-    setNlLoading(true);
-
-    try {
-      setNlStep("done");
-    } catch (err: unknown) {
-      setNlError(
-        err instanceof Error ? err.message : "Κάτι πήγε στραβά. Δοκίμασε ξανά."
-      );
-    } finally {
-      setNlLoading(false);
-    }
-  }
-
   function closeNewsletterModal() {
     setOpenNewsletter(false);
   }

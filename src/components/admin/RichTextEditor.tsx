@@ -9,7 +9,16 @@ import TextAlign from '@tiptap/extension-text-align';
 import { TextStyle } from '@tiptap/extension-text-style';
 import FontFamily from '@tiptap/extension-font-family';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Extension } from '@tiptap/core';
+import { Extension, CommandProps } from '@tiptap/core';
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    fontSize: {
+      setFontSize: (fontSize: string) => ReturnType;
+      unsetFontSize: () => ReturnType;
+    };
+  }
+}
 
 type RichTextEditorProps = {
   value: string;
@@ -54,19 +63,19 @@ const FontSize = Extension.create({
     return {
       setFontSize:
         (fontSize: string) =>
-        ({ chain }: { chain: any }) => {
+        ({ chain }: CommandProps) => {
           return chain().setMark('textStyle', { fontSize }).run();
         },
 
       unsetFontSize:
         () =>
-        ({ chain }: { chain: any }) => {
+        ({ chain }: CommandProps) => {
           return chain()
             .setMark('textStyle', { fontSize: null })
             .removeEmptyTextStyle()
             .run();
         },
-    } as any;
+    };
   },
 });
 

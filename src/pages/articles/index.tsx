@@ -29,7 +29,7 @@ export type Article = {
   category: "Διατροφή" | "Ευεξία" | "Συνταγές" | "Επιστήμη";
   dateISO: string;
   readMinutes: number;
-  hero: string;
+  hero: string | null;
   tags: string[];
 };
 
@@ -84,10 +84,7 @@ function mapArticleDtoToUi(dto: ArticlesGetDto): Article {
     readMinutes: estimateReadMinutes(dto.content),
 
     // Το backend δίνει imageUrl.
-    // Fallback placeholder αν λείπει.
-    hero:
-    dto.imageUrl ||
-    "https://via.placeholder.com/1200x750?text=Article+Image",
+    hero: dto.imageUrl ?? null,
 
     // Το backend δεν δίνει tags.
     // Placeholder μέχρι να προστεθούν.
@@ -826,13 +823,19 @@ export default function ArticlesIndex(props: Props) {
                             >
                               {/* Image + scrim + category pill */}
                               <div className="relative aspect-[16/10] overflow-hidden rounded-t-2xl">
-                                <Image
-                                  src={a.hero}
-                                  alt={a.title}
-                                  width={800}
-                                  height={500}
-                                  className="object-cover transition duration-300 group-hover:scale-[1.03] h-full w-full"
-                                />
+                                {a.hero ? (
+                                  <Image
+                                    src={a.hero}
+                                    alt={a.title}
+                                    width={800}
+                                    height={500}
+                                    className="object-cover transition duration-300 group-hover:scale-[1.03] h-full w-full"
+                                  />
+                                ) : (
+                                  <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-accent/10 to-warm/15 grid place-items-center">
+                                    <span className="text-xs font-medium text-slate-500">Χωρίς εικόνα</span>
+                                  </div>
+                                )}
                                 {/* Scrim για contrast */}
                                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
 
@@ -1021,23 +1024,3 @@ function RadioRow({
   );
 }
 
-function SkeletonCard() {
-  return (
-    <div className="h-full overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm">
-      <div className="relative aspect-[16/10] bg-slate-200 animate-pulse" />
-      <div className="p-5 space-y-3">
-        <div className="h-4 w-3/4 bg-slate-200 rounded animate-pulse" />
-        <div className="h-4 w-2/3 bg-slate-200 rounded animate-pulse" />
-        <div className="h-3 w-full bg-slate-200 rounded animate-pulse" />
-        <div className="h-3 w-11/12 bg-slate-200 rounded animate-pulse" />
-        <div className="pt-2 space-y-2">
-          <div className="h-3 w-2/3 bg-slate-200 rounded animate-pulse" />
-          <div className="flex gap-2">
-            <div className="h-6 w-20 bg-slate-200 rounded-full animate-pulse" />
-            <div className="h-6 w-16 bg-slate-200 rounded-full animate-pulse" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}

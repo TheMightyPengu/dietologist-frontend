@@ -27,17 +27,18 @@ export type SeminarPayload = {
 
 const base = "/Seminars";
 
-function normalizeSeminar(data: any): Seminar {
+function normalizeSeminar(data: unknown): Seminar {
+  const d = data as Record<string, unknown>;
   return {
-    id: Number(data?.id ?? data?.Id ?? 0),
-    title: String(data?.title ?? data?.Title ?? ""),
-    description: String(data?.description ?? data?.Description ?? ""),
-    content: String(data?.content ?? data?.Content ?? ""),
-    imageUrl: String(data?.imageUrl ?? data?.ImageUrl ?? ""),
-    price: Number(data?.price ?? data?.Price ?? 0),
-    duration: Number(data?.duration ?? data?.Duration ?? 0),
-    dateTime: String(data?.dateTime ?? data?.DateTime ?? ""),
-    type: String(data?.type ?? data?.Type ?? ""),
+    id: Number(d?.id ?? d?.Id ?? 0),
+    title: String(d?.title ?? d?.Title ?? ""),
+    description: String(d?.description ?? d?.Description ?? ""),
+    content: String(d?.content ?? d?.Content ?? ""),
+    imageUrl: String(d?.imageUrl ?? d?.ImageUrl ?? ""),
+    price: Number(d?.price ?? d?.Price ?? 0),
+    duration: Number(d?.duration ?? d?.Duration ?? 0),
+    dateTime: String(d?.dateTime ?? d?.DateTime ?? ""),
+    type: String(d?.type ?? d?.Type ?? ""),
   };
 }
 

@@ -19,7 +19,6 @@ export type RecipesPostDto = {
   instructions: string;
   timeToPrepare: number;
   description: string;
-  imageUrl?: string | null;
   createdAt: string; // ISO
   imageFile?: File | null;
 };
@@ -35,8 +34,6 @@ function buildFormData(p: RecipesPostDto): FormData {
   fd.append('Instructions', p.instructions);
   fd.append('TimeToPrepare', String(p.timeToPrepare));
   fd.append('Description', p.description);
-
-  if (p.imageUrl ?? null) fd.append('ImageUrl', String(p.imageUrl));
 
   fd.append('CreatedAt', p.createdAt);
 

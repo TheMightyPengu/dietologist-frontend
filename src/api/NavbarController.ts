@@ -13,10 +13,10 @@ export type NavbarPostDto = {
 
 const base = "/Navbar";
 
-function normalizeNavbar(data: any): NavbarGetDto | null {
+function normalizeNavbar(data: unknown): NavbarGetDto | null {
   if (!data) return null;
 
-  const item = Array.isArray(data) ? data[0] : data;
+  const item = (Array.isArray(data) ? data[0] : data) as Record<string, unknown>;
 
   if (!item) return null;
 

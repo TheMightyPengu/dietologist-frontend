@@ -130,7 +130,6 @@ function ArticlesManager() {
     subtitle: "",
     heading: "",
     content: "",
-    imageUrl: "",
     publishedAt: new Date().toISOString(),
     imageFile: null,
   };
@@ -180,7 +179,6 @@ function ArticlesManager() {
         subtitle: createDraft.subtitle.trim(),
         heading: createDraft.heading.trim(),
         content: createDraft.content.trim(),
-        imageUrl: createDraft.imageUrl?.trim() || "",
       });
 
       setAll((prev) => [created, ...prev]);
@@ -205,7 +203,6 @@ function ArticlesManager() {
         subtitle: payload.subtitle.trim(),
         heading: payload.heading.trim(),
         content: payload.content.trim(),
-        imageUrl: payload.imageUrl?.trim() || "",
       });
 
       const fresh = await ArticlesApi.get(id);
@@ -383,20 +380,6 @@ function CreateArticleModal({
 
           <div>
             <label className="block text-sm font-medium text-slate-700">
-              Εικόνα URL
-            </label>
-
-            <input
-              value={draft.imageUrl ?? ""}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, imageUrl: e.target.value }))
-              }
-              className={fieldClass}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700">
               Αρχείο εικόνας
             </label>
 
@@ -475,12 +458,22 @@ function ArticleEditorCard({
     subtitle: row.subtitle,
     heading: row.heading,
     content: row.content,
-    imageUrl: row.imageUrl ?? "",
     publishedAt: row.publishedAt,
     imageFile: null,
   });
 
   const [open, setOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(row.imageUrl ?? null);
+
+  useEffect(() => {
+    if (!draft.imageFile) {
+      setPreviewUrl(row.imageUrl ?? null);
+      return;
+    }
+    const url = URL.createObjectURL(draft.imageFile);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [draft.imageFile, row.imageUrl]);
 
   useEffect(() => {
     setDraft({
@@ -488,7 +481,6 @@ function ArticleEditorCard({
       subtitle: row.subtitle,
       heading: row.heading,
       content: row.content,
-      imageUrl: row.imageUrl ?? "",
       publishedAt: row.publishedAt,
       imageFile: null,
     });
@@ -592,21 +584,6 @@ function ArticleEditorCard({
 
             <div>
               <label className="block text-sm font-medium text-slate-700">
-                Εικόνα URL
-              </label>
-
-              <input
-                value={draft.imageUrl ?? ""}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, imageUrl: e.target.value }))
-                }
-                placeholder="https://..."
-                className={fieldClass}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700">
                 Αρχείο εικόνας
               </label>
 
@@ -663,7 +640,6 @@ function ArticleEditorCard({
                     subtitle: row.subtitle,
                     heading: row.heading,
                     content: row.content,
-                    imageUrl: row.imageUrl ?? "",
                     publishedAt: row.publishedAt,
                     imageFile: null,
                   })
@@ -678,9 +654,9 @@ function ArticleEditorCard({
           <div className="lg:col-span-1">
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
               <div className="aspect-[16/10] bg-slate-100 relative">
-                {draft.imageUrl ? (
+                {previewUrl ? (
                   <Image
-                    src={draft.imageUrl}
+                    src={previewUrl}
                     alt=""
                     fill
                     className="object-cover"
@@ -740,7 +716,6 @@ function RecipesManager() {
     instructions: "",
     timeToPrepare: 0,
     description: "",
-    imageUrl: "",
     createdAt: new Date().toISOString(),
     imageFile: null,
   };
@@ -790,7 +765,6 @@ function RecipesManager() {
         category: createDraft.category.trim(),
         instructions: createDraft.instructions.trim(),
         description: createDraft.description.trim(),
-        imageUrl: createDraft.imageUrl?.trim() || "",
       });
 
       setAll((prev) => [created, ...prev]);
@@ -816,7 +790,6 @@ function RecipesManager() {
         category: payload.category.trim(),
         instructions: payload.instructions.trim(),
         description: payload.description.trim(),
-        imageUrl: payload.imageUrl?.trim() || "",
       });
 
       const fresh = await RecipesApi.get(id);
@@ -1031,20 +1004,6 @@ function CreateRecipeModal({
 
           <div>
             <label className="block text-sm font-medium text-slate-700">
-              Εικόνα URL
-            </label>
-
-            <input
-              value={draft.imageUrl ?? ""}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, imageUrl: e.target.value }))
-              }
-              className={fieldClass}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700">
               Αρχείο εικόνας
             </label>
 
@@ -1108,12 +1067,22 @@ function RecipeEditorCard({
     instructions: row.instructions,
     timeToPrepare: row.timeToPrepare,
     description: row.description,
-    imageUrl: row.imageUrl ?? "",
     createdAt: row.createdAt,
     imageFile: null,
   });
 
   const [open, setOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(row.imageUrl ?? null);
+
+  useEffect(() => {
+    if (!draft.imageFile) {
+      setPreviewUrl(row.imageUrl ?? null);
+      return;
+    }
+    const url = URL.createObjectURL(draft.imageFile);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [draft.imageFile, row.imageUrl]);
 
   useEffect(() => {
     setDraft({
@@ -1123,7 +1092,6 @@ function RecipeEditorCard({
       instructions: row.instructions,
       timeToPrepare: row.timeToPrepare,
       description: row.description,
-      imageUrl: row.imageUrl ?? "",
       createdAt: row.createdAt,
       imageFile: null,
     });
@@ -1264,21 +1232,6 @@ function RecipeEditorCard({
 
             <div>
               <label className="block text-sm font-medium text-slate-700">
-                Εικόνα URL
-              </label>
-
-              <input
-                value={draft.imageUrl ?? ""}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, imageUrl: e.target.value }))
-                }
-                placeholder="https://..."
-                className={fieldClass}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700">
                 Αρχείο εικόνας
               </label>
 
@@ -1320,7 +1273,6 @@ function RecipeEditorCard({
                     instructions: row.instructions,
                     timeToPrepare: row.timeToPrepare,
                     description: row.description,
-                    imageUrl: row.imageUrl ?? "",
                     createdAt: row.createdAt,
                     imageFile: null,
                   })
@@ -1335,9 +1287,9 @@ function RecipeEditorCard({
           <div className="lg:col-span-1">
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
               <div className="aspect-[16/10] bg-slate-100 relative">
-                {draft.imageUrl ? (
+                {previewUrl ? (
                   <Image
-                    src={draft.imageUrl}
+                    src={previewUrl}
                     alt=""
                     fill
                     className="object-cover"

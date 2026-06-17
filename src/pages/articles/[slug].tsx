@@ -16,7 +16,7 @@ type Article = {
   category: "Διατροφή" | "Ευεξία" | "Συνταγές" | "Επιστήμη";
   dateISO: string;
   readMinutes: number;
-  hero: string;
+  hero: string | null;
   tags: string[];
   contentHtml: string;
 };
@@ -68,8 +68,7 @@ function mapArticleDtoToUi(dto: ArticlesGetDto): Article {
     dateISO: dto.publishedAt,
     readMinutes: estimateReadMinutes(dto.content),
     hero:
-      dto.imageUrl ||
-      "https://via.placeholder.com/1200x750?text=Article+Image",
+      dto.imageUrl ?? null,
     tags: [],
     contentHtml: dto.content || "",
   };
@@ -145,7 +144,7 @@ export default function ArticlePage({ article }: { article: Article }) {
         <meta property="og:type" content="article" />
         <meta property="og:title" content={`${article.title} — Άρθρα`} />
         <meta property="og:description" content={article.excerpt} />
-        <meta property="og:image" content={article.hero} />
+        {article.hero ? <meta property="og:image" content={article.hero} /> : null}
         <meta property="og:locale" content="el_GR" />
         <meta name="twitter:card" content="summary_large_image" />
       </Head>
@@ -201,17 +200,19 @@ export default function ArticlePage({ article }: { article: Article }) {
           ) : null}
         </header>
 
-        <div className="relative overflow-hidden rounded-3xl bg-slate-100 shadow-[0_18px_45px_rgba(15,23,42,0.12)]">
-          <div className="relative aspect-[16/9]">
-            <Image
-              src={article.hero}
-              alt={article.title}
-              fill
-              priority
-              className="object-cover"
-            />
+        {article.hero ? (
+          <div className="relative overflow-hidden rounded-3xl bg-slate-100 shadow-[0_18px_45px_rgba(15,23,42,0.12)]">
+            <div className="relative aspect-[16/9]">
+              <Image
+                src={article.hero}
+                alt={article.title}
+                fill
+                priority
+                className="object-cover"
+              />
+            </div>
           </div>
-        </div>
+        ) : null}
 
         <div className="mt-8 rounded-3xl bg-white/85 ring-1 ring-accent/20 shadow-[0_12px_35px_rgba(164,199,126,0.12)] p-6 md:p-8">
           {article.heading ? (
