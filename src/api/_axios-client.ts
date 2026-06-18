@@ -16,7 +16,8 @@ export type ApiError = {
 };
 
 export function toMediaUrl(path: string): string {
-  const base = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/api$/, "");
+  const base = 'http://localhost:8088';
+  console.log("toMediaUrl called with path:", path);
   return `${base}${path}`;
 }
 

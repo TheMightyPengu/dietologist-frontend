@@ -12,6 +12,7 @@ import {
 } from "@/api/SeminarsController";
 import RichTextEditor from "@/components/admin/RichTextEditor";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
+import { toMediaUrl } from "@/api/_axios-client";
 
 const cx = (...c: (string | false | null | undefined)[]) =>
   c.filter(Boolean).join(" ");
@@ -535,7 +536,7 @@ function SeminarEditorCard({
               <div className="aspect-[16/10] bg-[rgba(var(--primary),0.08)] relative">
                 {image ? (
                   <img
-                    src={image}
+                    src={image.startsWith("/media") ? toMediaUrl(image) : image}
                     alt=""
                     className="h-full w-full object-cover"
                   />

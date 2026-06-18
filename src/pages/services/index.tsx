@@ -11,6 +11,7 @@ import {
   type ProvidedServicesGetDto,
 } from "@/api/ProvidedServicesController";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
+import { toMediaUrl } from "@/api/_axios-client";
 
 type PillProps = { children: React.ReactNode };
 
@@ -400,7 +401,7 @@ export default function ServicesPage() {
                           {service.imageUrl ? (
                             <div className="md:w-56 md:shrink-0">
                               <img
-                                src={service.imageUrl}
+                                src={service.imageUrl.startsWith("/media") ? toMediaUrl(service.imageUrl) : service.imageUrl}
                                 alt={service.title || `Υπηρεσία #${service.id}`}
                                 className="h-48 w-full rounded-2xl object-cover ring-1 ring-accent/20 md:h-full"
                                 loading="lazy"

@@ -5,7 +5,8 @@ import { useRouter } from "next/router";
 import Image from "next/image";
 
 // Αν το path του controller σου είναι αλλού, άλλαξέ το εδώ.
-import { RecipesApi, type RecipesGetDto } from "@/api/RecipesController";
+import { ArticlesApi, type ArticlesGetDto } from "@/api/ArticlesController";
+import { toMediaUrl } from "@/api/_axios-client";
 
 /*
   Σελίδα λίστας συνταγών συνδεδεμένη με backend.
@@ -27,36 +28,26 @@ import { RecipesApi, type RecipesGetDto } from "@/api/RecipesController";
 */
 
 // -------------------- Types --------------------
-export type Recipe = {
+export type Article = {
   id: number;
   slug: string;
   title: string;
-  category: string;
-  minutes: number;
-  description: string;
-  instructions: string;
-  ingredients: string[];
+  subtitle: string;
+  heading: string;
+  content: string;
   image: string;
-  createdAt: string;
+  publishedAt: string;
 };
 
 // -------------------- Labels (UI) --------------------
-const CATEGORY_LABELS: Record<string, string> = {
-  Breakfast: "Πρωινό",
-  Main: "Κυρίως",
-  Snack: "Σνακ",
-  Drink: "Ρόφημα",
-  Dessert: "Γλυκό",
-  Salad: "Σαλάτα",
-};
+const SORT_OPTIONS = {
+  new: "Νεότερα",
+  az: "Αλφαβητικά (A–Z)",
+} as const;
 
 const PER_PAGE = 12;
 
 // -------------------- Helpers --------------------
-function formatMin(m: number) {
-  return m <= 60 ? `${m}′` : `${Math.floor(m / 60)} ώ ${m % 60}′`;
-}
-
 function stripGreekAccents(s: string) {
   return s
     .normalize("NFD")
@@ -127,29 +118,20 @@ function paginateNumbers(totalPages: number, current: number) {
   return pages;
 }
 
-function parseIngredients(value: string | null | undefined): string[] {
-  if (!value) return [];
-
-  return value
-    .split(/[\n,;•]+/g)
-    .map((x) => x.trim())
-    .filter(Boolean);
+function uniq<T>(arr: T[]) {
+  return Array.from(new Set(arr));
 }
-
-function mapRecipe(dto: RecipesGetDto): Recipe {
   const title = dto.title ?? "";
 
   return {
     id: dto.id,
-    slug: `${toGreekSlug(title) || "recipe"}-${dto.id}`,
+    slug: `${toGreekSlug(title) || "article"}-${dto.id}`,
     title,
-    category: dto.category ?? "",
-    minutes: dto.timeToPrepare ?? 0,
-    description: dto.description ?? "",
-    instructions: dto.instructions ?? "",
-    ingredients: parseIngredients(dto.ingredients),
+    subtitle: dto.subtitle ?? "",
+    heading: dto.heading ?? "",
+    content: dto.content ?? "",
     image: dto.imageUrl ?? "",
-    createdAt: dto.createdAt ?? "",
+    publishedAt: dto.publishedAt ?? "",
   };
 }
 
@@ -210,7 +192,7 @@ export default function RecipesIndex() {
   const router = useRouter();
   const { query } = router;
 
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
   const [fetchError, setFetchError] = useState<string>("");
 
   const [search, setSearch] = useState<string>((query.q as string) || "");
@@ -231,28 +213,28 @@ export default function RecipesIndex() {
   useEffect(() => {
     let mounted = true;
 
-    async function loadRecipes() {
+    async function loadArticles() {
       try {
         setIsLoading(true);
         setFetchError("");
 
-        const data = await RecipesApi.list();
+        const data = await ArticlesApi.list();
 
         if (!mounted) return;
 
-        const mapped = Array.isArray(data) ? data.map(mapRecipe) : [];
-        setRecipes(mapped);
+        const mapped = Array.isArray(data) ? data.map(mapArticle) : [];
+        setArticles(mapped);
       } catch (error) {
         if (!mounted) return;
-        setRecipes([]);
-        setFetchError("Δεν ήταν δυνατή η φόρτωση των συνταγών.");
+        setArticles([]);
+        setFetchError("Δεν ήταν δυνατή η φόρτωση των άρθρων.");
         console.error(error);
       } finally {
         if (mounted) setIsLoading(false);
       }
     }
 
-    loadRecipes();
+    loadArticles();
 
     return () => {
       mounted = false;
@@ -269,45 +251,26 @@ export default function RecipesIndex() {
   }, [query.q, query.cat, query.inc, query.time, query.sort, query.page]);
 
   const categories = useMemo(
-    () => uniq(recipes.map((r) => r.category).filter(Boolean)),
-    [recipes]
+    () => uniq(articles.map((a) => a.heading).filter(Boolean)),
+    [articles]
   );
 
   const filtered = useMemo(() => {
-    let list = recipes.slice();
+    let list = articles.slice();
 
     if (search.trim()) {
       const s = search.trim().toLowerCase();
       list = list.filter(
-        (r) =>
-          r.title.toLowerCase().includes(s) ||
-          r.description.toLowerCase().includes(s) ||
-          r.ingredients.some((i) => i.toLowerCase().includes(s))
+        (a) =>
+          a.title.toLowerCase().includes(s) ||
+          a.subtitle.toLowerCase().includes(s) ||
+          a.heading.toLowerCase().includes(s) ||
+          a.content.toLowerCase().includes(s)
       );
     }
 
     if (cats.length) {
-      list = list.filter((r) => cats.includes(r.category));
-    }
-
-    if (include.length) {
-      list = list.filter((r) =>
-        include.every((wanted) =>
-          r.ingredients.some((ing) =>
-            ing.toLowerCase().includes(wanted.toLowerCase())
-          )
-        )
-      );
-    }
-
-    if (time) {
-      list = list.filter((r) => {
-        if (time === "t15") return r.minutes <= 15;
-        if (time === "t30") return r.minutes > 15 && r.minutes <= 30;
-        if (time === "t60") return r.minutes > 30 && r.minutes <= 60;
-        if (time === "t61") return r.minutes > 60;
-        return true;
-      });
+      list = list.filter((a) => cats.includes(a.heading));
     }
 
     if (sort === "az") {
@@ -315,13 +278,13 @@ export default function RecipesIndex() {
     } else {
       list.sort(
         (a, b) =>
-          Date.parse(b.createdAt || "1970-01-01") -
-          Date.parse(a.createdAt || "1970-01-01")
+          Date.parse(b.publishedAt || "1970-01-01") -
+          Date.parse(a.publishedAt || "1970-01-01")
       );
     }
 
     return list;
-  }, [recipes, search, cats, include, time, sort]);
+  }, [articles, search, cats, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const pageClamped = Math.min(totalPages, Math.max(1, page));
@@ -377,17 +340,11 @@ export default function RecipesIndex() {
 
   function openFilters() {
     setDraftSearch(search);
-    setDraftCats(cats);
-    setDraftInclude(include);
-    setDraftTime(time);
     setFiltersOpen(true);
   }
 
   function applyDrawerFilters() {
     setSearch(draftSearch);
-    setCats(draftCats);
-    setInclude(draftInclude);
-    setTime(draftTime);
     setPage(1);
     setFiltersOpen(false);
   }
@@ -395,51 +352,20 @@ export default function RecipesIndex() {
   const activeFilters = useMemo(() => {
     const parts: Array<{ key: string; label: string }> = [];
 
-    if (cats.length) {
-      parts.push({
-        key: "cat",
-        label: `Κατηγορία: ${cats
-          .map((c) => CATEGORY_LABELS[c] ?? c)
-          .join(", ")}`,
-      });
-    }
-
-    if (time) {
-      const t =
-        time === "t15"
-          ? "≤ 15′"
-          : time === "t30"
-          ? "15–30′"
-          : time === "t60"
-          ? "30–60′"
-          : time === "t61"
-          ? "> 60′"
-          : "";
-
-      if (t) parts.push({ key: "time", label: `Χρόνος: ${t}` });
-    }
-
-    if (include.length) {
-      parts.push({ key: "inc", label: `Με: ${include.join(", ")}` });
-    }
-
     if (search.trim()) {
       parts.push({ key: "q", label: `Αναζήτηση: ${search.trim()}` });
     }
 
     return parts;
-  }, [cats, time, include, search]);
-
-  const mobileActiveCount =
-    cats.length + include.length + (time ? 1 : 0) + (search.trim() ? 1 : 0);
+  }, [search]);
 
   return (
     <>
       <Head>
-        <title>Συνταγές — NutriClinic</title>
+        <title>Άρθρα — NutriClinic</title>
         <meta
           name="description"
-          content="Αναζήτηση και φιλτράρισμα συνταγών."
+          content="Αναζήτηση άρθρων και συμβουλών."
         />
         <link rel="canonical" href="https://example.gr/recipes" />
       </Head>
@@ -448,10 +374,10 @@ export default function RecipesIndex() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-24">
           <header className="py-6">
             <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-              Συνταγές
+              Άρθρα
             </h1>
             <p className="mt-2 text-slate-600">
-              Αναζήτηση, φίλτρα, ταξινόμηση και σελιδοποίηση.
+              Αναζήτηση και ανακάλυψη άρθρων.
             </p>
           </header>
 
@@ -467,11 +393,11 @@ export default function RecipesIndex() {
             >
               <FilterIcon />
               Φίλτρα
-              {mobileActiveCount > 0 && (
+              {search.trim() ? (
                 <span className="ml-1 inline-flex items-center rounded-full bg-primary text-white px-2 py-0.5 text-xs ring-1 ring-primary">
-                  {mobileActiveCount}
+                  1
                 </span>
-              )}
+              ) : null}
             </button>
 
             <div className="flex items-center gap-2">
@@ -525,79 +451,7 @@ export default function RecipesIndex() {
                           setSearch(v);
                           setPage(1);
                         }}
-                        placeholder="όνομα, περιγραφή ή υλικό…"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="text-xs font-semibold text-slate-700 mb-2">
-                        Κατηγορία
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {categories.map((c) => {
-                          const active = cats.includes(c);
-                          return (
-                            <button
-                              key={c}
-                              type="button"
-                              onClick={() => {
-                                setPage(1);
-                                setCats((prev) =>
-                                  prev.includes(c)
-                                    ? prev.filter((x) => x !== c)
-                                    : [...prev, c]
-                                );
-                              }}
-                              className={classNames(
-                                "rounded-full px-3 py-1 text-xs font-medium ring-1 transition",
-                                active
-                                  ? "bg-primary text-white ring-primary"
-                                  : "bg-primary/10 text-primary ring-primary/30 hover:bg-primary/15",
-                                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                              )}
-                            >
-                              {CATEGORY_LABELS[c] ?? c}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-xs font-semibold text-slate-700 mb-2">
-                        Χρόνος προετοιμασίας
-                      </div>
-                      <select
-                        value={time}
-                        onChange={(e) => {
-                          setTime(e.target.value);
-                          setPage(1);
-                        }}
-                        className={classNames(
-                          "w-full rounded-xl bg-white px-3 py-2 text-sm text-slate-800",
-                          "ring-1 ring-black/10 shadow-sm",
-                          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                        )}
-                      >
-                        <option value="">Όλοι</option>
-                        <option value="t15">≤ 15 λεπτά</option>
-                        <option value="t30">15–30 λεπτά</option>
-                        <option value="t60">30–60 λεπτά</option>
-                        <option value="t61">&gt; 60 λεπτά</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <div className="text-xs font-semibold text-slate-700 mb-2">
-                        Με
-                      </div>
-                      <TagInput
-                        value={include}
-                        setValue={(v) => {
-                          setInclude(v);
-                          setPage(1);
-                        }}
-                        placeholder="π.χ. βρώμη, σοκολάτα"
+                        placeholder="τίτλος, υπότιτλος…"
                       />
                     </div>
                   </div>
@@ -613,7 +467,7 @@ export default function RecipesIndex() {
                     <span className="font-semibold text-slate-900">
                       {filtered.length}
                     </span>{" "}
-                    συνταγές
+                    άρθρα
                   </div>
 
                   {activeFilters.length > 0 && (
@@ -630,9 +484,6 @@ export default function RecipesIndex() {
                           <button
                             type="button"
                             onClick={() => {
-                              if (f.key === "cat") setCats([]);
-                              if (f.key === "time") setTime("");
-                              if (f.key === "inc") setInclude([]);
                               if (f.key === "q") setSearch("");
                               setPage(1);
                             }}
@@ -697,14 +548,13 @@ export default function RecipesIndex() {
                 <EmptyState onClear={clearAll} />
               ) : (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-6">
-                  {paged.map((r) => {
-                    // const pretty = toGreekSlug(r.title);
-                    const hasImage = Boolean(r.image);
+                  {paged.map((a) => {
+                    const hasImage = Boolean(a.image);
 
                     return (
                       <Link
-                        key={r.id}
-                        href={`/recipes/${r.slug}`}
+                        key={a.id}
+                        href={`/recipes/${a.slug}`}
                         className={classNames(
                           "group relative flex flex-col overflow-hidden rounded-2xl",
                           "bg-white/90 ring-1 ring-black/5 shadow-[0_10px_24px_rgba(15,23,42,0.06)]",
@@ -716,8 +566,8 @@ export default function RecipesIndex() {
                         <div className="relative aspect-[16/10] w-full overflow-hidden">
                           {hasImage ? (
                             <Image
-                              src={r.image}
-                              alt={r.title}
+                              src={a.image.startsWith("/media") ? toMediaUrl(a.image) : a.image}
+                              alt={a.title}
                               fill
                               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                               className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
@@ -732,45 +582,25 @@ export default function RecipesIndex() {
                               </div>
                             </div>
                           )}
-
-                          <div className="absolute left-3 top-3">
-                            <GlassBadge>
-                              <ClockIcon />
-                              {formatMin(r.minutes)}
-                            </GlassBadge>
-                          </div>
                         </div>
 
                         <div className="flex flex-col p-4 gap-3 flex-1">
-                          <div className="flex items-center justify-between gap-3">
-                            <Chip tone="muted">
-                              {CATEGORY_LABELS[r.category] ?? r.category}
-                            </Chip>
-                          </div>
-
                           <div className="min-h-[2.75rem]">
                             <div className="font-semibold leading-snug line-clamp-2 text-slate-900">
-                              {r.title}
+                              {a.title}
                             </div>
                           </div>
 
-                          {r.description && (
-                            <p className="text-sm text-slate-600 line-clamp-3">
-                              {r.description}
+                          {a.subtitle && (
+                            <p className="text-sm text-slate-600 line-clamp-2">
+                              {a.subtitle}
                             </p>
                           )}
 
-                          {r.ingredients.length > 0 && (
-                            <div className="mt-auto flex flex-wrap gap-2 pt-1">
-                              {r.ingredients.slice(0, 3).map((ingredient) => (
-                                <Chip key={ingredient} tone="soft">
-                                  {ingredient}
-                                </Chip>
-                              ))}
-                              {r.ingredients.length > 3 && (
-                                <Chip tone="muted">+{r.ingredients.length - 3}</Chip>
-                              )}
-                            </div>
+                          {a.heading && (
+                            <p className="text-xs text-slate-500 line-clamp-1">
+                              {a.heading}
+                            </p>
                           )}
                         </div>
                       </Link>
@@ -892,63 +722,7 @@ export default function RecipesIndex() {
                     <SearchInput
                       value={draftSearch}
                       onChange={setDraftSearch}
-                      placeholder="όνομα, περιγραφή ή υλικό…"
-                    />
-                  </SectionCard>
-
-                  <SectionCard title="Κατηγορία">
-                    <div className="flex flex-wrap gap-2">
-                      {categories.map((c) => {
-                        const active = draftCats.includes(c);
-                        return (
-                          <button
-                            key={c}
-                            type="button"
-                            onClick={() =>
-                              setDraftCats((prev) =>
-                                prev.includes(c)
-                                  ? prev.filter((x) => x !== c)
-                                  : [...prev, c]
-                              )
-                            }
-                            className={classNames(
-                              "rounded-full px-3 py-1 text-xs font-medium ring-1 transition",
-                              active
-                                ? "bg-primary text-white ring-primary"
-                                : "bg-primary/10 text-primary ring-primary/30 hover:bg-primary/15",
-                              "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                            )}
-                          >
-                            {CATEGORY_LABELS[c] ?? c}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </SectionCard>
-
-                  <SectionCard title="Χρόνος προετοιμασίας">
-                    <select
-                      value={draftTime}
-                      onChange={(e) => setDraftTime(e.target.value)}
-                      className={classNames(
-                        "w-full rounded-xl bg-white px-3 py-2 text-sm text-slate-800",
-                        "ring-1 ring-black/10 shadow-sm",
-                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                      )}
-                    >
-                      <option value="">Όλοι</option>
-                      <option value="t15">≤ 15 λεπτά</option>
-                      <option value="t30">15–30 λεπτά</option>
-                      <option value="t60">30–60 λεπτά</option>
-                      <option value="t61">&gt; 60 λεπτά</option>
-                    </select>
-                  </SectionCard>
-
-                  <SectionCard title="Με">
-                    <TagInput
-                      value={draftInclude}
-                      setValue={setDraftInclude}
-                      placeholder="π.χ. βρώμη, σοκολάτα"
+                      placeholder="τίτλος, υπότιτλος…"
                     />
                   </SectionCard>
                 </div>
@@ -959,9 +733,6 @@ export default function RecipesIndex() {
                   <button
                     onClick={() => {
                       setDraftSearch("");
-                      setDraftCats([]);
-                      setDraftInclude([]);
-                      setDraftTime("");
                     }}
                     className={classNames(
                       "flex-1 rounded-xl px-4 py-3 text-sm font-semibold",
@@ -1118,8 +889,6 @@ function TagInput({
     </div>
   );
 }
-
-// -------------------- Skeletons / Empty --------------------
 function SidebarSkeleton() {
   return (
     <div className="rounded-2xl bg-white/90 ring-1 ring-black/5 shadow-[0_10px_24px_rgba(15,23,42,0.06)] p-4">
@@ -1171,7 +940,7 @@ function EmptyState({ onClear }: { onClear: () => void }) {
         <SearchIcon />
       </div>
       <h3 className="mt-4 text-lg font-semibold text-slate-900">
-        Δεν βρέθηκαν συνταγές
+        Δεν βρέθηκαν άρθρα
       </h3>
       <p className="mt-2 text-sm text-slate-600">
         Δοκίμασε να αλλάξεις φίλτρα ή να καθαρίσεις τα κριτήρια αναζήτησης.
@@ -1192,27 +961,6 @@ function EmptyState({ onClear }: { onClear: () => void }) {
 }
 
 // -------------------- Icons --------------------
-function ClockIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
-      <path
-        d="M12 7v6l4 2"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 function SearchIcon() {
   return (
     <svg

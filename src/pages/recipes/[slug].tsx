@@ -5,6 +5,7 @@ import type { GetServerSideProps } from "next";
 import Image from "next/image";
 import { RecipesApi, type RecipesGetDto } from "@/api/RecipesController";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
+import { toMediaUrl } from "@/api/_axios-client";
 
 type Recipe = {
   id: number;
@@ -231,7 +232,7 @@ export default function RecipePage({ recipe }: PageProps) {
           <div className="relative overflow-hidden rounded-3xl bg-slate-100 shadow-[0_18px_45px_rgba(15,23,42,0.12)]">
             <div className="relative aspect-[16/9]">
               <Image
-                src={recipe.image}
+                src={recipe.image.startsWith("/media") ? toMediaUrl(recipe.image) : recipe.image}
                 alt={recipe.title}
                 fill
                 priority

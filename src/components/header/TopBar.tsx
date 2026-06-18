@@ -91,8 +91,8 @@ export default function TopBar() {
 
   const socials: SocialLink[] = useMemo(
     () => [
-      { label: "Instagram", href: "#", icon: Icon.Instagram },
-      { label: "Spotify", href: "#", icon: Icon.Spotify },
+      { label: "Instagram", href: "https://www.instagram.com/diet.out.of.the.box?igsh=ZnRwZmE4YjB0ZG01", target: "_blank", icon: Icon.Instagram },
+      { label: "Spotify", href: "https://open.spotify.com/show/17B6Yqxjuwy5Sryffoa5oC", target: "_blank", icon: Icon.Spotify },
     ],
     []
   );

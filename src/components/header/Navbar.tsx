@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import LeafBurstButton from "../decorative/LeafBurstButton";
 import { NavbarApi, type NavbarGetDto } from "@/api/NavbarController";
 import { ProvidedServicesApi } from "@/api/ProvidedServicesController";
+import { toMediaUrl } from "@/api/_axios-client";
 
 type MenuItem = {
   label: string;
@@ -255,7 +256,7 @@ export default function Navbar() {
             onClick={closeAll}
           >
             <Image
-              src={navbar.imageUrl}
+              src={navbar.imageUrl.startsWith("/media") ? toMediaUrl(navbar.imageUrl) : navbar.imageUrl}
               alt={`${navbar.title} Logo`}
               width={44}
               height={44}

@@ -9,6 +9,7 @@ import {
 } from "@/api/EbooksController";
 import RichTextEditor from "@/components/admin/RichTextEditor";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
+import { toMediaUrl } from "@/api/_axios-client";
 
 const cx = (...c: (string | false | null | undefined)[]) =>
   c.filter(Boolean).join(" ");
@@ -715,7 +716,7 @@ function EbookPreview({
         <div className="aspect-[4/5] bg-slate-100 relative">
           {draft.coverImageUrl ? (
             <Image
-              src={draft.coverImageUrl}
+              src={draft.coverImageUrl.startsWith("/media") ? toMediaUrl(draft.coverImageUrl) : draft.coverImageUrl}
               alt={draft.title || "ebook cover"}
               fill
               className="object-cover"

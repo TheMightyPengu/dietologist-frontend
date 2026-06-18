@@ -16,7 +16,7 @@ type LeafBurstButtonProps = {
 
 export default function LeafBurstButton({
   text,
-  href = "/contact/book",
+  href,
   className = "",
   disabled = false,
   onClick: onClickProp,

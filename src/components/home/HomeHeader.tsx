@@ -1,6 +1,7 @@
 import Link from "next/link";
 import LeafBurstButton from "../decorative/LeafBurstButton";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
+import { toMediaUrl } from "@/api/_axios-client";
 
 type HomeHeroProps = {
   title?: string | null;
@@ -31,7 +32,7 @@ export default function HomeHero({
             <div className="relative mx-auto max-w-md">
               <div className="overflow-hidden rounded-sm bg-bg shadow-[0_10px_25px_rgba(0,0,0,0.10)] ring-1 ring-accent/20">
                 <img
-                  src={heroImage}
+                  src={heroImage.startsWith("/media") ? toMediaUrl(heroImage) : heroImage}
                   alt="Diet out of the Box — Διατροφή & Υγεία"
                   className="block h-auto w-full object-cover"
                 />
@@ -66,7 +67,7 @@ export default function HomeHero({
 
             <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center">
               <div className="relative group">
-                <LeafBurstButton text="ΠΡΟΓΡΑΜΜΑΤΙΣΜΟΣ ΣΥΝΕΔΡΙΑΣ" />
+                <LeafBurstButton text="ΠΡΟΓΡΑΜΜΑΤΙΣΜΟΣ ΣΥΝΕΔΡΙΑΣ" href="/contact/book" />
                 <div
                   className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-lg pointer-events-none"
                   style={{ background: "rgba(255,230,150,0.2)" }}
