@@ -196,7 +196,7 @@ export default function ManagementContactPage() {
           <div className="mb-6 flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
+              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))]"
             >
               ← Πίσω στο Dashboard
             </Link>
@@ -589,14 +589,14 @@ function BookingsManager() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Αναζήτηση όνομα, email, τηλέφωνο, υπηρεσία…"
-            className="rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
           />
 
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
           />
 
           <button
@@ -605,8 +605,8 @@ function BookingsManager() {
             className={cx(
               "rounded-full px-4 py-2 text-sm font-semibold transition",
               loading || creating
-                ? "cursor-wait bg-[#8484d1]/70 text-white"
-                : "bg-[#8484d1] text-white hover:shadow"
+                ? "cursor-wait bg-[rgba(var(--primary),0.7)] text-white"
+                : "bg-[rgb(var(--primary))] text-white hover:shadow"
             )}
           >
             Νέο ραντεβού
@@ -629,7 +629,7 @@ function BookingsManager() {
                 setQ("");
                 setDate("");
               }}
-              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600 hover:border-[#8484d1]"
+              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600 hover:border-[rgb(var(--primary))]"
             >
               Καθαρισμός φίλτρων
             </button>
@@ -679,7 +679,7 @@ function BookingsManager() {
               <button
                 onClick={closeCreateModal}
                 disabled={creating}
-                className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-600 hover:border-[#8484d1]"
+                className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-600 hover:border-[rgb(var(--primary))]"
               >
                 Κλείσιμο
               </button>
@@ -727,7 +727,7 @@ function BookingsManager() {
                           setCreateSubmitError(null);
                         }}
                         disabled={creating}
-                        className="mt-1 h-12 w-full rounded-xl border border-black bg-white px-3 text-[15px] text-slate-900 outline-none focus:border-[#8484d1] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="mt-1 h-12 w-full rounded-xl border border-black bg-white px-3 text-[15px] text-slate-900 outline-none focus:border-[rgb(var(--primary))] disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <option value="" disabled>
                           — Επιλέξτε υπηρεσία —
@@ -764,7 +764,7 @@ function BookingsManager() {
                             customerName: undefined,
                           }));
                         }}
-                        className="mt-1 h-12 w-full rounded-xl border border-black bg-white px-3 text-[15px] text-slate-900 outline-none focus:border-[#8484d1]"
+                        className="mt-1 h-12 w-full rounded-xl border border-black bg-white px-3 text-[15px] text-slate-900 outline-none focus:border-[rgb(var(--primary))]"
                         placeholder="π.χ. Μαρία Παπαδοπούλου"
                         disabled={creating}
                       />
@@ -794,7 +794,7 @@ function BookingsManager() {
                             customerEmail: undefined,
                           }));
                         }}
-                        className="mt-1 h-12 w-full rounded-xl border border-black bg-white px-3 text-[15px] text-slate-900 outline-none focus:border-[#8484d1]"
+                        className="mt-1 h-12 w-full rounded-xl border border-black bg-white px-3 text-[15px] text-slate-900 outline-none focus:border-[rgb(var(--primary))]"
                         placeholder="π.χ. name@email.com"
                         disabled={creating}
                       />
@@ -823,7 +823,7 @@ function BookingsManager() {
                             customerPhone: undefined,
                           }));
                         }}
-                        className="mt-1 h-12 w-full rounded-xl border border-black bg-white px-3 text-[15px] text-slate-900 outline-none focus:border-[#8484d1]"
+                        className="mt-1 h-12 w-full rounded-xl border border-black bg-white px-3 text-[15px] text-slate-900 outline-none focus:border-[rgb(var(--primary))]"
                         placeholder="π.χ. 69XXXXXXXX προαιρετικό"
                         disabled={creating}
                       />
@@ -905,7 +905,7 @@ function BookingsManager() {
                                     className={cx(
                                       "h-11 rounded-lg px-3 text-[15px] ring-1 transition",
                                       active
-                                        ? "bg-[#8484d1] text-white ring-[#8484d1]"
+                                        ? "bg-[rgb(var(--primary))] text-white ring-[rgb(var(--primary))]"
                                         : "bg-white text-slate-800 ring-slate-300 hover:bg-slate-50",
                                       creating &&
                                         "cursor-not-allowed opacity-70"
@@ -955,7 +955,7 @@ function BookingsManager() {
                                           className={cx(
                                             "h-11 rounded-lg px-3 text-[15px] ring-1 transition",
                                             active
-                                              ? "bg-[#8484d1] text-white ring-[#8484d1]"
+                                              ? "bg-[rgb(var(--primary))] text-white ring-[rgb(var(--primary))]"
                                               : "bg-white text-slate-800 ring-slate-300 hover:bg-slate-50",
                                             creating &&
                                               "cursor-not-allowed opacity-70"
@@ -1007,7 +1007,7 @@ function BookingsManager() {
                           }))
                         }
                         disabled={creating}
-                        className="mt-1 w-full rounded-xl border border-black bg-white px-3 py-2 text-[15px] text-slate-900 outline-none focus:border-[#8484d1] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="mt-1 w-full rounded-xl border border-black bg-white px-3 py-2 text-[15px] text-slate-900 outline-none focus:border-[rgb(var(--primary))] disabled:cursor-not-allowed disabled:opacity-60"
                         placeholder="Τυχόν απορίες ή προτιμήσεις."
                       />
                     </div>
@@ -1031,7 +1031,7 @@ function BookingsManager() {
                           !createForm.providedServiceId ||
                           !createSelectedSlotId
                         }
-                        className="rounded-full bg-[#8484d1] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                        className="rounded-full bg-[rgb(var(--primary))] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                       >
                         {creating ? "Δημιουργία…" : "Δημιουργία"}
                       </button>
@@ -1146,7 +1146,7 @@ function AppointmentCard({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-[#8484d1]/10 px-3 py-1 text-xs font-semibold text-[#6868b8]">
+            <span className="rounded-full bg-[rgba(var(--primary),0.1)] px-3 py-1 text-xs font-semibold text-[rgba(var(--primary),0.72)]">
               #{b.id}
             </span>
 
@@ -1195,7 +1195,7 @@ function AppointmentCard({
             type="button"
             onClick={() => setEditing((prev) => !prev)}
             disabled={busy}
-            className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#8484d1]"
+            className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[rgb(var(--primary))]"
           >
             {editing ? "Κλείσιμο επεξεργασίας" : "Επεξεργασία"}
           </button>
@@ -1228,7 +1228,7 @@ function AppointmentCard({
                     appointmentDate: toIsoFromLocal(e.target.value),
                   }))
                 }
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#8484d1]"
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))]"
               />
             </div>
 
@@ -1240,7 +1240,7 @@ function AppointmentCard({
               <select
                 value={selectedServiceId}
                 onChange={(e) => handleServiceChange(Number(e.target.value))}
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#8484d1]"
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))]"
               >
                 {services.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -1270,7 +1270,7 @@ function AppointmentCard({
                     customerName: e.target.value,
                   }))
                 }
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#8484d1]"
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))]"
               />
             </div>
 
@@ -1288,7 +1288,7 @@ function AppointmentCard({
                     customerEmail: e.target.value,
                   }))
                 }
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#8484d1]"
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))]"
               />
             </div>
 
@@ -1305,7 +1305,7 @@ function AppointmentCard({
                     customerPhone: e.target.value,
                   }))
                 }
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#8484d1]"
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))]"
               />
             </div>
           </div>
@@ -1326,7 +1326,7 @@ function AppointmentCard({
               disabled={busy}
               className={cx(
                 "rounded-full px-4 py-2 text-sm font-semibold text-white",
-                busy ? "cursor-wait bg-[#8484d1]/70" : "bg-[#8484d1]"
+                busy ? "cursor-wait bg-[rgba(var(--primary),0.7)]" : "bg-[rgb(var(--primary))]"
               )}
             >
               {busy ? "Αποθήκευση…" : "Αποθήκευση"}
@@ -1669,7 +1669,7 @@ function MessagesManager() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Αναζήτηση όνομα, email, μήνυμα…"
-          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
         />
       </Card>
 

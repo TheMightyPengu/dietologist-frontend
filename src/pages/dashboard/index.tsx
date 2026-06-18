@@ -41,9 +41,9 @@ export default function ManagementDashboard() {
                   <Link
                     key={t.key}
                     href={t.href}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1] hover:text-[#2b2b6f] transition"
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))] hover:text-[rgb(var(--primary-dark))] transition"
                   >
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#8484d1]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[rgb(var(--primary))]" />
                     {t.label}
                   </Link>
                 ))}

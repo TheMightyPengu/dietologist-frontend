@@ -12,6 +12,7 @@ import {
   type RecipesGetDto,
   type RecipesPostDto,
 } from "@/api/RecipesController";
+import { toMediaUrl } from "@/api/_axios-client";
 import RichTextEditor from "@/components/admin/RichTextEditor";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 
@@ -20,15 +21,15 @@ const cx = (...c: (string | false | null | undefined)[]) =>
 
 const fieldClass =
   "mt-1 w-full rounded-lg border-2 border-black-500 bg-white px-3 py-2 shadow-sm outline-none transition " +
-  "placeholder:text-slate-400 focus:border-[#8484d1] focus:ring-4 focus:ring-[#8484d1]/20";
+  "placeholder:text-slate-400 focus:border-[rgb(var(--primary))] focus:ring-4 focus:ring-[rgba(var(--primary),0.2)]";
 
 const fileClass =
   "mt-1 block w-full rounded-lg border-2 border-dashed border-black-400 bg-slate-50 px-3 py-2 text-sm " +
-  "file:mr-3 file:rounded-full file:border-0 file:bg-[#8484d1] file:px-3 file:py-1.5 file:text-white";
+  "file:mr-3 file:rounded-full file:border-0 file:bg-[rgb(var(--primary))] file:px-3 file:py-1.5 file:text-white";
 
 const searchClass =
   "w-full md:w-80 rounded-xl border-2 border-black-500 bg-white px-3 py-2 shadow-sm outline-none transition " +
-  "placeholder:text-slate-400 focus:border-[#8484d1] focus:ring-4 focus:ring-[#8484d1]/20";
+  "placeholder:text-slate-400 focus:border-[rgb(var(--primary))] focus:ring-4 focus:ring-[rgba(var(--primary),0.2)]";
 
 const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
   className,
@@ -74,7 +75,7 @@ export default function ManagementBlogPage() {
           <div className="mb-6 flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
+              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))]"
             >
               ← Πίσω στο Dashboard
             </Link>
@@ -97,8 +98,8 @@ export default function ManagementBlogPage() {
                   className={cx(
                     "px-4 py-2 rounded-full text-sm font-medium transition",
                     active === t.key
-                      ? "bg-[#8484d1] text-white"
-                      : "bg-white border border-slate-200 hover:border-[#8484d1]"
+                      ? "bg-[rgb(var(--primary))] text-white"
+                      : "bg-white border border-slate-200 hover:border-[rgb(var(--primary))]"
                   )}
                 >
                   {t.label}
@@ -241,7 +242,7 @@ function ArticlesManager() {
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="rounded-full px-4 py-2 text-sm font-semibold transition bg-[#8484d1] text-white hover:shadow"
+            className="rounded-full px-4 py-2 text-sm font-semibold transition bg-[rgb(var(--primary))] text-white hover:shadow"
           >
             Νέο άρθρο
           </button>
@@ -312,7 +313,7 @@ function CreateArticleModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
+            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))]"
           >
             Κλείσιμο
           </button>
@@ -433,7 +434,7 @@ function CreateArticleModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-slate-400 bg-white px-4 py-2 text-sm hover:border-[#8484d1]"
+            className="rounded-full border border-slate-400 bg-white px-4 py-2 text-sm hover:border-[rgb(var(--primary))]"
           >
             Άκυρο
           </button>
@@ -445,8 +446,8 @@ function CreateArticleModal({
             className={cx(
               "rounded-full px-4 py-2 text-sm font-semibold transition",
               creating
-                ? "bg-[#8484d1]/70 text-white cursor-wait"
-                : "bg-[#8484d1] text-white hover:shadow"
+                ? "bg-[rgba(var(--primary),0.7)] text-white cursor-wait"
+                : "bg-[rgb(var(--primary))] text-white hover:shadow"
             )}
           >
             {creating ? "Δημιουργία…" : "Δημιουργία"}
@@ -479,16 +480,19 @@ function ArticleEditorCard({
   });
 
   const [open, setOpen] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(row.imageUrl ?? null);
+  const [previewUrl, setPreviewUrl] = useState(
+    row.imageUrl ? toMediaUrl(row.imageUrl) : null
+  );
 
   useEffect(() => {
-    if (!draft.imageFile) {
-      setPreviewUrl(row.imageUrl ?? null);
-      return;
+    if (draft.imageFile) {
+      const url = URL.createObjectURL(draft.imageFile);
+      setPreviewUrl(url);
+      return () => {
+        URL.revokeObjectURL(url);
+      };
     }
-    const url = URL.createObjectURL(draft.imageFile);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
+    setPreviewUrl(row.imageUrl ? toMediaUrl(row.imageUrl) : null);
   }, [draft.imageFile, row.imageUrl]);
 
   useEffect(() => {
@@ -520,7 +524,7 @@ function ArticleEditorCard({
           <button
             type="button"
             onClick={() => setOpen((o) => !o)}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
+            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))]"
           >
             {open ? "Σύμπτυξη" : "Επέκταση"}
           </button>
@@ -656,8 +660,8 @@ function ArticleEditorCard({
                 className={cx(
                   "rounded-full px-4 py-2 text-sm font-semibold transition",
                   busy
-                    ? "bg-[#8484d1]/70 text-white cursor-wait"
-                    : "bg-[#8484d1] text-white hover:shadow"
+                    ? "bg-[rgba(var(--primary),0.7)] text-white cursor-wait"
+                    : "bg-[rgb(var(--primary))] text-white hover:shadow"
                 )}
               >
                 {busy ? "Αποθήκευση…" : "Αποθήκευση"}
@@ -676,7 +680,7 @@ function ArticleEditorCard({
                     imageFile: null,
                   })
                 }
-                className="rounded-full border border-slate-400 bg-white px-4 py-2 text-sm hover:border-[#8484d1]"
+                className="rounded-full border border-slate-400 bg-white px-4 py-2 text-sm hover:border-[rgb(var(--primary))]"
               >
                 Επαναφορά αλλαγών
               </button>
@@ -687,20 +691,11 @@ function ArticleEditorCard({
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
               <div className="aspect-[16/10] bg-slate-100 relative">
                 {previewUrl ? (
-                  previewUrl.startsWith('blob:') ? (
-                    <img
-                      src={previewUrl}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Image
-                      src={previewUrl}
-                      alt=""
-                      fill
-                      className="object-cover"
-                    />
-                  )
+                  <img
+                    src={previewUrl}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
                 ) : null}
               </div>
 
@@ -867,7 +862,7 @@ function RecipesManager() {
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="rounded-full px-4 py-2 text-sm font-semibold transition bg-[#8484d1] text-white hover:shadow"
+            className="rounded-full px-4 py-2 text-sm font-semibold transition bg-[rgb(var(--primary))] text-white hover:shadow"
           >
             Νέα συνταγή
           </button>
@@ -938,7 +933,7 @@ function CreateRecipeModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
+            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))]"
           >
             Κλείσιμο
           </button>
@@ -1065,7 +1060,7 @@ function CreateRecipeModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-slate-400 bg-white px-4 py-2 text-sm hover:border-[#8484d1]"
+            className="rounded-full border border-slate-400 bg-white px-4 py-2 text-sm hover:border-[rgb(var(--primary))]"
           >
             Άκυρο
           </button>
@@ -1077,8 +1072,8 @@ function CreateRecipeModal({
             className={cx(
               "rounded-full px-4 py-2 text-sm font-semibold transition",
               creating
-                ? "bg-[#8484d1]/70 text-white cursor-wait"
-                : "bg-[#8484d1] text-white hover:shadow"
+                ? "bg-[rgba(var(--primary),0.7)] text-white cursor-wait"
+                : "bg-[rgb(var(--primary))] text-white hover:shadow"
             )}
           >
             {creating ? "Δημιουργία…" : "Δημιουργία"}
@@ -1112,16 +1107,19 @@ function RecipeEditorCard({
   });
 
   const [open, setOpen] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(row.imageUrl ?? null);
+  const [previewUrl, setPreviewUrl] = useState(
+    row.imageUrl ? toMediaUrl(row.imageUrl) : null
+  );
 
   useEffect(() => {
-    if (!draft.imageFile) {
-      setPreviewUrl(row.imageUrl ?? null);
-      return;
+    if (draft.imageFile) {
+      const url = URL.createObjectURL(draft.imageFile);
+      setPreviewUrl(url);
+      return () => {
+        URL.revokeObjectURL(url);
+      };
     }
-    const url = URL.createObjectURL(draft.imageFile);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
+    setPreviewUrl(row.imageUrl ? toMediaUrl(row.imageUrl) : null);
   }, [draft.imageFile, row.imageUrl]);
 
   useEffect(() => {
@@ -1154,7 +1152,7 @@ function RecipeEditorCard({
           <button
             type="button"
             onClick={() => setOpen((o) => !o)}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
+            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))]"
           >
             {open ? "Σύμπτυξη" : "Επέκταση"}
           </button>
@@ -1296,8 +1294,8 @@ function RecipeEditorCard({
                 className={cx(
                   "rounded-full px-4 py-2 text-sm font-semibold transition",
                   busy
-                    ? "bg-[#8484d1]/70 text-white cursor-wait"
-                    : "bg-[#8484d1] text-white hover:shadow"
+                    ? "bg-[rgba(var(--primary),0.7)] text-white cursor-wait"
+                    : "bg-[rgb(var(--primary))] text-white hover:shadow"
                 )}
               >
                 {busy ? "Αποθήκευση…" : "Αποθήκευση"}
@@ -1317,7 +1315,7 @@ function RecipeEditorCard({
                     imageFile: null,
                   })
                 }
-                className="rounded-full border border-slate-400 bg-white px-4 py-2 text-sm hover:border-[#8484d1]"
+                className="rounded-full border border-slate-400 bg-white px-4 py-2 text-sm hover:border-[rgb(var(--primary))]"
               >
                 Επαναφορά αλλαγών
               </button>
@@ -1328,20 +1326,11 @@ function RecipeEditorCard({
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
               <div className="aspect-[16/10] bg-slate-100 relative">
                 {previewUrl ? (
-                  previewUrl.startsWith('blob:') ? (
-                    <img
-                      src={previewUrl}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Image
-                      src={previewUrl}
-                      alt=""
-                      fill
-                      className="object-cover"
-                    />
-                  )
+                  <img
+                    src={previewUrl}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
                 ) : null}
               </div>
 

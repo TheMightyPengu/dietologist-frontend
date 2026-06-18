@@ -321,7 +321,7 @@ export default function ManagementEbookPage() {
             <div className="flex items-center gap-3">
               <Link
                 href="/dashboard"
-                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
+                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))]"
               >
                 ← Πίσω στο Dashboard
               </Link>
@@ -335,7 +335,7 @@ export default function ManagementEbookPage() {
               <Link
                 href="/ebook"
                 target="_blank"
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm hover:border-[#8484d1]"
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm hover:border-[rgb(var(--primary))]"
               >
                 Προβολή σελίδας
               </Link>
@@ -445,8 +445,8 @@ function SingleEbookForm({
               className={cx(
                 "rounded-full px-4 py-2 text-sm font-semibold transition",
                 saving
-                  ? "bg-[#8484d1]/70 text-white cursor-wait"
-                  : "bg-[#8484d1] text-white hover:shadow"
+                  ? "bg-[rgba(var(--primary),0.7)] text-white cursor-wait"
+                  : "bg-[rgb(var(--primary))] text-white hover:shadow"
               )}
             >
               {saving
@@ -462,7 +462,7 @@ function SingleEbookForm({
               type="button"
               onClick={resetChanges}
               disabled={saving || deleting}
-              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[#8484d1] disabled:opacity-60"
+              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[rgb(var(--primary))] disabled:opacity-60"
             >
               Επαναφορά αλλαγών
             </button>
@@ -495,7 +495,7 @@ function BasicEbookFields({
             onChange={(e) =>
               setDraft((d) => ({ ...d, title: e.target.value }))
             }
-            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
           />
         </div>
 
@@ -509,7 +509,7 @@ function BasicEbookFields({
             onChange={(e) =>
               setDraft((d) => ({ ...d, author: e.target.value }))
             }
-            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
           />
         </div>
       </div>
@@ -528,7 +528,7 @@ function BasicEbookFields({
             onChange={(e) =>
               setDraft((d) => ({ ...d, price: Number(e.target.value) }))
             }
-            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
           />
         </div>
 
@@ -550,7 +550,7 @@ function BasicEbookFields({
                   : new Date().toISOString(),
               }));
             }}
-            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
           />
         </div>
 
@@ -568,7 +568,7 @@ function BasicEbookFields({
                 file: e.target.files?.[0] ?? null,
               }))
             }
-            className="mt-1 block w-full text-sm text-slate-700 file:mr-3 file:rounded-full file:border-0 file:bg-[#8484d1] file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:opacity-90"
+            className="mt-1 block w-full text-sm text-slate-700 file:mr-3 file:rounded-full file:border-0 file:bg-[rgb(var(--primary))] file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:opacity-90"
           />
         </div>
       </div>
@@ -584,7 +584,7 @@ function BasicEbookFields({
             onChange={(e) =>
               setDraft((d) => ({ ...d, coverImageUrl: e.target.value }))
             }
-            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
           />
         </div>
 
@@ -598,7 +598,7 @@ function BasicEbookFields({
             onChange={(e) =>
               setDraft((d) => ({ ...d, fileUrl: e.target.value }))
             }
-            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
           />
         </div>
       </div>
@@ -642,7 +642,7 @@ function EditableContentFields({
             setContent((c) => ({ ...c, toc: e.target.value }))
           }
           placeholder={"Chapter 1\nChapter 2\nChapter 3"}
-          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
         />
       </div>
 
@@ -658,7 +658,7 @@ function EditableContentFields({
             setContent((c) => ({ ...c, bonusTemplates: e.target.value }))
           }
           placeholder={"Πρακτικό υλικό\nΟδηγός εφαρμογής"}
-          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
         />
       </div>
 
@@ -681,7 +681,7 @@ function EditableContentFields({
                   }))
                 }
                 placeholder={`Τίτλος κάρτας ${n}`}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
               />
 
               <RichTextEditor

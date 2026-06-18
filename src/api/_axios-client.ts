@@ -4,8 +4,18 @@ import axios, { AxiosError } from 'axios';
 // http://localhost:3000/dev/api-smoke
 // (after running npm run dev) to see which endpoints are working.
 
+const baseURL = (() => {
+  if (typeof window === 'undefined') {
+    // Server-side (getServerSideProps, API routes)
+    // Use host.docker.internal to reach the host machine from Docker
+    return process.env.API_URL_INTERNAL || 'http://host.docker.internal:8088/api';
+  }
+  // Client-side (browser)
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088/api';
+})();
+
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL, // http://localhost:5000/api
+  baseURL,
   headers: { 'Content-Type': 'application/json' },
 });
 

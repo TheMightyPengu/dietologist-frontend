@@ -198,7 +198,7 @@ export default function ManagementHomePage() {
           <div className="mb-6 flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
+              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))]"
             >
               ← Πίσω στο Dashboard
             </Link>
@@ -224,7 +224,7 @@ export default function ManagementHomePage() {
                     </label>
 
                     <div className="mt-3 flex flex-wrap items-center gap-3">
-                      <label className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm cursor-pointer hover:border-[#8484d1]">
+                      <label className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm cursor-pointer hover:border-[rgb(var(--primary))]">
                         <input
                           type="file"
                           accept="image/*"
@@ -272,7 +272,7 @@ export default function ManagementHomePage() {
                       onChange={(e) =>
                         setData((s) => ({ ...s, title: e.target.value }))
                       }
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
                     />
                   </div>
 
@@ -329,8 +329,8 @@ export default function ManagementHomePage() {
                       className={cx(
                         "inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition",
                         saving
-                          ? "bg-[#8484d1]/70 text-white cursor-wait"
-                          : "bg-[#8484d1] text-white hover:shadow"
+                          ? "bg-[rgba(var(--primary),0.7)] text-white cursor-wait"
+                          : "bg-[rgb(var(--primary))] text-white hover:shadow"
                       )}
                     >
                       {saving ? "ΑΠΟΘΗΚΕΥΣΗ…" : "ΑΠΟΘΗΚΕΥΣΗ"}
@@ -339,7 +339,7 @@ export default function ManagementHomePage() {
                     <button
                       type="button"
                       onClick={onReloadFromApi}
-                      className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[#8484d1] transition"
+                      className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[rgb(var(--primary))] transition"
                     >
                       Φόρτωση από API
                     </button>

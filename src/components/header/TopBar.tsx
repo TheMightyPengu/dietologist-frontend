@@ -146,6 +146,8 @@ export default function TopBar() {
             <a
               key={s.label}
               href={s.href}
+              target="_blank"
+              rel="noopener noreferrer"
               aria-label={s.label}
               className={[
                 "flex h-8 w-8 items-center justify-center rounded-full transition",

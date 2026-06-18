@@ -202,7 +202,7 @@ export default function ManagementServicesPage() {
           <div className="mb-6 flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
+              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))]"
             >
               ← Πίσω στο Dashboard
             </Link>
@@ -227,8 +227,8 @@ export default function ManagementServicesPage() {
                         className={cx(
                           "px-3 md:px-4 py-2 rounded-full text-sm font-medium transition",
                           sel
-                            ? "bg-[#8484d1] text-white"
-                            : "bg-white border border-slate-200 hover:border-[#8484d1]"
+                            ? "bg-[rgb(var(--primary))] text-white"
+                            : "bg-white border border-slate-200 hover:border-[rgb(var(--primary))]"
                         )}
                       >
                         {category}
@@ -245,7 +245,7 @@ export default function ManagementServicesPage() {
               <button
                 type="button"
                 onClick={openCreateModal}
-                className="rounded-full px-4 py-2 text-sm font-semibold transition bg-[#8484d1] text-white hover:shadow"
+                className="rounded-full px-4 py-2 text-sm font-semibold transition bg-[rgb(var(--primary))] text-white hover:shadow"
               >
                 Νέα υπηρεσία
               </button>
@@ -333,7 +333,7 @@ function CreateServiceModal({
             type="button"
             onClick={onClose}
             disabled={creating}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1] disabled:opacity-60"
+            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))] disabled:opacity-60"
           >
             Κλείσιμο
           </button>
@@ -352,7 +352,7 @@ function CreateServiceModal({
                 onChange={(e) =>
                   setForm((d) => ({ ...d, title: e.target.value }))
                 }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
               />
             </div>
 
@@ -367,7 +367,7 @@ function CreateServiceModal({
                 onChange={(e) =>
                   setForm((d) => ({ ...d, category: e.target.value }))
                 }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
               />
             </div>
 
@@ -386,7 +386,7 @@ function CreateServiceModal({
                     duration: Number(e.target.value),
                   }))
                 }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
               />
             </div>
 
@@ -406,7 +406,7 @@ function CreateServiceModal({
                     priceIncludingVAT: Number(e.target.value),
                   }))
                 }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
               />
             </div>
 
@@ -422,7 +422,7 @@ function CreateServiceModal({
                   setForm((d) => ({ ...d, imageUrl: e.target.value }))
                 }
                 placeholder="https://..."
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
               />
             </div>
           </div>
@@ -470,7 +470,7 @@ function CreateServiceModal({
             type="button"
             onClick={onClose}
             disabled={creating}
-            className="rounded-full border border-slate-400 bg-white px-4 py-2 text-sm hover:border-[#8484d1] disabled:opacity-60"
+            className="rounded-full border border-slate-400 bg-white px-4 py-2 text-sm hover:border-[rgb(var(--primary))] disabled:opacity-60"
           >
             Άκυρο
           </button>
@@ -482,8 +482,8 @@ function CreateServiceModal({
             className={cx(
               "rounded-full px-4 py-2 text-sm font-semibold transition",
               creating
-                ? "bg-[#8484d1]/70 text-white cursor-wait"
-                : "bg-[#8484d1] text-white hover:shadow"
+                ? "bg-[rgba(var(--primary),0.7)] text-white cursor-wait"
+                : "bg-[rgb(var(--primary))] text-white hover:shadow"
             )}
           >
             {creating ? "Δημιουργία…" : "Δημιουργία υπηρεσίας"}
@@ -531,7 +531,7 @@ function ServiceEditorCard({
           <button
             type="button"
             onClick={() => setOpen((o) => !o)}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[#8484d1]"
+            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))]"
           >
             {open ? "Σύμπτυξη" : "Επέκταση"}
           </button>
@@ -561,7 +561,7 @@ function ServiceEditorCard({
                 onChange={(e) =>
                   setDraft((d) => ({ ...d, title: e.target.value }))
                 }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
               />
             </div>
 
@@ -576,7 +576,7 @@ function ServiceEditorCard({
                 onChange={(e) =>
                   setDraft((d) => ({ ...d, category: e.target.value }))
                 }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
               />
             </div>
 
@@ -595,7 +595,7 @@ function ServiceEditorCard({
                     duration: Number(e.target.value),
                   }))
                 }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
               />
             </div>
 
@@ -615,7 +615,7 @@ function ServiceEditorCard({
                     priceIncludingVAT: Number(e.target.value),
                   }))
                 }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
               />
             </div>
 
@@ -631,7 +631,7 @@ function ServiceEditorCard({
                   setDraft((d) => ({ ...d, imageUrl: e.target.value }))
                 }
                 placeholder="https://..."
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[#8484d1]"
+                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
               />
             </div>
           </div>
@@ -692,8 +692,8 @@ function ServiceEditorCard({
               className={cx(
                 "rounded-full px-4 py-2 text-sm font-semibold transition",
                 busy
-                  ? "bg-[#8484d1]/70 text-white cursor-wait"
-                  : "bg-[#8484d1] text-white hover:shadow"
+                  ? "bg-[rgba(var(--primary),0.7)] text-white cursor-wait"
+                  : "bg-[rgb(var(--primary))] text-white hover:shadow"
               )}
             >
               {busy ? "Αποθήκευση…" : "Αποθήκευση"}
@@ -702,7 +702,7 @@ function ServiceEditorCard({
             <button
               type="button"
               onClick={() => setDraft(svc)}
-              className="rounded-full border border-slate-400 bg-white px-4 py-2 text-sm hover:border-[#8484d1]"
+              className="rounded-full border border-slate-400 bg-white px-4 py-2 text-sm hover:border-[rgb(var(--primary))]"
             >
               Επαναφορά αλλαγών
             </button>

@@ -162,11 +162,43 @@ function clamp(n: number, min: number, max: number) {
 }
 
 export default function ArticlesIndex(props: Props) {
-  const articles = useMemo(() => props.articles ?? [], [props.articles]);
-  const categories = props.categories ?? [];
-  const tags = props.tags ?? [];
-  const minRead = props.minRead ?? 0;
-  const maxRead = props.maxRead ?? Math.max(0, ...articles.map((a) => a.readMinutes));
+  const [articles, setArticles] = useState<Article[]>(props.articles ?? []);
+  const [pageLoading, setPageLoading] = useState(!props.articles?.length);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadArticles() {
+      try {
+        const data = await ArticlesApi.list();
+        if (!active) return;
+        const mapped = data.map(mapArticleDtoToUi);
+        setArticles(mapped);
+      } catch (error) {
+        console.error("Failed to fetch articles:", error);
+        if (!active) return;
+        setArticles(props.articles ?? []);
+      } finally {
+        if (!active) return;
+        setPageLoading(false);
+      }
+    }
+
+    loadArticles();
+    return () => { active = false; };
+  }, [props.articles]);
+
+  const categories = useMemo(
+    () => Array.from(new Set(articles.map((a) => a.category))),
+    [articles],
+  );
+  const tags = useMemo(
+    () => Array.from(new Set(articles.flatMap((a) => a.tags))).sort((a, b) => a.localeCompare(b, "el")),
+    [articles],
+  );
+  const readMinutesAll = useMemo(() => articles.map((a) => a.readMinutes), [articles]);
+  const minRead = readMinutesAll.length ? Math.min(...readMinutesAll) : 1;
+  const maxRead = readMinutesAll.length ? Math.max(...readMinutesAll) : 10;
 
   // Αναζήτηση
   const [query, setQuery] = useState("");
@@ -198,6 +230,10 @@ export default function ArticlesIndex(props: Props) {
 
   // Loading / skeleton simulation
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  useEffect(() => {
+    setReadRange([minRead, maxRead]);
+  }, [minRead, maxRead]);
 
   // Helpers αλλαγών
   const toggleCat = (c: string) =>
@@ -791,7 +827,11 @@ export default function ArticlesIndex(props: Props) {
             </div>
 
             {/* Empty state */}
-            {filteredSorted.length === 0 ? (
+            {pageLoading ? (
+              <div className="rounded-2xl border border-slate-200 p-10 text-center text-slate-600">
+                Φόρτωση άρθρων...
+              </div>
+            ) : filteredSorted.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center">
                 <div className="text-slate-800 font-semibold mb-2">
                   Δεν βρέθηκαν άρθρα με αυτά τα κριτήρια.
@@ -836,6 +876,7 @@ export default function ArticlesIndex(props: Props) {
                                   width={800}
                                   height={500}
                                   className="object-cover transition duration-300 group-hover:scale-[1.03] h-full w-full"
+                                  unoptimized
                                 />
                                 {/* Scrim για contrast */}
                                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
