@@ -131,6 +131,7 @@ function ArticlesManager() {
     heading: "",
     content: "",
     publishedAt: new Date().toISOString(),
+    category: "",
     imageFile: null,
   };
 
@@ -348,6 +349,20 @@ function CreateArticleModal({
 
           <div>
             <label className="block text-sm font-medium text-slate-700">
+              Κατηγορία
+            </label>
+
+            <input
+              value={draft.category}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, category: e.target.value }))
+              }
+              className={fieldClass}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700">
               Heading
             </label>
 
@@ -459,6 +474,7 @@ function ArticleEditorCard({
     heading: row.heading,
     content: row.content,
     publishedAt: row.publishedAt,
+    category: row.category || "",
     imageFile: null,
   });
 
@@ -482,6 +498,7 @@ function ArticleEditorCard({
       heading: row.heading,
       content: row.content,
       publishedAt: row.publishedAt,
+      category: row.category || "",
       imageFile: null,
     });
   }, [row]);
@@ -545,6 +562,20 @@ function ArticleEditorCard({
                 value={draft.subtitle}
                 onChange={(e) =>
                   setDraft((d) => ({ ...d, subtitle: e.target.value }))
+                }
+                className={fieldClass}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700">
+                Κατηγορία
+              </label>
+
+              <input
+                value={draft.category}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, category: e.target.value }))
                 }
                 className={fieldClass}
               />
@@ -641,6 +672,7 @@ function ArticleEditorCard({
                     heading: row.heading,
                     content: row.content,
                     publishedAt: row.publishedAt,
+                    category: row.category || "",
                     imageFile: null,
                   })
                 }
@@ -655,12 +687,20 @@ function ArticleEditorCard({
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
               <div className="aspect-[16/10] bg-slate-100 relative">
                 {previewUrl ? (
-                  <Image
-                    src={previewUrl}
-                    alt=""
-                    fill
-                    className="object-cover"
-                  />
+                  previewUrl.startsWith('blob:') ? (
+                    <img
+                      src={previewUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Image
+                      src={previewUrl}
+                      alt=""
+                      fill
+                      className="object-cover"
+                    />
+                  )
                 ) : null}
               </div>
 
@@ -1288,12 +1328,20 @@ function RecipeEditorCard({
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
               <div className="aspect-[16/10] bg-slate-100 relative">
                 {previewUrl ? (
-                  <Image
-                    src={previewUrl}
-                    alt=""
-                    fill
-                    className="object-cover"
-                  />
+                  previewUrl.startsWith('blob:') ? (
+                    <img
+                      src={previewUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Image
+                      src={previewUrl}
+                      alt=""
+                      fill
+                      className="object-cover"
+                    />
+                  )
                 ) : null}
               </div>
 

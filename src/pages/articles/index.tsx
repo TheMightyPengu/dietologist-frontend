@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { ArticlesApi, type ArticlesGetDto } from "@/api/ArticlesController";
+import { toMediaUrl } from "@/api/_axios-client";
 import LeafBurstButton from "@/components/decorative/LeafBurstButton";
 
 /**
@@ -29,7 +30,7 @@ export type Article = {
   category: "Διατροφή" | "Ευεξία" | "Συνταγές" | "Επιστήμη";
   dateISO: string;
   readMinutes: number;
-  hero: string | null;
+  hero: string;
   tags: string[];
 };
 
@@ -84,7 +85,10 @@ function mapArticleDtoToUi(dto: ArticlesGetDto): Article {
     readMinutes: estimateReadMinutes(dto.content),
 
     // Το backend δίνει imageUrl.
-    hero: dto.imageUrl ?? null,
+    // Fallback placeholder αν λείπει.
+    hero:
+      (dto.imageUrl ? toMediaUrl(dto.imageUrl) : null) ||
+      "https://via.placeholder.com/1200x750?text=Article+Image",
 
     // Το backend δεν δίνει tags.
     // Placeholder μέχρι να προστεθούν.
@@ -126,6 +130,9 @@ export async function getServerSideProps() {
     };
   } catch (error) {
     console.error("Failed to fetch articles:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+    }
 
     return {
       props: {
@@ -823,19 +830,13 @@ export default function ArticlesIndex(props: Props) {
                             >
                               {/* Image + scrim + category pill */}
                               <div className="relative aspect-[16/10] overflow-hidden rounded-t-2xl">
-                                {a.hero ? (
-                                  <Image
-                                    src={a.hero}
-                                    alt={a.title}
-                                    width={800}
-                                    height={500}
-                                    className="object-cover transition duration-300 group-hover:scale-[1.03] h-full w-full"
-                                  />
-                                ) : (
-                                  <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-accent/10 to-warm/15 grid place-items-center">
-                                    <span className="text-xs font-medium text-slate-500">Χωρίς εικόνα</span>
-                                  </div>
-                                )}
+                                <Image
+                                  src={a.hero}
+                                  alt={a.title}
+                                  width={800}
+                                  height={500}
+                                  className="object-cover transition duration-300 group-hover:scale-[1.03] h-full w-full"
+                                />
                                 {/* Scrim για contrast */}
                                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
 

@@ -6,6 +6,7 @@ export type ArticlesGetDto = {
   subtitle: string;
   heading: string;
   content: string;
+  category?: string | null;
   imageUrl?: string | null;
   publishedAt: string; // ISO
 };
@@ -16,6 +17,7 @@ export type ArticlesPostDto = {
   heading: string;
   content: string;
   publishedAt: string; // ISO
+  category: string;
   imageFile?: File | null;
 };
 
@@ -28,6 +30,7 @@ function buildFormData(p: ArticlesPostDto): FormData {
   fd.append('Heading', p.heading);
   fd.append('Content', p.content);
   fd.append('PublishedAt', p.publishedAt);
+  fd.append('Category', p.category);
   if (p.imageFile) fd.append('ImageFile', p.imageFile);
   return fd;
 }
