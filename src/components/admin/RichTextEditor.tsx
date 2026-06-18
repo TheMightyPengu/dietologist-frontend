@@ -10,6 +10,22 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import FontFamily from '@tiptap/extension-font-family';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Extension, CommandProps } from '@tiptap/core';
+import {
+  AlignCenter,
+  AlignJustify,
+  AlignLeft,
+  AlignRight,
+  Bold,
+  Italic,
+  Link as LinkIcon,
+  List,
+  ListOrdered,
+  Redo2,
+  RemoveFormatting,
+  Underline as UnderlineIcon,
+  Undo2,
+  Unlink,
+} from 'lucide-react';
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -185,8 +201,9 @@ export default function RichTextEditor({
           className={editor.isActive('bold') ? 'is-active' : ''}
           onClick={() => editor.chain().focus().toggleBold().run()}
           title="Bold"
+          aria-label="Bold"
         >
-          B
+          <Bold aria-hidden="true" size={18} strokeWidth={2.2} />
         </button>
 
         <button
@@ -194,8 +211,9 @@ export default function RichTextEditor({
           className={editor.isActive('italic') ? 'is-active' : ''}
           onClick={() => editor.chain().focus().toggleItalic().run()}
           title="Italic"
+          aria-label="Italic"
         >
-          I
+          <Italic aria-hidden="true" size={18} strokeWidth={2.2} />
         </button>
 
         <button
@@ -203,8 +221,9 @@ export default function RichTextEditor({
           className={editor.isActive('underline') ? 'is-active' : ''}
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           title="Underline"
+          aria-label="Underline"
         >
-          U
+          <UnderlineIcon aria-hidden="true" size={18} strokeWidth={2.2} />
         </button>
 
         <span className="rich-text-editor__separator" />
@@ -239,6 +258,7 @@ export default function RichTextEditor({
             }
           }}
           title="Text style"
+          aria-label="Text style"
         >
           <option value="p">Paragraph</option>
           <option value="h2">Heading 2</option>
@@ -259,6 +279,7 @@ export default function RichTextEditor({
             editor.chain().focus().setFontSize(fontSize).run();
           }}
           title="Font size"
+          aria-label="Font size"
         >
           <option value="">Size</option>
           <option value="14px">Small</option>
@@ -281,6 +302,7 @@ export default function RichTextEditor({
             editor.chain().focus().setFontFamily(fontFamily).run();
           }}
           title="Font family"
+          aria-label="Font family"
         >
           <option value="">Font</option>
           <option value="inherit">Default</option>
@@ -297,8 +319,9 @@ export default function RichTextEditor({
           className={editor.isActive({ textAlign: 'left' }) ? 'is-active' : ''}
           onClick={() => editor.chain().focus().setTextAlign('left').run()}
           title="Align left"
+          aria-label="Align left"
         >
-          ⬅
+          <AlignLeft aria-hidden="true" size={18} strokeWidth={2.2} />
         </button>
 
         <button
@@ -306,8 +329,9 @@ export default function RichTextEditor({
           className={editor.isActive({ textAlign: 'center' }) ? 'is-active' : ''}
           onClick={() => editor.chain().focus().setTextAlign('center').run()}
           title="Align center"
+          aria-label="Align center"
         >
-          ↔
+          <AlignCenter aria-hidden="true" size={18} strokeWidth={2.2} />
         </button>
 
         <button
@@ -315,8 +339,9 @@ export default function RichTextEditor({
           className={editor.isActive({ textAlign: 'right' }) ? 'is-active' : ''}
           onClick={() => editor.chain().focus().setTextAlign('right').run()}
           title="Align right"
+          aria-label="Align right"
         >
-          ➡
+          <AlignRight aria-hidden="true" size={18} strokeWidth={2.2} />
         </button>
 
         <button
@@ -324,8 +349,9 @@ export default function RichTextEditor({
           className={editor.isActive({ textAlign: 'justify' }) ? 'is-active' : ''}
           onClick={() => editor.chain().focus().setTextAlign('justify').run()}
           title="Justify"
+          aria-label="Justify"
         >
-          ☰
+          <AlignJustify aria-hidden="true" size={18} strokeWidth={2.2} />
         </button>
 
         <span className="rich-text-editor__separator" />
@@ -335,8 +361,9 @@ export default function RichTextEditor({
           className={editor.isActive('bulletList') ? 'is-active' : ''}
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           title="Bullet list"
+          aria-label="Bullet list"
         >
-          • List
+          <List aria-hidden="true" size={18} strokeWidth={2.2} />
         </button>
 
         <button
@@ -344,8 +371,9 @@ export default function RichTextEditor({
           className={editor.isActive('orderedList') ? 'is-active' : ''}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           title="Numbered list"
+          aria-label="Numbered list"
         >
-          1. List
+          <ListOrdered aria-hidden="true" size={18} strokeWidth={2.2} />
         </button>
 
         <span className="rich-text-editor__separator" />
@@ -355,8 +383,9 @@ export default function RichTextEditor({
           className={editor.isActive('link') ? 'is-active' : ''}
           onClick={setLink}
           title="Add link"
+          aria-label="Add link"
         >
-          Link
+          <LinkIcon aria-hidden="true" size={18} strokeWidth={2.2} />
         </button>
 
         <button
@@ -364,8 +393,20 @@ export default function RichTextEditor({
           onClick={() => editor.chain().focus().unsetLink().run()}
           disabled={!editor.isActive('link')}
           title="Remove link"
+          aria-label="Remove link"
         >
-          Unlink
+          <Unlink aria-hidden="true" size={18} strokeWidth={2.2} />
+        </button>
+
+        <span className="rich-text-editor__separator" />
+
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
+          title="Clear formatting"
+          aria-label="Clear formatting"
+        >
+          <RemoveFormatting aria-hidden="true" size={18} strokeWidth={2.2} />
         </button>
 
         <span className="rich-text-editor__separator" />
@@ -375,8 +416,9 @@ export default function RichTextEditor({
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
           title="Undo"
+          aria-label="Undo"
         >
-          Undo
+          <Undo2 aria-hidden="true" size={18} strokeWidth={2.2} />
         </button>
 
         <button
@@ -384,8 +426,9 @@ export default function RichTextEditor({
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}
           title="Redo"
+          aria-label="Redo"
         >
-          Redo
+          <Redo2 aria-hidden="true" size={18} strokeWidth={2.2} />
         </button>
       </div>
 
