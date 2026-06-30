@@ -235,7 +235,89 @@ export default function ServicesPage() {
       </div>
 
       <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-20 space-y-12">
-        <SectionReveal
+        <div className="space-y-12 scroll-mt-28">
+          <TitleRow as="h2" size="section">
+            Διαθέσιμες υπηρεσίες
+          </TitleRow>
+
+          {loading ? (
+            <SectionCard title="Φόρτωση...">
+              <p>Γίνεται φόρτωση των υπηρεσιών.</p>
+            </SectionCard>
+          ) : error ? (
+            <SectionCard title="Σφάλμα">
+              <p>{error}</p>
+            </SectionCard>
+          ) : groupedServices.length === 0 ? (
+            <SectionCard title="Δεν υπάρχουν υπηρεσίες">
+              <p>Δεν βρέθηκαν διαθέσιμες υπηρεσίες.</p>
+            </SectionCard>
+          ) : (
+            groupedServices.map(([category, items]) => (
+              <SectionReveal key={category} className="space-y-6">
+                <SectionCard
+                  title={category}
+                  id={getServiceCategoryAnchor(category)}
+                >
+                  <div className="space-y-4">
+                    {items.map((service) => (
+                      <div
+                        key={service.id}
+                        className="rounded-2xl bg-white ring-1 ring-accent/20 p-5 shadow-[0_10px_22px_rgba(164,199,126,0.08)]"
+                      >
+                        <div className="flex flex-col gap-5 md:flex-row">
+                          {service.imageUrl ? (
+                            <div className="md:w-56 md:shrink-0">
+                              <img
+                                src={
+                                  service.imageUrl.startsWith("http")
+                                    ? service.imageUrl
+                                    : toMediaUrl(service.imageUrl)
+                                }
+                                alt={service.imageAltText || service.title || `Υπηρεσία #${service.id}`}
+                                className="h-48 w-full rounded-2xl object-cover ring-1 ring-accent/20 md:h-full"
+                                loading="lazy"
+                              />
+                            </div>
+                          ) : null}
+
+                          <div className="flex min-w-0 flex-1 flex-col gap-4">
+                            <div>
+                              <h3 className="text-base font-semibold text-slate-900">
+                                {service.title || `Υπηρεσία #${service.id}`}
+                              </h3>
+
+                              {service.description ? (
+                                <RichHtmlRenderer
+                                  html={service.description}
+                                  className="service-rich-content mt-2 text-[15px] leading-relaxed text-slate-700"
+                                />
+                              ) : (
+                                <p className="mt-2 text-[15px] leading-relaxed text-slate-700">
+                                  Δεν υπάρχει περιγραφή.
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              <Pill>Διάρκεια: {service.duration}’</Pill>
+                              <Pill>
+                                Τιμή: {formatPrice(service.priceIncludingVAT)}
+                              </Pill>
+                              <Pill>Κατηγορία: {service.category}</Pill>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+              </SectionReveal>
+            ))
+          )}
+        </div>
+
+         <SectionReveal
           className={[
             "rounded-3xl bg-white",
             "ring-1 ring-accent/25",
@@ -367,83 +449,6 @@ export default function ServicesPage() {
           ) : null}
         </SectionReveal>
 
-        <div className="space-y-12 scroll-mt-28">
-          <TitleRow as="h2" size="section">
-            Διαθέσιμες υπηρεσίες
-          </TitleRow>
-
-          {loading ? (
-            <SectionCard title="Φόρτωση...">
-              <p>Γίνεται φόρτωση των υπηρεσιών.</p>
-            </SectionCard>
-          ) : error ? (
-            <SectionCard title="Σφάλμα">
-              <p>{error}</p>
-            </SectionCard>
-          ) : groupedServices.length === 0 ? (
-            <SectionCard title="Δεν υπάρχουν υπηρεσίες">
-              <p>Δεν βρέθηκαν διαθέσιμες υπηρεσίες.</p>
-            </SectionCard>
-          ) : (
-            groupedServices.map(([category, items]) => (
-              <SectionReveal key={category} className="space-y-6">
-                <SectionCard
-                  title={category}
-                  id={getServiceCategoryAnchor(category)}
-                >
-                  <div className="space-y-4">
-                    {items.map((service) => (
-                      <div
-                        key={service.id}
-                        className="rounded-2xl bg-white ring-1 ring-accent/20 p-5 shadow-[0_10px_22px_rgba(164,199,126,0.08)]"
-                      >
-                        <div className="flex flex-col gap-5 md:flex-row">
-                          {service.imageUrl ? (
-                            <div className="md:w-56 md:shrink-0">
-                              <img
-                                src={service.imageUrl.startsWith("/media") ? toMediaUrl(service.imageUrl) : service.imageUrl}
-                                alt={service.title || `Υπηρεσία #${service.id}`}
-                                className="h-48 w-full rounded-2xl object-cover ring-1 ring-accent/20 md:h-full"
-                                loading="lazy"
-                              />
-                            </div>
-                          ) : null}
-
-                          <div className="flex min-w-0 flex-1 flex-col gap-4">
-                            <div>
-                              <h3 className="text-base font-semibold text-slate-900">
-                                {service.title || `Υπηρεσία #${service.id}`}
-                              </h3>
-
-                              {service.description ? (
-                                <RichHtmlRenderer
-                                  html={service.description}
-                                  className="service-rich-content mt-2 text-[15px] leading-relaxed text-slate-700"
-                                />
-                              ) : (
-                                <p className="mt-2 text-[15px] leading-relaxed text-slate-700">
-                                  Δεν υπάρχει περιγραφή.
-                                </p>
-                              )}
-                            </div>
-
-                            <div className="flex flex-wrap gap-2">
-                              <Pill>Διάρκεια: {service.duration}’</Pill>
-                              <Pill>
-                                Τιμή: {formatPrice(service.priceIncludingVAT)}
-                              </Pill>
-                              <Pill>Κατηγορία: {service.category}</Pill>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </SectionCard>
-              </SectionReveal>
-            ))
-          )}
-        </div>
       </main>
     </>
   );

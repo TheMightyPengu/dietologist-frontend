@@ -73,9 +73,11 @@ function toGreekSlug(s: string) {
 }
 
 function parseIngredients(value: string | null | undefined): string[] {
-  if (!value) return [];
+  const plain = stripHtml(value);
 
-  return value
+  if (!plain) return [];
+
+  return plain
     .split(/[\n,;•]+/g)
     .map((x) => x.trim())
     .filter(Boolean);
@@ -100,6 +102,14 @@ function mapRecipe(dto: RecipesGetDto): Recipe {
     image: dto.imageUrl ?? "",
     createdAt: dto.createdAt ?? "",
   };
+}
+
+function stripHtml(value: string | null | undefined) {
+  return (value || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 const PER_PAGE = 12;

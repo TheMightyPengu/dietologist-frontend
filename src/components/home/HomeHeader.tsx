@@ -20,9 +20,9 @@ export default function HomeHero({
   const heroInfo =
     info?.trim() ||
     "Είμαι η Βασιλική Χύτα, Διαιτολόγος–Διατροφολόγος. Πιστεύω σε μια ήπια, ανθρωποκεντρική προσέγγιση που συνδέει τη γνώση με τη φροντίδα: εκπαίδευση, ευεξία και ισορροπία, πέρα από στερεότυπα και «γρήγορες λύσεις».";
-  const heroImage =
-    mainPictureUrl?.trim() ||
-    "https://img.freepik.com/premium-photo/diet-healthy-nutrition-portrait-dietitian-s_118454-1331.jpg";
+const heroImage =
+  mainPictureUrl?.trim() ||
+  "/images/fallback-main-picture.jpg";
 
   return (
     <section className="relative bg-bg pt-10 md:pt-20">
@@ -37,8 +37,6 @@ export default function HomeHero({
                   className="block h-auto w-full object-cover"
                 />
               </div>
-
-              <div className="mx-auto -mt-1 h-3 w-full rounded-sm bg-bg ring-1 ring-accent/20" />
             </div>
           </div>
 

@@ -1,7 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import {
   ArticlesApi,
   type ArticlesGetDto,
@@ -1009,15 +1008,16 @@ function CreateRecipeModal({
               Υλικά
             </label>
 
-            <textarea
-              rows={6}
+          <div className="mt-1">
+            <RichTextEditor
               value={draft.ingredients}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, ingredients: e.target.value }))
+              onChange={(html) =>
+                setDraft((d) => ({ ...d, ingredients: html }))
               }
-              placeholder="Ένα υλικό ανά γραμμή"
-              className={fieldClass}
+              placeholder="Γράψε τα υλικά της συνταγής..."
+              minHeight={220}
             />
+          </div>
           </div>
 
           <div>
@@ -1240,15 +1240,16 @@ function RecipeEditorCard({
                 Υλικά
               </label>
 
-              <textarea
-                rows={6}
+            <div className="mt-1">
+              <RichTextEditor
                 value={draft.ingredients}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, ingredients: e.target.value }))
+                onChange={(html) =>
+                  setDraft((d) => ({ ...d, ingredients: html }))
                 }
-                placeholder="Ένα υλικό ανά γραμμή"
-                className={fieldClass}
+                placeholder="Γράψε τα υλικά της συνταγής..."
+                minHeight={220}
               />
+            </div>
             </div>
 
             <div>

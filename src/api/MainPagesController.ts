@@ -32,9 +32,7 @@ function buildFormData(p: MainPagePostDto): FormData {
 
   if (p.mainPicture) {
     fd.append("MainPicture", p.mainPicture);
-  }
-
-  if (p.mainPictureId !== undefined && p.mainPictureId !== null) {
+  } else if (p.mainPictureId !== undefined && p.mainPictureId !== null) {
     fd.append("MainPictureId", String(p.mainPictureId));
   }
 

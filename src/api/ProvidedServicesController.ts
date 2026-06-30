@@ -1,4 +1,4 @@
-import { api, toApiError } from './_axios-client';
+import { api, toApiError } from "./_axios-client";
 
 export type ProvidedServicesGetDto = {
   id: number;
@@ -7,7 +7,9 @@ export type ProvidedServicesGetDto = {
   title: string;
   description: string;
   priceIncludingVAT: number;
-  imageUrl: string;
+  imageAssetId?: number | null;
+  imageUrl?: string | null;
+  imageAltText?: string | null;
 };
 
 export type ProvidedServicesPostDto = {
@@ -16,10 +18,29 @@ export type ProvidedServicesPostDto = {
   title: string;
   description: string;
   priceIncludingVAT: number;
-  imageUrl: string;
+  imageFile?: File | null;
+  imageAssetId?: number | null;
 };
 
-const base = '/ProvidedServices';
+const base = "/ProvidedServices";
+
+function buildFormData(payload: ProvidedServicesPostDto): FormData {
+  const fd = new FormData();
+
+  fd.append("Category", payload.category);
+  fd.append("Duration", String(payload.duration));
+  fd.append("Title", payload.title);
+  fd.append("Description", payload.description);
+  fd.append("PriceIncludingVAT", String(payload.priceIncludingVAT));
+
+  if (payload.imageFile) {
+    fd.append("ImageFile", payload.imageFile);
+  } else if (payload.imageAssetId != null) {
+    fd.append("ImageAssetId", String(payload.imageAssetId));
+  }
+
+  return fd;
+}
 
 export const ProvidedServicesApi = {
   async list(): Promise<ProvidedServicesGetDto[]> {
@@ -40,20 +61,29 @@ export const ProvidedServicesApi = {
     }
   },
 
-  async create(payload: ProvidedServicesPostDto): Promise<ProvidedServicesGetDto> {
+  async create(
+    payload: ProvidedServicesPostDto
+  ): Promise<ProvidedServicesGetDto> {
     try {
-      const { data } = await api.post(base, payload);
+      const formData = buildFormData(payload);
+
+      const { data } = await api.post(base, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
       return data;
-    } catch (e: unknown) {
-      console.log("POST payload:", payload);
-      console.log("Backend error:", e);
+    } catch (e) {
       throw toApiError(e);
     }
   },
 
   async update(id: number, payload: ProvidedServicesPostDto): Promise<void> {
     try {
-      await api.put(`${base}/${id}`, payload);
+      const formData = buildFormData(payload);
+
+      await api.put(`${base}/${id}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
     } catch (e) {
       throw toApiError(e);
     }
@@ -65,5 +95,5 @@ export const ProvidedServicesApi = {
     } catch (e) {
       throw toApiError(e);
     }
-  }
+  },
 };

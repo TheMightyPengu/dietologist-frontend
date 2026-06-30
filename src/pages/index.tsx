@@ -221,7 +221,7 @@ export default function HomePage() {
                 <Image
                   src={
                     mainPage?.mainPictureUrl?.trim() ||
-                    "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?auto=format&fit=crop&w=1200&q=80"
+                    "/images/fallback-main-picture.jpg"
                   }
                   alt="Βασιλική Χύτα — Διαιτολόγος"
                   width={900}

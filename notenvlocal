@@ -1,0 +1,8 @@
+# Base URL for backend API
+NEXT_PUBLIC_API_URL=http://localhost:5000/api
+
+# Optional: you can set this if you have images or uploads served from backend
+NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
+
+# Environment
+NEXT_PUBLIC_ENV=developmentz

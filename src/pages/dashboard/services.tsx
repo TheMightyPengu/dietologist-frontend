@@ -32,7 +32,12 @@ const EMPTY_CREATE_FORM: ProvidedServicesPostDto = {
   title: "",
   description: "",
   priceIncludingVAT: 0,
-  imageUrl: "",
+  imageFile: null,
+  imageAssetId: null,
+};
+
+type ProvidedServiceDraft = ProvidedServicesGetDto & {
+  imageFile?: File | null;
 };
 
 export default function ManagementServicesPage() {
@@ -108,7 +113,8 @@ export default function ManagementServicesPage() {
         title: createForm.title.trim(),
         description: createForm.description.trim(),
         priceIncludingVAT: Number(createForm.priceIncludingVAT),
-        imageUrl: createForm.imageUrl.trim(),
+        imageFile: createForm.imageFile ?? null,
+        imageAssetId: createForm.imageFile ? null : createForm.imageAssetId ?? null,
       };
 
       const created = await ProvidedServicesApi.create(payload);
@@ -134,7 +140,7 @@ export default function ManagementServicesPage() {
     }
   }
 
-  async function handleSave(service: ProvidedServicesGetDto) {
+  async function handleSave(service: ProvidedServiceDraft) {
     try {
       setBusyId(service.id);
 
@@ -144,12 +150,14 @@ export default function ManagementServicesPage() {
         title: service.title.trim(),
         description: service.description.trim(),
         priceIncludingVAT: Number(service.priceIncludingVAT),
-        imageUrl: (service.imageUrl || "").trim(),
+        imageFile: service.imageFile ?? null,
+        imageAssetId: service.imageFile ? null : service.imageAssetId ?? null,
       };
 
       await ProvidedServicesApi.update(service.id, payload);
 
-      setAll((prev) => prev.map((x) => (x.id === service.id ? service : x)));
+      const fresh = await ProvidedServicesApi.get(service.id);
+      setAll((prev) => prev.map((x) => (x.id === service.id ? fresh : x)));
       setToast("Αποθηκεύτηκε.");
     } catch (error) {
       console.error(error);
@@ -412,18 +420,26 @@ function CreateServiceModal({
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700">
-                URL εικόνας
+                Αρχείο εικόνας
               </label>
 
               <input
-                type="url"
-                value={form.imageUrl}
+                type="file"
+                accept="image/*"
                 onChange={(e) =>
-                  setForm((d) => ({ ...d, imageUrl: e.target.value }))
+                  setForm((d) => ({
+                    ...d,
+                    imageFile: e.target.files?.[0] ?? null,
+                  }))
                 }
-                placeholder="https://..."
                 className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
               />
+
+              {form.imageFile ? (
+                <p className="mt-2 text-xs text-slate-500">
+                  Επιλέχθηκε: {form.imageFile.name}
+                </p>
+              ) : null}
             </div>
           </div>
 
@@ -452,16 +468,6 @@ function CreateServiceModal({
             ) : (
               <p className="text-sm text-slate-500">Δεν υπάρχει περιγραφή.</p>
             )}
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm text-slate-500 mb-2">
-              Προεπισκόπηση JSON για API
-            </p>
-
-            <pre className="text-xs whitespace-pre-wrap break-words">
-              {JSON.stringify(form, null, 2)}
-            </pre>
           </div>
         </div>
 
@@ -502,14 +508,21 @@ function ServiceEditorCard({
 }: {
   svc: ProvidedServicesGetDto;
   busy: boolean;
-  onSave: (s: ProvidedServicesGetDto) => void;
+  onSave: (s: ProvidedServiceDraft) => void;
   onDelete: (id: number) => void;
 }) {
-  const [draft, setDraft] = useState<ProvidedServicesGetDto>(svc);
+  const [draft, setDraft] = useState<ProvidedServiceDraft>({
+    ...svc,
+    imageFile: null,
+  });
   const [open, setOpen] = useState(false);
+  const [fileInputKey, setFileInputKey] = useState(0);
 
   useEffect(() => {
-    setDraft(svc);
+    setDraft({
+      ...svc,
+      imageFile: null,
+    });
   }, [svc]);
 
   return (
@@ -621,18 +634,54 @@ function ServiceEditorCard({
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700">
-                URL εικόνας
+                Νέα εικόνα
               </label>
 
               <input
-                type="url"
-                value={draft.imageUrl || ""}
+                key={fileInputKey}
+                type="file"
+                accept="image/*"
                 onChange={(e) =>
-                  setDraft((d) => ({ ...d, imageUrl: e.target.value }))
+                  setDraft((d) => ({
+                    ...d,
+                    imageFile: e.target.files?.[0] ?? null,
+                  }))
                 }
-                placeholder="https://..."
                 className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
               />
+
+              {draft.imageFile ? (
+                <p className="mt-2 text-xs text-slate-500">
+                  Νέα εικόνα: {draft.imageFile.name}
+                </p>
+              ) : draft.imageUrl ? (
+                <p className="mt-2 text-xs text-slate-500">
+                  Τρέχουσα εικόνα: {draft.imageUrl}
+                </p>
+              ) : (
+                <p className="mt-2 text-xs text-slate-500">
+                  Δεν υπάρχει εικόνα.
+                </p>
+              )}
+
+              {draft.imageFile || draft.imageUrl ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft((d) => ({
+                    ...d,
+                    imageFile: null,
+                    imageAssetId: null,
+                    imageUrl: null,
+                  }));
+
+                  setFileInputKey((k) => k + 1);
+                }}
+                className="mt-3 rounded-full border border-rose-200 bg-white px-3 py-1.5 text-sm text-rose-700 hover:border-rose-300"
+              >
+                Αφαίρεση εικόνας
+              </button>
+            ) : null}
             </div>
           </div>
 
@@ -663,27 +712,6 @@ function ServiceEditorCard({
             )}
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm text-slate-500 mb-2">
-              Προεπισκόπηση JSON για API
-            </p>
-
-            <pre className="text-xs whitespace-pre-wrap break-words">
-              {JSON.stringify(
-                {
-                  category: draft.category,
-                  duration: draft.duration,
-                  title: draft.title,
-                  description: draft.description,
-                  priceIncludingVAT: draft.priceIncludingVAT,
-                  imageUrl: draft.imageUrl,
-                },
-                null,
-                2
-              )}
-            </pre>
-          </div>
-
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
@@ -698,10 +726,16 @@ function ServiceEditorCard({
             >
               {busy ? "Αποθήκευση…" : "Αποθήκευση"}
             </button>
-
             <button
               type="button"
-              onClick={() => setDraft(svc)}
+              onClick={() => {
+                setDraft({
+                  ...svc,
+                  imageFile: null,
+                });
+
+                setFileInputKey((k) => k + 1);
+              }}
               className="rounded-full border border-slate-400 bg-white px-4 py-2 text-sm hover:border-[rgb(var(--primary))]"
             >
               Επαναφορά αλλαγών

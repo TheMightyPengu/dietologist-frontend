@@ -15,7 +15,7 @@ type Recipe = {
   minutes: number;
   description: string;
   instructions: string;
-  ingredients: string[];
+  ingredients: string;
   image: string;
   createdAt: string;
 };
@@ -50,15 +50,6 @@ function getIdFromSlug(slug: string) {
   return match ? Number(match[1]) : Number(slug);
 }
 
-function parseIngredients(value: string | null | undefined): string[] {
-  if (!value) return [];
-
-  return value
-    .split(/[\n,;•]+/g)
-    .map((x) => x.trim())
-    .filter(Boolean);
-}
-
 function stripHtml(value: string) {
   return (value || "")
     .replace(/<[^>]*>/g, " ")
@@ -81,7 +72,7 @@ function mapRecipe(dto: RecipesGetDto): Recipe {
     minutes: dto.timeToPrepare ?? 0,
     description: dto.description ?? "",
     instructions: dto.instructions ?? "",
-    ingredients: parseIngredients(dto.ingredients),
+    ingredients: dto.ingredients ?? "",
     image: dto.imageUrl ?? "",
     createdAt: dto.createdAt ?? "",
   };
@@ -249,15 +240,11 @@ export default function RecipePage({ recipe }: PageProps) {
                 Υλικά
               </h2>
 
-              {recipe.ingredients.length > 0 ? (
-                <ul className="mt-4 space-y-2 text-slate-700">
-                  {recipe.ingredients.map((ingredient, index) => (
-                    <li key={`${ingredient}-${index}`} className="flex gap-2">
-                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                      <span>{ingredient}</span>
-                    </li>
-                  ))}
-                </ul>
+              {recipe.ingredients.trim() ? (
+                <RichHtmlRenderer
+                  html={recipe.ingredients}
+                  className="recipe-rich-content mt-4 text-slate-700"
+                />
               ) : (
                 <p className="mt-4 text-sm text-slate-600">
                   Δεν υπάρχουν καταχωρημένα υλικά.
