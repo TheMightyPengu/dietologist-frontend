@@ -220,13 +220,14 @@ export default function HomePage() {
               <div className="overflow-hidden rounded-3xl bg-white ring-1 ring-accent/25 shadow-sm">
                 <Image
                   src={
-                    mainPage?.mainPictureUrl?.trim() ||
-                    "/images/fallback-main-picture.jpg"
+                    mainPage?.bioPictureUrl?.trim() ||
+                    "/images/fallback-bioPicture-picture.jpg"
                   }
                   alt="Βασιλική Χύτα — Διαιτολόγος"
                   width={900}
                   height={1125}
                   className="h-auto w-full object-cover aspect-[4/5]"
+                  unoptimized
                 />
               </div>
             </div>
@@ -309,28 +310,41 @@ export default function HomePage() {
 
       <SectionReveal className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12 md:pb-16 pt-8 md:pt-12">
         <h3 className="text-center text-xl md:text-2xl font-semibold text-slate-900">
-          Στο τέλος της συνεργασίας θα έχεις καταφέρει
+          {mainPage?.smallCardsSectionTitle?.trim() ||
+            "Στο τέλος της συνεργασίας θα έχεις καταφέρει"}
         </h3>
 
         <div className="mt-8 grid gap-6 md:grid-cols-3">
           {[
             {
-              img: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80",
-              alt: "Ηρεμία",
-              label: "Ηρεμία",
-              text: "Να νιώθεις πιο ήρεμα γύρω από το φαγητό και το σώμα σου.",
+              img:
+                mainPage?.mainSmallPicture1Url?.trim() ||
+                "/images/mainSmallPicture1.jpg",
+              alt: mainPage?.smallCard1Title?.trim() || "Ηρεμία",
+              label: mainPage?.smallCard1Title?.trim() || "Ηρεμία",
+              text:
+                mainPage?.smallCard1Text?.trim() ||
+                "Να νιώθεις πιο ήρεμα γύρω από το φαγητό και το σώμα σου.",
             },
             {
-              img: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80",
-              alt: "Ισορροπία",
-              label: "Ισορροπία",
-              text: "Να τρέφεσαι ακούγοντας τις ανάγκες σου, χωρίς ενοχές και στέρηση.",
+              img:
+                mainPage?.mainSmallPicture2Url?.trim() ||
+                "/images/mainSmallPicture2.jpg",
+              alt: mainPage?.smallCard2Title?.trim() || "Ισορροπία",
+              label: mainPage?.smallCard2Title?.trim() || "Ισορροπία",
+              text:
+                mainPage?.smallCard2Text?.trim() ||
+                "Να τρέφεσαι ακούγοντας τις ανάγκες σου, χωρίς ενοχές και στέρηση.",
             },
             {
-              img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=1200&q=80",
-              alt: "Σταθερότητα",
-              label: "Σταθερότητα",
-              text: "Να φροντίζεις το σώμα σου με πιο ουδέτερο και σταθερό τρόπο.",
+              img:
+                mainPage?.mainSmallPicture3Url?.trim() ||
+                "/images/mainSmallPicture3.jpg",
+              alt: mainPage?.smallCard3Title?.trim() || "Σταθερότητα",
+              label: mainPage?.smallCard3Title?.trim() || "Σταθερότητα",
+              text:
+                mainPage?.smallCard3Text?.trim() ||
+                "Να φροντίζεις το σώμα σου με πιο ουδέτερο και σταθερό τρόπο.",
             },
           ].map((c) => (
             <div
@@ -356,6 +370,7 @@ export default function HomePage() {
                     width={1200}
                     height={900}
                     className="h-full w-full object-cover object-center"
+                    unoptimized
                   />
                 </div>
               </div>
@@ -364,6 +379,7 @@ export default function HomePage() {
                 <p className="m-0 text-xs font-semibold tracking-wide text-slate-500 uppercase">
                   {c.label}
                 </p>
+
                 <p className="mt-2 mb-0 text-base sm:text-[17px] leading-7 font-medium text-slate-800">
                   {c.text}
                 </p>

@@ -35,6 +35,21 @@ type HomeFormState = {
   phylosophy: string;
   mainPictureId?: number | null;
   mainPictureUrl?: string | null;
+  bioPictureId?: number | null;
+  bioPictureUrl?: string | null;
+  mainSmallPicture1Id?: number | null;
+  mainSmallPicture1Url?: string | null;
+  mainSmallPicture2Id?: number | null;
+  mainSmallPicture2Url?: string | null;
+  mainSmallPicture3Id?: number | null;
+  mainSmallPicture3Url?: string | null;
+  smallCardsSectionTitle?: string | null;
+  smallCard1Title?: string | null;
+  smallCard1Text?: string | null;
+  smallCard2Title?: string | null;
+  smallCard2Text?: string | null;
+  smallCard3Title?: string | null;
+  smallCard3Text?: string | null;
 };
 
 const EMPTY_HOME: HomeFormState = {
@@ -45,7 +60,128 @@ const EMPTY_HOME: HomeFormState = {
   phylosophy: "",
   mainPictureId: null,
   mainPictureUrl: null,
+  bioPictureId: null,
+  bioPictureUrl: null,
+  mainSmallPicture1Id: null,
+  mainSmallPicture1Url: null,
+  mainSmallPicture2Id: null,
+  mainSmallPicture2Url: null,
+  mainSmallPicture3Id: null,
+  mainSmallPicture3Url: null,
+  smallCardsSectionTitle: "",
+  smallCard1Title: "",
+  smallCard1Text: "",
+  smallCard2Title: "",
+  smallCard2Text: "",
+  smallCard3Title: "",
+  smallCard3Text: "",
 };
+
+type ImageFieldKey =
+  | "mainPicture"
+  | "bioPicture"
+  | "mainSmallPicture1"
+  | "mainSmallPicture2"
+  | "mainSmallPicture3";
+
+type ImageFilesState = Record<ImageFieldKey, File | null>;
+type ImagePreviewsState = Record<ImageFieldKey, string | null>;
+
+const EMPTY_IMAGE_FILES: ImageFilesState = {
+  mainPicture: null,
+  bioPicture: null,
+  mainSmallPicture1: null,
+  mainSmallPicture2: null,
+  mainSmallPicture3: null,
+};
+
+const EMPTY_IMAGE_PREVIEWS: ImagePreviewsState = {
+  mainPicture: null,
+  bioPicture: null,
+  mainSmallPicture1: null,
+  mainSmallPicture2: null,
+  mainSmallPicture3: null,
+};
+
+const IMAGE_FIELDS: {
+  key: ImageFieldKey;
+  label: string;
+  idKey:
+    | "mainPictureId"
+    | "bioPictureId"
+    | "mainSmallPicture1Id"
+    | "mainSmallPicture2Id"
+    | "mainSmallPicture3Id";
+  urlKey:
+    | "mainPictureUrl"
+    | "bioPictureUrl"
+    | "mainSmallPicture1Url"
+    | "mainSmallPicture2Url"
+    | "mainSmallPicture3Url";
+}[] = [
+  {
+    key: "mainPicture",
+    label: "Κεντρική Εικόνα",
+    idKey: "mainPictureId",
+    urlKey: "mainPictureUrl",
+  },
+  {
+    key: "bioPicture",
+    label: "Εικόνα Βιογραφικού",
+    idKey: "bioPictureId",
+    urlKey: "bioPictureUrl",
+  },
+  {
+    key: "mainSmallPicture1",
+    label: "Μικρή Εικόνα 1",
+    idKey: "mainSmallPicture1Id",
+    urlKey: "mainSmallPicture1Url",
+  },
+  {
+    key: "mainSmallPicture2",
+    label: "Μικρή Εικόνα 2",
+    idKey: "mainSmallPicture2Id",
+    urlKey: "mainSmallPicture2Url",
+  },
+  {
+    key: "mainSmallPicture3",
+    label: "Μικρή Εικόνα 3",
+    idKey: "mainSmallPicture3Id",
+    urlKey: "mainSmallPicture3Url",
+  },
+];
+
+type SmallCardTitleKey =
+  | "smallCard1Title"
+  | "smallCard2Title"
+  | "smallCard3Title";
+
+type SmallCardTextKey =
+  | "smallCard1Text"
+  | "smallCard2Text"
+  | "smallCard3Text";
+
+const SMALL_CARD_TEXT_FIELDS: {
+  titleKey: SmallCardTitleKey;
+  textKey: SmallCardTextKey;
+  label: string;
+}[] = [
+  {
+    titleKey: "smallCard1Title",
+    textKey: "smallCard1Text",
+    label: "Κάρτα 1",
+  },
+  {
+    titleKey: "smallCard2Title",
+    textKey: "smallCard2Text",
+    label: "Κάρτα 2",
+  },
+  {
+    titleKey: "smallCard3Title",
+    textKey: "smallCard3Text",
+    label: "Κάρτα 3",
+  },
+];
 
 function mapDtoToState(dto: MainPageGetDto): HomeFormState {
   return {
@@ -56,6 +192,21 @@ function mapDtoToState(dto: MainPageGetDto): HomeFormState {
     phylosophy: dto.phylosophy ?? "",
     mainPictureId: dto.mainPictureId ?? null,
     mainPictureUrl: dto.mainPictureUrl ?? null,
+    bioPictureId: dto.bioPictureId ?? null,
+    bioPictureUrl: dto.bioPictureUrl ?? null,
+    mainSmallPicture1Id: dto.mainSmallPicture1Id ?? null,
+    mainSmallPicture1Url: dto.mainSmallPicture1Url ?? null,
+    mainSmallPicture2Id: dto.mainSmallPicture2Id ?? null,
+    mainSmallPicture2Url: dto.mainSmallPicture2Url ?? null,
+    mainSmallPicture3Id: dto.mainSmallPicture3Id ?? null,
+    mainSmallPicture3Url: dto.mainSmallPicture3Url ?? null,
+    smallCardsSectionTitle: dto.smallCardsSectionTitle ?? "",
+    smallCard1Title: dto.smallCard1Title ?? "",
+    smallCard1Text: dto.smallCard1Text ?? "",
+    smallCard2Title: dto.smallCard2Title ?? "",
+    smallCard2Text: dto.smallCard2Text ?? "",
+    smallCard3Title: dto.smallCard3Title ?? "",
+    smallCard3Text: dto.smallCard3Text ?? "",
   };
 }
 
@@ -97,9 +248,11 @@ export default function ManagementHomePage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null);
-  const [remoteImageUrl, setRemoteImageUrl] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] =
+    useState<ImageFilesState>(EMPTY_IMAGE_FILES);
+
+  const [filePreviews, setFilePreviews] =
+    useState<ImagePreviewsState>(EMPTY_IMAGE_PREVIEWS);
 
   const loadHome = async () => {
     try {
@@ -110,17 +263,13 @@ export default function ManagementHomePage() {
 
       if (!first) {
         setData(EMPTY_HOME);
-        setRemoteImageUrl(null);
         return;
       }
 
       setData(mapDtoToState(first));
-
-      setRemoteImageUrl(first.mainPictureUrl?.trim() || null);
     } catch {
       setToast("Αποτυχία φόρτωσης.");
       setData(EMPTY_HOME);
-      setRemoteImageUrl(null);
     } finally {
       setLoading(false);
     }
@@ -137,6 +286,32 @@ export default function ManagementHomePage() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  const getPreviewSrc = (field: (typeof IMAGE_FIELDS)[number]) => {
+    return normalizeImageUrl(filePreviews[field.key] || data[field.urlKey]);
+  };
+
+  const clearSelectedImage = (key: ImageFieldKey) => {
+    setSelectedFiles((s) => ({ ...s, [key]: null }));
+    setFilePreviews((s) => ({ ...s, [key]: null }));
+  };
+
+  const onSelectImage = (key: ImageFieldKey, file: File) => {
+    setSelectedFiles((s) => ({ ...s, [key]: file }));
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      setFilePreviews((s) => ({
+        ...s,
+        [key]: reader.result as string,
+      }));
+    };
+
+    reader.readAsDataURL(file);
+
+    setToast("Τοπική προεπισκόπηση εικόνας.");
+  };
+
   const onSave = async () => {
     try {
       setSaving(true);
@@ -146,8 +321,29 @@ export default function ManagementHomePage() {
         info: data.info,
         biography: data.biography,
         phylosophy: data.phylosophy,
-        mainPicture: selectedFile,
+
+        mainPicture: selectedFiles.mainPicture,
         mainPictureId: data.mainPictureId ?? null,
+
+        bioPicture: selectedFiles.bioPicture,
+        bioPictureId: data.bioPictureId ?? null,
+
+        smallCardsSectionTitle: data.smallCardsSectionTitle ?? "",
+
+        smallCard1Title: data.smallCard1Title ?? "",
+        smallCard1Text: data.smallCard1Text ?? "",
+        mainSmallPicture1: selectedFiles.mainSmallPicture1,
+        mainSmallPicture1Id: data.mainSmallPicture1Id ?? null,
+
+        smallCard2Title: data.smallCard2Title ?? "",
+        smallCard2Text: data.smallCard2Text ?? "",
+        mainSmallPicture2: selectedFiles.mainSmallPicture2,
+        mainSmallPicture2Id: data.mainSmallPicture2Id ?? null,
+
+        smallCard3Title: data.smallCard3Title ?? "",
+        smallCard3Text: data.smallCard3Text ?? "",
+        mainSmallPicture3: selectedFiles.mainSmallPicture3,
+        mainSmallPicture3Id: data.mainSmallPicture3Id ?? null,
       };
 
       if (data.id) {
@@ -158,8 +354,8 @@ export default function ManagementHomePage() {
       }
 
       await loadHome();
-      setSelectedFile(null);
-      setFilePreview(null);
+      setSelectedFiles(EMPTY_IMAGE_FILES);
+      setFilePreviews(EMPTY_IMAGE_PREVIEWS);
       setToast("Αποθηκεύτηκε!");
     } catch {
       setToast("Αποτυχία αποθήκευσης.");
@@ -170,21 +366,10 @@ export default function ManagementHomePage() {
 
   const onResetLocal = () => {
     setData(EMPTY_HOME);
-    setSelectedFile(null);
-    setFilePreview(null);
-    setRemoteImageUrl(null);
+    setSelectedFiles(EMPTY_IMAGE_FILES);
+    setFilePreviews(EMPTY_IMAGE_PREVIEWS);
     setToast("Τοπική επαναφορά.");
   };
-
-  const onReloadFromApi = async () => {
-    setSelectedFile(null);
-    setFilePreview(null);
-    await loadHome();
-    setToast("Φόρτωση από API.");
-  };
-
-  const previewSrc = normalizeImageUrl(filePreview || remoteImageUrl);
-  const canRenderImage = isSafeImageSrc(previewSrc);
 
   return (
     <>
@@ -220,45 +405,135 @@ export default function ManagementHomePage() {
                 <>
                   <div className="mt-4">
                     <label className="block text-sm font-medium text-slate-700">
-                      Κεντρική Εικόνα
+                      Εικόνες Αρχικής
                     </label>
 
-                    <div className="mt-3 flex flex-wrap items-center gap-3">
-                      <label className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm cursor-pointer hover:border-[rgb(var(--primary))]">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (!f) return;
+                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {IMAGE_FIELDS.map((field) => {
+                        const src = getPreviewSrc(field);
+                        const canRender = isSafeImageSrc(src);
+                        const hasLocalSelection = Boolean(selectedFiles[field.key]);
 
-                            setSelectedFile(f);
+                        return (
+                          <div
+                            key={field.key}
+                            className="rounded-xl border border-slate-200 bg-slate-50 p-3"
+                          >
+                            <p className="mb-2 text-sm font-medium text-slate-700">
+                              {field.label}
+                            </p>
 
-                            const reader = new FileReader();
-                            reader.onload = () =>
-                              setFilePreview(reader.result as string);
-                            reader.readAsDataURL(f);
+                            <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg border border-slate-200 bg-white">
+                              {canRender && src ? (
+                                <Image
+                                  alt={field.label}
+                                  src={src}
+                                  fill
+                                  sizes="(max-width: 768px) 100vw, 33vw"
+                                  className="object-cover"
+                                  unoptimized
+                                />
+                              ) : (
+                                <div className="flex h-full items-center justify-center text-xs text-slate-500">
+                                  Δεν υπάρχει εικόνα
+                                </div>
+                              )}
+                            </div>
 
-                            setToast("Τοπική προεπισκόπηση εικόνας.");
-                          }}
-                        />
-                        Επιλογή αρχείου
-                      </label>
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                              <label className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs cursor-pointer hover:border-[rgb(var(--primary))]">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const f = e.target.files?.[0];
+                                    if (!f) return;
 
-                      {(filePreview || selectedFile) && (
-                        <button
-                          type="button"
-                          className="text-xs underline underline-offset-2"
-                          onClick={() => {
-                            setSelectedFile(null);
-                            setFilePreview(null);
-                          }}
-                        >
-                          Καθαρισμός επιλογής
-                        </button>
-                      )}
+                                    onSelectImage(field.key, f);
+                                    e.target.value = "";
+                                  }}
+                                />
+                                Επιλογή αρχείου
+                              </label>
+
+                              {hasLocalSelection && (
+                                <button
+                                  type="button"
+                                  className="text-xs underline underline-offset-2"
+                                  onClick={() => clearSelectedImage(field.key)}
+                                >
+                                  Καθαρισμός επιλογής
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <label className="block text-sm font-medium text-slate-700">
+                      Τίτλος ενότητας μικρών καρτών
+                    </label>
+
+                    <input
+                      type="text"
+                      value={data.smallCardsSectionTitle ?? ""}
+                      onChange={(e) =>
+                        setData((s) => ({
+                          ...s,
+                          smallCardsSectionTitle: e.target.value,
+                        }))
+                      }
+                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                    />
+                  </div>
+
+                  <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {SMALL_CARD_TEXT_FIELDS.map((card) => (
+                      <div
+                        key={card.label}
+                        className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                      >
+                        <p className="mb-3 text-sm font-semibold text-slate-700">
+                          {card.label}
+                        </p>
+
+                        <label className="block text-sm font-medium text-slate-700">
+                          Τίτλος
+                        </label>
+
+                        <input
+                          type="text"
+                          value={data[card.titleKey] ?? ""}
+                          onChange={(e) =>
+                            setData((s) => ({
+                              ...s,
+                              [card.titleKey]: e.target.value,
+                            }))
+                          }
+                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                        />
+
+                        <label className="mt-3 block text-sm font-medium text-slate-700">
+                          Κείμενο
+                        </label>
+
+                        <textarea
+                          value={data[card.textKey] ?? ""}
+                          onChange={(e) =>
+                            setData((s) => ({
+                              ...s,
+                              [card.textKey]: e.target.value,
+                            }))
+                          }
+                          rows={4}
+                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                        />
+                      </div>
+                    ))}
                   </div>
 
                   <div className="mt-6">
@@ -338,14 +613,6 @@ export default function ManagementHomePage() {
 
                     <button
                       type="button"
-                      onClick={onReloadFromApi}
-                      className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm hover:border-[rgb(var(--primary))] transition"
-                    >
-                      Φόρτωση από API
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={onResetLocal}
                       className="inline-flex items-center justify-center rounded-full border border-rose-200 bg-white px-4 py-2 text-sm text-rose-700 hover:border-rose-300 transition"
                     >
@@ -360,23 +627,37 @@ export default function ManagementHomePage() {
               <h3 className="text-lg font-semibold">Ζωντανή Προεπισκόπηση</h3>
 
               <div className="mt-3 space-y-4">
-                <div className="aspect-[16/9] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 relative">
-                  {canRenderImage && previewSrc ? (
-                    <Image
-                      alt="Hero preview"
-                      src={previewSrc}
-                      fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      className="object-cover"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                      Δεν υπάρχει εικόνα
-                    </div>
-                  )}
-                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  {IMAGE_FIELDS.map((field) => {
+                    const src = getPreviewSrc(field);
+                    const canRender = isSafeImageSrc(src);
 
+                    return (
+                      <div key={field.key}>
+                        <p className="mb-1 text-xs font-medium text-slate-600">
+                          {field.label}
+                        </p>
+
+                        <div className="aspect-[16/9] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 relative">
+                          {canRender && src ? (
+                            <Image
+                              alt={field.label}
+                              src={src}
+                              fill
+                              sizes="(max-width: 768px) 100vw, 33vw"
+                              className="object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-sm text-slate-500">
+                              Δεν υπάρχει εικόνα
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
                 <div>
                   <h4 className="text-xl font-semibold">
                     {data.title || "Χωρίς τίτλο"}
@@ -416,26 +697,6 @@ export default function ManagementHomePage() {
                   ) : (
                     <p className="mt-1 text-slate-600">—</p>
                   )}
-                </div>
-
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-                  <p className="mb-1 font-medium">JSON προς backend:</p>
-
-                  <pre className="whitespace-pre-wrap break-words">
-                    {JSON.stringify(
-                      {
-                        id: data.id,
-                        title: data.title,
-                        info: data.info,
-                        biography: data.biography,
-                        phylosophy: data.phylosophy,
-                        mainPictureId: data.mainPictureId,
-                        selectedFileName: selectedFile?.name ?? null,
-                      },
-                      null,
-                      2
-                    )}
-                  </pre>
                 </div>
               </div>
             </Card>
