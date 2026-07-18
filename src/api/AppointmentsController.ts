@@ -22,6 +22,7 @@ export type AppointmentsGetDto = {
   customerEmail: string;
   customerPhone: string;
   status?: AppointmentStatus;
+  message?: string | null;
 };
 
 export type AppointmentsPostDto = {
@@ -30,6 +31,7 @@ export type AppointmentsPostDto = {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  message?: string | null;
 };
 
 export type AppointmentStatusPutDto = {
@@ -76,6 +78,21 @@ function normalizeTimeToHHMM(value: string) {
   return value.slice(0, 5);
 }
 
+function extractAthensTime(value: string): string | null {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat("el-GR", {
+    timeZone: "Europe/Athens",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
 function normalizeAvailableSlots(data: unknown): string[] {
   if (!Array.isArray(data)) return [];
 
@@ -83,13 +100,13 @@ function normalizeAvailableSlots(data: unknown): string[] {
     .map((item) => {
       if (typeof item === "string") {
         if (item.includes("T")) {
-          const date = new Date(item);
-          if (!Number.isNaN(date.getTime())) {
-            return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-          }
+          return extractAthensTime(item);
         }
 
-        if (/^\d{2}:\d{2}/.test(item)) return normalizeTimeToHHMM(item);
+        if (/^\d{2}:\d{2}/.test(item)) {
+          return normalizeTimeToHHMM(item);
+        }
+
         return null;
       }
 
@@ -100,23 +117,25 @@ function normalizeAvailableSlots(data: unknown): string[] {
           record.time ??
           record.slot ??
           record.value ??
-          record.startTime;
+          record.startTime ??
+          record.startAt;
 
-        if (typeof maybeTime === "string") {
-          if (maybeTime.includes("T")) {
-            const date = new Date(maybeTime);
-            if (!Number.isNaN(date.getTime())) {
-              return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-            }
-          }
+        if (typeof maybeTime !== "string") {
+          return null;
+        }
 
-          if (/^\d{2}:\d{2}/.test(maybeTime)) return normalizeTimeToHHMM(maybeTime);
+        if (maybeTime.includes("T")) {
+          return extractAthensTime(maybeTime);
+        }
+
+        if (/^\d{2}:\d{2}/.test(maybeTime)) {
+          return normalizeTimeToHHMM(maybeTime);
         }
       }
 
       return null;
     })
-    .filter((v): v is string => Boolean(v));
+    .filter((value): value is string => Boolean(value));
 
   return Array.from(new Set(out)).sort((a, b) => a.localeCompare(b));
 }

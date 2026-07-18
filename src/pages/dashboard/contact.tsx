@@ -20,11 +20,15 @@ import {
   type UsefulInfoGetDto,
 } from "@/api/UsefulInfoController";
 import RichTextEditor from "@/components/admin/RichTextEditor";
-
 import {
   NewsletterSubscribersApi,
   type NewsletterSubscriberGetDto,
 } from "@/api/NewsletterSubscribersController";
+import {
+  OfficeHoursApi,
+  type OfficeHoursPostDto,
+  type WeeklyOfficeHours,
+} from "@/api/OfficeHoursController";
 
 const cx = (...c: (string | false | null | undefined)[]) =>
   c.filter(Boolean).join(" ");
@@ -43,7 +47,7 @@ const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
   </div>
 );
 
-type Tab = "bookings" | "messages" | "newsletter" | "usefulInfo";
+type Tab = "bookings" | "messages" | "newsletter" | "usefulInfo" | "officeHours";
 
 type Slot = {
   id: string;
@@ -67,6 +71,7 @@ type CreateAppointmentErrors = Partial<{
   customerEmail: string;
   customerPhone: string;
   slot: string;
+  message: string;
 }>;
 
 function stripHtml(value?: string | null) {
@@ -213,6 +218,7 @@ export default function ManagementContactPage() {
                 { key: "messages", label: "Μηνύματα" },
                 { key: "newsletter", label: "Newsletter" },
                 { key: "usefulInfo", label: "Χρήσιμες Πληροφορίες" },
+                { key: "officeHours", label: "Ώρες Λειτουργίας" },
               ].map((t) => (
                 <button
                   key={t.key}
@@ -234,6 +240,7 @@ export default function ManagementContactPage() {
           {active === "messages" && <MessagesManager />}
           {active === "newsletter" && <NewsletterManager />}
           {active === "usefulInfo" && <UsefulInfoManager />}
+          {active === "officeHours" && <OfficeHoursManager />}
         </div>
       </div>
     </>
@@ -241,7 +248,6 @@ export default function ManagementContactPage() {
 }
 
 /* =============== ΡΑΝΤΕΒΟΥ =============== */
-
 function BookingsManager() {
   const [all, setAll] = useState<AppointmentsGetDto[]>([]);
   const [services, setServices] = useState<ProvidedServicesGetDto[]>([]);
@@ -390,6 +396,7 @@ function BookingsManager() {
           b.customerName,
           b.customerEmail,
           b.customerPhone,
+          b.message,
           b.providedService?.title,
           b.providedService?.category,
           b.providedService?.description,
@@ -487,6 +494,10 @@ function BookingsManager() {
       }
     }
 
+    if (form.message.trim().length > 2000) {
+      errors.message = "Το μήνυμα δεν μπορεί να ξεπερνά τους 2000 χαρακτήρες.";
+    }
+
     if (!createSelectedSlot) {
       errors.slot = "Παρακαλούμε επιλέξτε διαθέσιμη ημέρα και ώρα.";
     }
@@ -525,6 +536,7 @@ function BookingsManager() {
         customerName: createForm.customerName.trim(),
         customerEmail: createForm.customerEmail.trim(),
         customerPhone: createForm.customerPhone.trim(),
+        message: createForm.message?.trim() || null,
       };
 
       const created = await AppointmentsApi.create(payload);
@@ -554,6 +566,7 @@ function BookingsManager() {
         customerName: b.customerName,
         customerEmail: b.customerEmail,
         customerPhone: b.customerPhone,
+        message: b.message || null,
       };
 
       await AppointmentsApi.update(b.id, payload);
@@ -1000,12 +1013,17 @@ function BookingsManager() {
                       <textarea
                         rows={4}
                         value={createForm.message}
-                        onChange={(e) =>
+                        onChange={(e) => {
                           setCreateForm((prev) => ({
                             ...prev,
                             message: e.target.value,
-                          }))
-                        }
+                          }));
+
+                          setCreateErrors((prev) => ({
+                            ...prev,
+                            message: undefined,
+                          }));
+                        }}
                         disabled={creating}
                         className="mt-1 w-full rounded-xl border border-black bg-white px-3 py-2 text-[15px] text-slate-900 outline-none focus:border-[rgb(var(--primary))] disabled:cursor-not-allowed disabled:opacity-60"
                         placeholder="Τυχόν απορίες ή προτιμήσεις."
@@ -1188,6 +1206,18 @@ function AppointmentCard({
               </div>
             </div>
           </div>
+
+          {b.message?.trim() && (
+            <div className="mt-3 rounded-xl bg-slate-50 px-3 py-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Μήνυμα
+              </div>
+
+              <p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">
+                {b.message}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="flex shrink-0 flex-wrap gap-2 lg:justify-end">
@@ -1308,6 +1338,26 @@ function AppointmentCard({
                 className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))]"
               />
             </div>
+
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Μήνυμα
+              </label>
+
+              <textarea
+                rows={4}
+                value={b.message ?? ""}
+                onChange={(e) =>
+                  setB((prev) => ({
+                    ...prev,
+                    message: e.target.value,
+                  }))
+                }
+                className="w-full resize-y rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[rgb(var(--primary))]"
+                placeholder="Προαιρετικό μήνυμα ή σημείωση"
+              />
+            </div>
+
           </div>
 
           <div className="mt-4 flex flex-wrap justify-end gap-2">
@@ -1339,9 +1389,7 @@ function AppointmentCard({
 }
 
 
-
 /* =============== NEWSLETTER =============== */
-
 function escapeCsvValue(value: string | number | boolean | null | undefined) {
   const text = String(value ?? "");
 
@@ -1397,8 +1445,6 @@ function downloadTextFile(filename: string, content: string) {
 
   URL.revokeObjectURL(url);
 }
-
-
 
 function NewsletterManager() {
   const [subscribers, setSubscribers] = useState<NewsletterSubscriberGetDto[]>(
@@ -1602,15 +1648,7 @@ function NewsletterManager() {
 }
 
 
-
-
-
-
-
-
-
 /* =============== ΜΗΝΥΜΑΤΑ =============== */
-
 function MessagesManager() {
   const [messages, setMessages] = useState<ContactMessagesGetDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1726,8 +1764,8 @@ function MessagesManager() {
   );
 }
 
-/* =============== ΧΡΗΣΙΜΕΣ ΠΛΗΡΟΦΟΡΙΕΣ =============== */
 
+/* =============== ΧΡΗΣΙΜΕΣ ΠΛΗΡΟΦΟΡΙΕΣ =============== */
 function UsefulInfoManager() {
   const [item, setItem] = useState<UsefulInfoGetDto | null>(null);
   const [title, setTitle] = useState("");
@@ -1866,6 +1904,385 @@ function UsefulInfoManager() {
               >
                 {saving ? "Αποθήκευση…" : "Αποθήκευση"}
               </button>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {toast && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-sm text-white shadow-lg">
+          {toast}
+        </div>
+      )}
+    </>
+  );
+}
+
+
+/* =============== ΩΡΕΣ ΓΡΑΦΕΙΟΥ =============== */
+type OfficeHoursFormRow = {
+  dayOfWeek: number;
+  label: string;
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
+};
+
+const officeDays: Array<{
+  dayOfWeek: number;
+  key: keyof WeeklyOfficeHours;
+  label: string;
+}> = [
+  {
+    dayOfWeek: 0,
+    key: "monday",
+    label: "Δευτέρα",
+  },
+  {
+    dayOfWeek: 1,
+    key: "tuesday",
+    label: "Τρίτη",
+  },
+  {
+    dayOfWeek: 2,
+    key: "wednesday",
+    label: "Τετάρτη",
+  },
+  {
+    dayOfWeek: 3,
+    key: "thursday",
+    label: "Πέμπτη",
+  },
+  {
+    dayOfWeek: 4,
+    key: "friday",
+    label: "Παρασκευή",
+  },
+  {
+    dayOfWeek: 5,
+    key: "saturday",
+    label: "Σάββατο",
+  },
+  {
+    dayOfWeek: 6,
+    key: "sunday",
+    label: "Κυριακή",
+  },
+];
+
+function normalizeTime(value?: string | null) {
+  if (!value) return "09:00";
+
+  return value.slice(0, 5);
+}
+
+function weeklyResponseToRows(
+  weekly: WeeklyOfficeHours
+): OfficeHoursFormRow[] {
+  return officeDays.map((day) => {
+    const existing = weekly[day.key]?.[0];
+
+    return {
+      dayOfWeek: day.dayOfWeek,
+      label: day.label,
+      startTime: normalizeTime(existing?.startTime),
+      endTime: normalizeTime(existing?.endTime) || "17:00",
+      isActive: existing?.isActive ?? false,
+    };
+  });
+}
+
+function OfficeHoursManager() {
+  const [rows, setRows] = useState<OfficeHoursFormRow[]>([]);
+  const [originalRows, setOriginalRows] = useState<
+    OfficeHoursFormRow[]
+  >([]);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function loadOfficeHours() {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const weekly = await OfficeHoursApi.getWeekly();
+      const mappedRows = weeklyResponseToRows(weekly);
+
+      setRows(mappedRows);
+      setOriginalRows(mappedRows);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Δεν ήταν δυνατή η φόρτωση των ωρών γραφείου."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadOfficeHours();
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, 1800);
+
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  function updateRow(
+    dayOfWeek: number,
+    updates: Partial<OfficeHoursFormRow>
+  ) {
+    setRows((previous) =>
+      previous.map((row) =>
+        row.dayOfWeek === dayOfWeek
+          ? {
+              ...row,
+              ...updates,
+            }
+          : row
+      )
+    );
+
+    setError(null);
+  }
+
+  function validateRows() {
+    const timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+    for (const row of rows) {
+      if (!row.isActive) continue;
+
+      if (!row.startTime || !row.endTime) {
+        return `Συμπληρώστε ώρες για ${row.label}.`;
+      }
+
+      if (!timePattern.test(row.startTime)) {
+        return `Η ώρα έναρξης για ${row.label} πρέπει να είναι στη μορφή ΩΩ:ΛΛ/ΩΩΛΛ, π.χ. 09:00.`;
+      }
+
+      if (!timePattern.test(row.endTime)) {
+        return `Η ώρα λήξης για ${row.label} πρέπει να είναι στη μορφή ΩΩ:ΛΛ/ΩΩΛΛ, π.χ. 17:00.`;
+      }
+
+      if (row.startTime >= row.endTime) {
+        return `Η ώρα έναρξης πρέπει να είναι πριν από την ώρα λήξης για ${row.label}.`;
+      }
+    }
+
+    return null;
+  }
+
+  async function handleSave() {
+    const validationError = validateRows();
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    const payload: OfficeHoursPostDto[] = rows.map((row) => ({
+      dayOfWeek: row.dayOfWeek,
+      startTime: row.startTime,
+      endTime: row.endTime,
+      isActive: row.isActive,
+    }));
+
+    try {
+      setSaving(true);
+      setError(null);
+
+      await OfficeHoursApi.replaceWeekly(payload);
+
+      const weekly = await OfficeHoursApi.getWeekly();
+      const freshRows = weeklyResponseToRows(weekly);
+
+      setRows(freshRows);
+      setOriginalRows(freshRows);
+      setToast("Οι ώρες γραφείου αποθηκεύτηκαν.");
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Δεν ήταν δυνατή η αποθήκευση."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleReset() {
+    setRows(originalRows.map((row) => ({ ...row })));
+    setError(null);
+  }
+
+  function normalizeTypedTime(value: string) {
+    const digits = value.replace(/\D/g, "").slice(0, 4);
+
+    if (digits.length <= 2) {
+      return digits;
+    }
+
+    return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+  }
+
+  const hasChanges =
+    JSON.stringify(rows) !== JSON.stringify(originalRows);
+
+  return (
+    <>
+      <Card className="p-4 md:p-5">
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-slate-900">
+            Ώρες Γραφείου
+          </h2>
+
+          <p className="mt-1 max-w-3xl text-sm text-slate-600">
+            Επιλέξτε τις ημέρες κατά τις οποίες δέχεστε ραντεβού
+            και ορίστε το ωράριο κάθε ημέρας.
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+            Φόρτωση ωρών γραφείου…
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {rows.map((row) => (
+              <div
+                key={row.dayOfWeek}
+                className={cx(
+                  "grid gap-4 rounded-2xl border p-4 transition md:grid-cols-[180px_1fr_1fr_auto] md:items-center",
+                  row.isActive
+                    ? "border-slate-200 bg-white"
+                    : "border-slate-200 bg-slate-50/70"
+                )}
+              >
+                <div>
+                  <div className="font-semibold text-slate-900">
+                    {row.label}
+                  </div>
+
+                  <div
+                    className={cx(
+                      "mt-1 text-xs font-medium",
+                      row.isActive
+                        ? "text-emerald-700"
+                        : "text-slate-500"
+                    )}
+                  >
+                    {row.isActive ? "Ανοιχτά" : "Κλειστά"}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Από
+                  </label>
+
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={row.startTime}
+                    disabled={!row.isActive || saving}
+                    placeholder="09:00 ή 0900"
+                    maxLength={5}
+                    onChange={(event) =>
+                      updateRow(row.dayOfWeek, {
+                        startTime: normalizeTypedTime(event.target.value),
+                      })
+                    }
+                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Έως
+                  </label>
+
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={row.endTime}
+                    disabled={!row.isActive || saving}
+                    placeholder="17:00 ή 1700"
+                    maxLength={5}
+                    onChange={(event) =>
+                      updateRow(row.dayOfWeek, {
+                        endTime: normalizeTypedTime(event.target.value),
+                      })
+                    }
+                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                  />
+                </div>
+
+                <label className="flex cursor-pointer items-center gap-3 md:justify-end">
+                  <input
+                    type="checkbox"
+                    checked={row.isActive}
+                    disabled={saving}
+                    onChange={(event) =>
+                      updateRow(row.dayOfWeek, {
+                        isActive: event.target.checked,
+                      })
+                    }
+                    className="h-5 w-5 accent-[rgb(var(--primary))]"
+                  />
+
+                  <span className="text-sm font-medium text-slate-700">
+                    Ενεργή ημέρα
+                  </span>
+                </label>
+              </div>
+            ))}
+
+            {error && (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                {error}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-slate-500">
+                Οι μη ενεργές ημέρες δεν θα εμφανίζονται ως διαθέσιμες
+                για ραντεβού.
+              </p>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  disabled={!hasChanges || saving}
+                  className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Ακύρωση αλλαγών
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={!hasChanges || saving}
+                  className={cx(
+                    "rounded-full px-5 py-2 text-sm font-semibold text-white transition",
+                    !hasChanges || saving
+                      ? "cursor-not-allowed bg-[rgba(var(--primary),0.6)]"
+                      : "bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary-dark))]"
+                  )}
+                >
+                  {saving ? "Αποθήκευση…" : "Αποθήκευση"}
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -1,6 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppointmentsApi } from "../../api/AppointmentsController";
 import { ProvidedServicesApi } from "../../api/ProvidedServicesController";
 import LeafBurstButton from "@/components/decorative/LeafBurstButton";
@@ -46,6 +46,7 @@ type FieldErrors = Partial<{
   phone: string;
   email: string;
   slot: string;
+  message: string;
 }>;
 
 const INPUT_BASE =
@@ -108,6 +109,9 @@ export default function BookPage() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const successRef = useRef<HTMLDivElement | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   const [successPayload, setSuccessPayload] = useState<null | {
     serviceLabel: string;
@@ -183,6 +187,15 @@ export default function BookPage() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!successPayload) return;
+
+    successRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [successPayload]);
 
   useEffect(() => {
     let mounted = true;
@@ -279,16 +292,29 @@ export default function BookPage() {
     setTouched((p) => ({ ...p, [name]: true }));
   }
 
-  function validate(payload: { fullName?: string; phone?: string; email?: string }) {
+  function validate(payload: { fullName?: string; phone?: string; email?: string, message?: string }) {
     const next: FieldErrors = {};
 
     if (!selectedService) next.service = "Παρακαλούμε επιλέξτε υπηρεσία.";
+
     if (!payload.fullName?.trim()) next.fullName = "Συμπληρώστε ονοματεπώνυμο.";
+
     if (!payload.email?.trim()) {
       next.email = "Συμπληρώστε email.";
     } else {
       const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email.trim());
       if (!ok) next.email = "Συμπληρώστε έγκυρο email.";
+    }
+
+    const phone = payload.phone?.trim() || "";
+    if (phone && !/^\+?\d{10,15}$/.test(phone)) {
+      next.phone = "Το τηλέφωνο πρέπει να περιέχει 10–15 ψηφία, προαιρετικά με +.";
+    }
+
+    const message = payload.message?.trim() || "";
+    if (message.length > 2000) {
+      next.message =
+        "Το μήνυμα δεν μπορεί να ξεπερνά τους 2000 χαρακτήρες.";
     }
 
     if (!selectedSlot) next.slot = "Παρακαλούμε επιλέξτε διαθέσιμη ημέρα και ώρα.";
@@ -301,6 +327,52 @@ export default function BookPage() {
     }
 
     return next;
+  }
+
+  async function loadAvailability() {
+    if (!selectedService) return;
+
+    setSlotsLoading(true);
+
+    try {
+      const dates = await AppointmentsApi.getAvailableDates({
+        fromDate: todayDateOnly(),
+        daysAhead: 30,
+      });
+
+      const allSlots: Slot[] = [];
+
+      for (const dateStr of dates) {
+        const times = await AppointmentsApi.getAvailableSlots(dateStr);
+
+        for (const timeStr of times) {
+          allSlots.push({
+            id: `${selectedService}-${dateStr}-${timeStr}`,
+            serviceId: Number(selectedService),
+            dateStr,
+            timeStr,
+            durationMin: 60,
+          });
+        }
+      }
+
+      allSlots.sort(
+        (a, b) =>
+          combineToDate(a.dateStr, a.timeStr).getTime() -
+          combineToDate(b.dateStr, b.timeStr).getTime()
+      );
+
+      setSlots(allSlots);
+
+      if (
+        selectedSlotId &&
+        !allSlots.some((slot) => slot.id === selectedSlotId)
+      ) {
+        setSelectedSlotId("");
+      }
+    } finally {
+      setSlotsLoading(false);
+    }
   }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -322,10 +394,11 @@ export default function BookPage() {
       fullName: true,
       email: true,
       slot: true,
-      phone: p.phone || false,
+      phone: true,
+      message: true,
     }));
 
-    const nextErrors = validate({ fullName, phone, email });
+    const nextErrors = validate({ fullName, phone, email, message });
     setFieldErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) {
@@ -351,6 +424,7 @@ export default function BookPage() {
         customerName: fullName.trim(),
         customerEmail: email.trim(),
         customerPhone: phone.trim(),
+        message: message.trim() || null,
       });
 
       setSuccessPayload({
@@ -374,6 +448,7 @@ export default function BookPage() {
       const messageText =
         err instanceof Error ? err.message : "Κάτι πήγε στραβά. Δοκιμάστε ξανά.";
       setSubmitError(messageText);
+      await loadAvailability();
     } finally {
       setLoading(false);
     }
@@ -408,7 +483,10 @@ export default function BookPage() {
           </header>
 
           {successPayload && (
-            <div className="mb-6 rounded-2xl bg-white p-6 ring-1 ring-accent/25 shadow-[0_16px_34px_rgba(164,199,126,0.14)]">
+            <div
+              ref={successRef}
+              className="mb-6 scroll-mt-6 rounded-2xl bg-white p-6 ring-1 ring-accent/25 shadow-[0_16px_34px_rgba(164,199,126,0.14)]"
+            >
               <h2 className="text-xl font-semibold text-slate-900">Το αίτημά σας υποβλήθηκε</h2>
               <p className="mt-1 text-base text-slate-700">Θα σας στείλουμε email για επιβεβαίωση.</p>
 
@@ -451,11 +529,29 @@ export default function BookPage() {
               </div>
 
               <div className="mt-5">
-                <LeafBurstButton
-                  text="Κλείστε νέο ραντεβού"
-                  href="/contact/book"
-                  buttonClassName="inline-flex h-12 items-center rounded-xl bg-primary px-4 text-[15px] font-semibold text-white transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
-                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSuccessPayload(null);
+                    setSubmitError(null);
+                    setFieldErrors({});
+                    setTouched({});
+                    setSelectedService("");
+                    setSelectedDate("");
+                    setSelectedSlotId("");
+                    setSlots([]);
+
+                    requestAnimationFrame(() => {
+                      formRef.current?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start",
+                      });
+                    });
+                  }}
+                  className="inline-flex h-12 items-center rounded-xl bg-primary px-4 text-[15px] font-semibold text-white transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
+                >
+                  Κλείστε νέο ραντεβού
+                </button>
               </div>
             </div>
           )}
@@ -463,6 +559,7 @@ export default function BookPage() {
           <div className="grid gap-5 md:grid-cols-5 md:gap-6">
             <div className="md:col-span-3">
               <form
+                ref={formRef}
                 onSubmit={onSubmit}
                 className="rounded-2xl bg-white p-6 shadow-[0_16px_34px_rgba(255,230,150,0.10)] ring-2 ring-warm/40"
               >
@@ -740,7 +837,19 @@ export default function BookPage() {
                     <textarea
                       name="message"
                       rows={4}
+                      maxLength={2000}
                       disabled={loading}
+                      onBlur={() => markTouched("message")}
+                      onChange={() =>
+                        setFieldErrors((previous) => ({
+                          ...previous,
+                          message: undefined,
+                        }))
+                      }
+                      aria-invalid={show("message")}
+                      aria-describedby={
+                        show("message") ? "message-error" : undefined
+                      }
                       className={[
                         "mt-1 w-full rounded-xl bg-white px-3 py-2 text-[15px] text-slate-900 ring-1 ring-accent/30 outline-none",
                         "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35",
@@ -748,6 +857,12 @@ export default function BookPage() {
                       ].join(" ")}
                       placeholder="Τυχόν απορίες ή προτιμήσεις."
                     />
+
+                    {show("message") && (
+                      <p id="message-error" className={ERROR_TEXT}>
+                        {fieldErrors.message}
+                      </p>
+                    )}
                   </div>
                 </div>
 

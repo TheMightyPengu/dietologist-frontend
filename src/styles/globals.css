@@ -2,19 +2,25 @@
 
 :root {
   /* Brand palette */
-  --primary: 105 133 86;        /* #698556 - olive/sage green */
-  --primary-dark: 63 88 52;     /* #3f5834 - deeper green */
-  --accent: 198 139 92;         /* #c68b5c - warm terracotta */
-  --accent-soft: 226 238 217;   /* #e2eed9 - soft leafy green */
-  --warm: 244 226 198;          /* #f4e2c6 - warm sand/cream */
+  --primary: 105 133 86;
+  --primary-dark: 63 88 52;
+  --accent: 198 139 92;
+  --accent-soft: 226 238 217;
+  --warm: 244 226 198;
 
   /* Neutrals */
-  --bg: 251 247 239;            /* #fbf7ef - warm cream */
-  --surface: 255 255 255;       /* #ffffff */
-  --surface-soft: 247 241 231;  /* #f7f1e7 */
-  --ink: 35 49 35;              /* #233123 - natural dark green */
-  --muted: 103 116 96;          /* #677460 */
-  --border: 222 231 214;        /* #dee7d6 */
+  --bg: 251 247 239;
+  --surface: 255 255 255;
+  --surface-soft: 247 241 231;
+  --ink: 35 49 35;
+  --muted: 103 116 96;
+  --border: 222 231 214;
+
+  /* Additional editable colors */
+  --button-text: 255 255 255;
+  --background-gradient-one: 223 234 203;
+  --background-gradient-two: 200 217 176;
+  --background-gradient-three: 240 220 192;
 
   /* Role tokens */
   --link: var(--primary);
@@ -51,16 +57,27 @@ body {
   margin: 0;
   padding: 0;
   background:
-    radial-gradient(circle at 8% 10%, rgba(223, 234, 203, 0.75), transparent 32%),
-    radial-gradient(circle at 92% 35%, rgba(200, 217, 176, 0.55), transparent 30%),
-    radial-gradient(circle at 45% 95%, rgba(240, 220, 192, 0.55), transparent 34%),
-    #f7f4ec;
+    radial-gradient(
+      circle at 8% 10%,
+      rgba(var(--background-gradient-one), 0.75),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 92% 35%,
+      rgba(var(--background-gradient-two), 0.55),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 45% 95%,
+      rgba(var(--background-gradient-three), 0.55),
+      transparent 34%
+    ),
+    rgb(var(--bg));
+
   background-attachment: fixed;
   color: rgb(var(--ink));
   line-height: 1.65;
 }
-
-
 
 /* === TYPOGRAPHY === */
 
@@ -205,7 +222,7 @@ a.btn-primary {
   justify-content: center;
   gap: 0.5rem;
   background: rgb(var(--primary));
-  color: #fff;
+  color: rgb(var(--button-text));
   border: none;
   border-radius: 999px;
   padding: 0.8rem 1.65rem;
@@ -229,7 +246,7 @@ a.btn-warm {
   align-items: center;
   justify-content: center;
   background: rgb(var(--accent));
-  color: #fff;
+  color: rgb(var(--button-text));
   border: none;
   border-radius: 999px;
   padding: 0.8rem 1.65rem;
