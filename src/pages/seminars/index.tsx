@@ -1,35 +1,68 @@
 import Head from "next/head";
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getSeminars, type Seminar } from "@/api/SeminarsController";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 import LeafBurstButton from "@/components/decorative/LeafBurstButton";
+import { toMediaUrl } from "@/api/_axios-client";
 
 type SortKey =
-  | "upcoming"
-  | "newest"
-  | "oldest"
+  | "dateNear"
+  | "dateFar"
   | "priceAsc"
   | "priceDesc"
-  | "durationAsc";
+  | "durationAsc"
+  | "durationDesc";
 
 type DatePreset = "all" | "upcoming" | "today" | "past";
 type PricePreset = "all" | "free" | "paid";
-type DurationPreset = "all" | "short" | "medium" | "long";
 
 const PAGE_SIZE = 9;
 
-const IMAGE_FALLBACK =
-  "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=1200&auto=format&fit=crop";
+const IMAGE_FALLBACK = "/images/seminar-placeholder.webp";
 
 function stripHtml(value: string) {
-  return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
+function paginateNumbers(
+  totalPages: number,
+  currentPage: number,
+): Array<number | "…"> {
+  const maximumVisible = 7;
+
+  if (totalPages <= maximumVisible) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const pages: Array<number | "…"> = [];
+  const left = Math.max(2, currentPage - 1);
+  const right = Math.min(totalPages - 1, currentPage + 1);
+
+  pages.push(1);
+
+  if (left > 2) {
+    pages.push("…");
+  }
+
+  for (let page = left; page <= right; page += 1) {
+    pages.push(page);
+  }
+
+  if (right < totalPages - 1) {
+    pages.push("…");
+  }
+
+  pages.push(totalPages);
+
+  return pages;
+}
 
 function formatParts(dateISO: string) {
   const d = new Date(dateISO);
@@ -137,7 +170,6 @@ function Badge({
   );
 }
 
-
 function RadioRow({
   label,
   name,
@@ -192,15 +224,14 @@ export default function SeminarsPage() {
 
   const [query, setQuery] = useState("");
   const [typeSet, setTypeSet] = useState<Set<string>>(new Set());
-  const [durationRange, setDurationRange] = useState<[number, number]>([0, 180]);
+  const [durationRange, setDurationRange] = useState<[number, number]>([
+    0, 180,
+  ]);
   const [datePreset, setDatePreset] = useState<DatePreset>("upcoming");
   const [pricePreset, setPricePreset] = useState<PricePreset>("all");
-  const [durationPreset, setDurationPreset] = useState<DurationPreset>("all");
-  const [sortKey, setSortKey] = useState<SortKey>("upcoming");
-
+  const [sortKey, setSortKey] = useState<SortKey>("dateNear");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
 
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<Seminar | null>(null);
@@ -251,9 +282,9 @@ export default function SeminarsPage() {
   }, [open]);
 
   const types = useMemo(() => {
-    return Array.from(
-      new Set(items.map((s) => s.type).filter(Boolean))
-    ).sort((a, b) => a.localeCompare(b, "el"));
+    return Array.from(new Set(items.map((s) => s.type).filter(Boolean))).sort(
+      (a, b) => a.localeCompare(b, "el"),
+    );
   }, [items]);
 
   const minDuration = useMemo(() => {
@@ -267,16 +298,8 @@ export default function SeminarsPage() {
   }, [items]);
 
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [
-    query,
-    typeSet,
-    durationRange,
-    datePreset,
-    pricePreset,
-    durationPreset,
-    sortKey,
-  ]);
+    setPage(1);
+  }, [query, typeSet, durationRange, datePreset, pricePreset, sortKey]);
 
   function toggleType(type: string) {
     setTypeSet((prev) => {
@@ -296,9 +319,8 @@ export default function SeminarsPage() {
     setDurationRange([minDuration, maxDuration]);
     setDatePreset("upcoming");
     setPricePreset("all");
-    setDurationPreset("all");
-    setSortKey("upcoming");
-    setVisibleCount(PAGE_SIZE);
+    setSortKey("dateNear");
+    setPage(1);
   }
 
   function openModal(seminar: Seminar) {
@@ -358,25 +380,7 @@ export default function SeminarsPage() {
         return false;
       }
 
-      if (durationPreset === "short" && s.duration > 60) {
-        return false;
-      }
-
-      if (
-        durationPreset === "medium" &&
-        (s.duration < 61 || s.duration > 120)
-      ) {
-        return false;
-      }
-
-      if (durationPreset === "long" && s.duration < 121) {
-        return false;
-      }
-
-      if (
-        s.duration < durationRange[0] ||
-        s.duration > durationRange[1]
-      ) {
+      if (s.duration < durationRange[0] || s.duration > durationRange[1]) {
         return false;
       }
 
@@ -384,31 +388,74 @@ export default function SeminarsPage() {
     });
 
     list = list.sort((a, b) => {
+      const now = Date.now();
+
       const aTime = new Date(a.dateTime).getTime();
       const bTime = new Date(b.dateTime).getTime();
 
-      switch (sortKey) {
-        case "upcoming": {
-          const safeA = isNaN(aTime) ? Number.MAX_SAFE_INTEGER : aTime;
-          const safeB = isNaN(bTime) ? Number.MAX_SAFE_INTEGER : bTime;
+      const aHasValidDate = !Number.isNaN(aTime);
+      const bHasValidDate = !Number.isNaN(bTime);
 
-          return safeA - safeB;
+      switch (sortKey) {
+        case "dateNear": {
+          if (!aHasValidDate && !bHasValidDate) {
+            return a.id - b.id;
+          }
+
+          if (!aHasValidDate) {
+            return 1;
+          }
+
+          if (!bHasValidDate) {
+            return -1;
+          }
+
+          const difference = Math.abs(aTime - now) - Math.abs(bTime - now);
+
+          return difference !== 0 ? difference : a.id - b.id;
         }
 
-        case "newest":
-          return bTime - aTime;
+        case "dateFar": {
+          if (!aHasValidDate && !bHasValidDate) {
+            return a.id - b.id;
+          }
 
-        case "oldest":
-          return aTime - bTime;
+          if (!aHasValidDate) {
+            return 1;
+          }
 
-        case "priceAsc":
-          return a.price - b.price;
+          if (!bHasValidDate) {
+            return -1;
+          }
 
-        case "priceDesc":
-          return b.price - a.price;
+          const difference = Math.abs(bTime - now) - Math.abs(aTime - now);
 
-        case "durationAsc":
-          return a.duration - b.duration;
+          return difference !== 0 ? difference : a.id - b.id;
+        }
+
+        case "priceAsc": {
+          const difference = Number(a.price) - Number(b.price);
+
+          return difference !== 0 ? difference : a.id - b.id;
+        }
+
+        case "priceDesc": {
+          const difference = Number(b.price) - Number(a.price);
+
+          return difference !== 0 ? difference : a.id - b.id;
+        }
+
+        case "durationAsc": {
+          const difference = Number(a.duration) - Number(b.duration);
+
+          return difference !== 0 ? difference : a.id - b.id;
+        }
+
+        case "durationDesc": {
+          const difference = Number(b.duration) - Number(a.duration);
+
+          return difference !== 0 ? difference : a.id - b.id;
+        }
 
         default:
           return 0;
@@ -416,16 +463,7 @@ export default function SeminarsPage() {
     });
 
     return list;
-  }, [
-    items,
-    query,
-    typeSet,
-    durationRange,
-    datePreset,
-    pricePreset,
-    durationPreset,
-    sortKey,
-  ]);
+  }, [items, query, typeSet, durationRange, datePreset, pricePreset, sortKey]);
 
   const activeChips = useMemo(() => {
     const chips: Array<{ key: string; label: string; onRemove: () => void }> =
@@ -456,8 +494,8 @@ export default function SeminarsPage() {
           datePreset === "all"
             ? "Όλα τα σεμινάρια"
             : datePreset === "today"
-            ? "Σήμερα"
-            : "Ολοκληρωμένα",
+              ? "Σήμερα"
+              : "Ολοκληρωμένα",
         onRemove: () => setDatePreset("upcoming"),
       });
     }
@@ -470,23 +508,7 @@ export default function SeminarsPage() {
       });
     }
 
-    if (durationPreset !== "all") {
-      chips.push({
-        key: `durationPreset:${durationPreset}`,
-        label:
-          durationPreset === "short"
-            ? "Έως 60′"
-            : durationPreset === "medium"
-            ? "61′–120′"
-            : "Πάνω από 120′",
-        onRemove: () => setDurationPreset("all"),
-      });
-    }
-
-    if (
-      durationRange[0] !== minDuration ||
-      durationRange[1] !== maxDuration
-    ) {
+    if (durationRange[0] !== minDuration || durationRange[1] !== maxDuration) {
       chips.push({
         key: "duration",
         label: `Ακριβής διάρκεια: ${durationRange[0]}–${durationRange[1]}′`,
@@ -503,21 +525,16 @@ export default function SeminarsPage() {
     maxDuration,
     datePreset,
     pricePreset,
-    durationPreset,
   ]);
 
-  const shownSeminars = useMemo(() => {
-    return filteredSorted.slice(0, visibleCount);
-  }, [filteredSorted, visibleCount]);
+  const totalPages = Math.max(1, Math.ceil(filteredSorted.length / PAGE_SIZE));
 
-  const canLoadMore = shownSeminars.length < filteredSorted.length;
+  const pageClamped = Math.min(totalPages, Math.max(1, page));
 
-  async function onLoadMore() {
-    setIsLoadingMore(true);
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    setVisibleCount((v) => v + PAGE_SIZE);
-    setIsLoadingMore(false);
-  }
+  const pagedSeminars = filteredSorted.slice(
+    (pageClamped - 1) * PAGE_SIZE,
+    pageClamped * PAGE_SIZE,
+  );
 
   const renderFilters = (inDrawer = false) => (
     <aside
@@ -527,6 +544,17 @@ export default function SeminarsPage() {
       ].join(" ")}
       aria-label="Φίλτρα σεμιναρίων"
     >
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold text-slate-900">Φίλτρα</h2>
+
+        <button
+          type="button"
+          onClick={resetAll}
+          className="rounded-lg px-2 py-1 text-xs font-semibold text-primary transition hover:text-primary/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          Καθαρισμός
+        </button>
+      </div>
       <div className="mb-5">
         <label
           htmlFor={inDrawer ? "seminars-q-drawer" : "seminars-q"}
@@ -576,98 +604,6 @@ export default function SeminarsPage() {
               );
             })
           )}
-        </div>
-      </fieldset>
-
-      <fieldset className="mb-5">
-        <legend className="mb-2 text-sm font-medium text-slate-700">
-          Διάρκεια σεμιναρίου
-        </legend>
-
-        <div className="flex items-center justify-between text-sm text-slate-700">
-          <span className="font-medium tabular-nums">
-            {durationRange[0]}′
-          </span>
-
-          <span className="text-slate-400">—</span>
-
-          <span className="font-medium tabular-nums">
-            {durationRange[1]}′
-          </span>
-        </div>
-
-        <div className="mt-3 space-y-3">
-          <input
-            type="range"
-            min={minDuration}
-            max={maxDuration}
-            value={durationRange[0]}
-            onChange={(e) => {
-              const value = clamp(
-                Number(e.target.value),
-                minDuration,
-                durationRange[1]
-              );
-
-              setDurationRange([value, durationRange[1]]);
-            }}
-            className="w-full accent-primary"
-          />
-
-          <input
-            type="range"
-            min={minDuration}
-            max={maxDuration}
-            value={durationRange[1]}
-            onChange={(e) => {
-              const value = clamp(
-                Number(e.target.value),
-                durationRange[0],
-                maxDuration
-              );
-
-              setDurationRange([durationRange[0], value]);
-            }}
-            className="w-full accent-primary"
-          />
-
-          <div className="flex gap-2">
-            <input
-              type="number"
-              min={minDuration}
-              max={maxDuration}
-              value={durationRange[0]}
-              onChange={(e) => {
-                const value = clamp(
-                  Number(e.target.value),
-                  minDuration,
-                  durationRange[1]
-                );
-
-                setDurationRange([value, durationRange[1]]);
-              }}
-              className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-4 focus:ring-primary/20"
-              aria-label="Ελάχιστη διάρκεια"
-            />
-
-            <input
-              type="number"
-              min={minDuration}
-              max={maxDuration}
-              value={durationRange[1]}
-              onChange={(e) => {
-                const value = clamp(
-                  Number(e.target.value),
-                  durationRange[0],
-                  maxDuration
-                );
-
-                setDurationRange([durationRange[0], value]);
-              }}
-              className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-4 focus:ring-primary/20"
-              aria-label="Μέγιστη διάρκεια"
-            />
-          </div>
         </div>
       </fieldset>
 
@@ -738,49 +674,91 @@ export default function SeminarsPage() {
 
       <fieldset className="mb-5">
         <legend className="mb-2 text-sm font-medium text-slate-700">
-          Γρήγορη διάρκεια
+          Διάρκεια σεμιναρίου
         </legend>
 
-        <div className="flex flex-col gap-1.5 text-sm">
-          <RadioRow
-            label="Όλες οι διάρκειες"
-            name={inDrawer ? "seminar-duration-preset-drawer" : "seminar-duration-preset"}
-            checked={durationPreset === "all"}
-            onChange={() => setDurationPreset("all")}
+        <div className="flex items-center justify-between text-sm text-slate-700">
+          <span className="font-medium tabular-nums">{durationRange[0]}′</span>
+
+          <span className="text-slate-400">—</span>
+
+          <span className="font-medium tabular-nums">{durationRange[1]}′</span>
+        </div>
+
+        <div className="mt-3 space-y-3">
+          <input
+            type="range"
+            min={minDuration}
+            max={maxDuration}
+            value={durationRange[0]}
+            onChange={(e) => {
+              const value = clamp(
+                Number(e.target.value),
+                minDuration,
+                durationRange[1],
+              );
+
+              setDurationRange([value, durationRange[1]]);
+            }}
+            className="w-full accent-primary"
           />
 
-          <RadioRow
-            label="Έως 60 λεπτά"
-            name={inDrawer ? "seminar-duration-preset-drawer" : "seminar-duration-preset"}
-            checked={durationPreset === "short"}
-            onChange={() => setDurationPreset("short")}
+          <input
+            type="range"
+            min={minDuration}
+            max={maxDuration}
+            value={durationRange[1]}
+            onChange={(e) => {
+              const value = clamp(
+                Number(e.target.value),
+                durationRange[0],
+                maxDuration,
+              );
+
+              setDurationRange([durationRange[0], value]);
+            }}
+            className="w-full accent-primary"
           />
 
-          <RadioRow
-            label="61–120 λεπτά"
-            name={inDrawer ? "seminar-duration-preset-drawer" : "seminar-duration-preset"}
-            checked={durationPreset === "medium"}
-            onChange={() => setDurationPreset("medium")}
-          />
+          <div className="flex gap-2">
+            <input
+              type="number"
+              min={minDuration}
+              max={maxDuration}
+              value={durationRange[0]}
+              onChange={(e) => {
+                const value = clamp(
+                  Number(e.target.value),
+                  minDuration,
+                  durationRange[1],
+                );
 
-          <RadioRow
-            label="Πάνω από 120 λεπτά"
-            name={inDrawer ? "seminar-duration-preset-drawer" : "seminar-duration-preset"}
-            checked={durationPreset === "long"}
-            onChange={() => setDurationPreset("long")}
-          />
+                setDurationRange([value, durationRange[1]]);
+              }}
+              className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-4 focus:ring-primary/20"
+              aria-label="Ελάχιστη διάρκεια"
+            />
+
+            <input
+              type="number"
+              min={minDuration}
+              max={maxDuration}
+              value={durationRange[1]}
+              onChange={(e) => {
+                const value = clamp(
+                  Number(e.target.value),
+                  durationRange[0],
+                  maxDuration,
+                );
+
+                setDurationRange([durationRange[0], value]);
+              }}
+              className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-4 focus:ring-primary/20"
+              aria-label="Μέγιστη διάρκεια"
+            />
+          </div>
         </div>
       </fieldset>
-
-      <div className="border-t border-slate-200 pt-4">
-        <button
-          type="button"
-          onClick={resetAll}
-          className="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
-        >
-          Καθαρισμός φίλτρων
-        </button>
-      </div>
     </aside>
   );
 
@@ -795,87 +773,114 @@ export default function SeminarsPage() {
       </Head>
 
       <section className="text-slate-800">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-12 md:pt-16 pb-8">
-          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-900">
-                Σεμινάρια
-              </h1>
+        <div className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6 lg:px-8 md:pt-10">
+          <header className="mb-8">
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
+              Σεμινάρια
+            </h1>
 
-              <p className="mt-3 max-w-2xl text-slate-600 leading-relaxed">
-                Μικρές, στοχευμένες ενότητες με πρακτικό περιεχόμενο. Online
-                και δια ζώσης, με έμφαση στην καθημερινή εφαρμογή.
-              </p>
-            </div>
+            <p className="mt-3 max-w-2xl leading-relaxed text-slate-600">
+              Μικρές, στοχευμένες ενότητες με πρακτικό περιεχόμενο. Online και
+              δια ζώσης, με έμφαση στην καθημερινή εφαρμογή.
+            </p>
+          </header>
 
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setFiltersOpen(true)}
-                className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-slate-50 lg:hidden"
-              >
-                Φίλτρα
-              </button>
+          <div className="mb-6 flex items-center justify-between gap-3 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(true)}
+              className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-slate-50"
+            >
+              Φίλτρα
+              {activeChips.length > 0 && (
+                <span className="ml-2 inline-flex min-w-6 justify-center rounded-full bg-primary px-2 py-0.5 text-xs text-white">
+                  {activeChips.length}
+                </span>
+              )}
+            </button>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-600">Ταξινόμηση:</span>
 
               <select
                 value={sortKey}
-                onChange={(e) => setSortKey(e.target.value as SortKey)}
+                onChange={(event) => {
+                  setSortKey(event.target.value as SortKey);
+                  setPage(1);
+                }}
                 className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:ring-4 focus:ring-primary/20"
-                aria-label="Ταξινόμηση"
               >
-                <option value="upcoming">Προσεχή πρώτα</option>
-                <option value="newest">Νεότερα πρώτα</option>
-                <option value="oldest">Παλαιότερα πρώτα</option>
-                <option value="priceAsc">Τιμή αύξουσα</option>
-                <option value="priceDesc">Τιμή φθίνουσα</option>
-                <option value="durationAsc">Μικρότερη διάρκεια</option>
+                <option value="dateNear">Hμερομηνία: κοντινότερη </option>
+                <option value="dateFar">Hμερομηνία: μακρινότερη</option>
+                <option value="priceAsc">Τιμή: χαμηλότερη</option>
+                <option value="priceDesc">Τιμή: υψηλότερη</option>
+                <option value="durationAsc">Διάρκεια: μικρότερη</option>
+                <option value="durationDesc">Διάρκεια: μεγαλύτερη</option>
               </select>
             </div>
           </div>
-        </div>
 
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 pb-16">
-          <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
+          <div className="grid gap-8 lg:grid-cols-[280px_minmax(0,1fr)]">
             <div className="hidden lg:block">{renderFilters()}</div>
 
             <main>
-              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mb-5 flex min-h-10 items-center justify-between gap-4">
                 <p className="text-sm text-slate-600">
-                  {filteredSorted.length}{" "}
-                  {filteredSorted.length === 1
-                    ? "αποτέλεσμα"
-                    : "αποτελέσματα"}
+                  Βρέθηκαν{" "}
+                  <span className="font-semibold text-slate-900">
+                    {filteredSorted.length}
+                  </span>{" "}
+                  {filteredSorted.length === 1 ? "σεμινάριο" : "σεμινάρια"}
                 </p>
 
-                {activeChips.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={resetAll}
-                    className="text-sm font-medium text-primary underline underline-offset-4 hover:text-accent"
+                <div className="hidden items-end gap-2 lg:flex">
+                  <span className="text-sm text-slate-600">Ταξινόμηση:</span>
+
+                  <select
+                    value={sortKey}
+                    onChange={(event) => {
+                      setSortKey(event.target.value as SortKey);
+                      setPage(1);
+                    }}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:ring-4 focus:ring-primary/20"
                   >
-                    Καθαρισμός όλων
-                  </button>
-                )}
+                    <option value="dateNear">Hμερομηνία: κοντινότερη </option>
+                    <option value="dateFar">Hμερομηνία: μακρινότερη</option>
+                    <option value="priceAsc">Τιμή: χαμηλότερη</option>
+                    <option value="priceDesc">Τιμή: υψηλότερη</option>
+                    <option value="durationAsc">Διάρκεια: μικρότερη</option>
+                    <option value="durationDesc">Διάρκεια: μεγαλύτερη</option>
+                  </select>
+                </div>
               </div>
 
               {activeChips.length > 0 && (
-                <div className="mb-5 flex flex-wrap gap-2">
+                <div className="mb-5 flex flex-wrap items-center gap-2">
                   {activeChips.map((chip) => (
                     <button
                       key={chip.key}
                       type="button"
                       onClick={chip.onRemove}
-                      className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary/15"
+                      className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-700 ring-1 ring-slate-200 shadow-sm transition hover:bg-slate-50"
                     >
                       {chip.label}
                       <span aria-hidden>×</span>
                     </button>
                   ))}
+
+                  <button
+                    type="button"
+                    onClick={resetAll}
+                    className="rounded-lg px-2 py-1 text-xs font-semibold text-primary transition hover:text-primary/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
+                    Καθαρισμός
+                  </button>
                 </div>
               )}
 
               {loading ? (
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6">
+                  {" "}
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div
                       key={i}
@@ -895,7 +900,7 @@ export default function SeminarsPage() {
                 <div className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
                   <p className="text-slate-700">{error}</p>
                 </div>
-              ) : shownSeminars.length === 0 ? (
+              ) : filteredSorted.length === 0 ? (
                 <div className="rounded-2xl bg-white p-8 text-center ring-1 ring-slate-200">
                   <h2 className="text-lg font-semibold text-slate-900">
                     Δεν βρέθηκαν σεμινάρια
@@ -915,11 +920,12 @@ export default function SeminarsPage() {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                    {shownSeminars.map((s) => {
+                  <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6">
+                    {pagedSeminars.map((s) => {
                       const { date, time } = formatParts(s.dateTime);
-                      const image = s.imageUrl || IMAGE_FALLBACK;
-
+                      const image = s.imageUrl
+                        ? toMediaUrl(s.imageUrl)
+                        : IMAGE_FALLBACK;
                       return (
                         <article
                           key={s.id}
@@ -995,46 +1001,65 @@ export default function SeminarsPage() {
                     })}
                   </div>
 
-                  {canLoadMore && (
-                    <div className="mt-8 flex justify-center">
-                      <button
-                        type="button"
-                        onClick={onLoadMore}
-                        disabled={isLoadingMore}
-                        className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
-                      >
-                        {isLoadingMore ? "Φόρτωση..." : "Φόρτωση περισσότερων"}
-                      </button>
+                  <div className="mt-10 flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPage((current) => Math.max(1, current - 1))
+                      }
+                      disabled={pageClamped === 1}
+                      className="rounded-xl bg-white px-3 py-2 text-sm ring-1 ring-slate-200 shadow-sm transition hover:shadow disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Προηγούμενη
+                    </button>
+
+                    <div className="hidden items-center gap-2 sm:flex">
+                      {paginateNumbers(totalPages, pageClamped).map(
+                        (pageNumber, index) =>
+                          pageNumber === "…" ? (
+                            <span
+                              key={`dots-${index}`}
+                              className="px-2 text-slate-500"
+                            >
+                              …
+                            </span>
+                          ) : (
+                            <button
+                              key={pageNumber}
+                              type="button"
+                              onClick={() => setPage(pageNumber)}
+                              className={[
+                                "min-w-10 rounded-full px-3 py-2 text-sm ring-1 transition",
+                                pageNumber === pageClamped
+                                  ? "bg-primary text-white ring-primary shadow-sm"
+                                  : "bg-white text-slate-700 ring-slate-200 hover:bg-slate-50",
+                              ].join(" ")}
+                            >
+                              {pageNumber}
+                            </button>
+                          ),
+                      )}
                     </div>
-                  )}
+
+                    <div className="px-2 text-sm text-slate-700 sm:hidden">
+                      <span className="font-semibold">{pageClamped}</span> /{" "}
+                      {totalPages}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPage((current) => Math.min(totalPages, current + 1))
+                      }
+                      disabled={pageClamped === totalPages}
+                      className="rounded-xl bg-white px-3 py-2 text-sm ring-1 ring-slate-200 shadow-sm transition hover:shadow disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Επόμενη
+                    </button>
+                  </div>
                 </>
               )}
             </main>
-          </div>
-        </div>
-
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 pb-12">
-          <div className="rounded-2xl bg-white px-5 py-5 ring-1 ring-slate-200 md:px-6 md:py-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center">
-              <div className="flex items-center gap-3">
-                <h2 className="text-xl md:text-2xl font-semibold text-slate-900">
-                  Θέλετε εταιρικό σεμινάριο;
-                </h2>
-
-                <span className="hidden md:inline-block h-px w-20 bg-primary/30" />
-              </div>
-
-              <p className="text-slate-600 md:flex-1 leading-relaxed">
-                Επικοινωνήστε για προσαρμοσμένα workshops στην ομάδα σας.
-              </p>
-
-              <Link
-                href="/contact/form"
-                className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 font-medium text-primary ring-1 ring-primary/20 transition hover:bg-primary/5 hover:text-accent"
-              >
-                Επικοινωνία
-              </Link>
-            </div>
           </div>
         </div>
 
@@ -1049,9 +1074,7 @@ export default function SeminarsPage() {
 
             <div className="absolute right-0 top-0 h-full w-[min(92vw,380px)] overflow-y-auto bg-white p-4 shadow-xl">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Φίλτρα
-                </h2>
+                <h2 className="text-lg font-semibold text-slate-900">Φίλτρα</h2>
 
                 <button
                   type="button"
@@ -1097,7 +1120,9 @@ export default function SeminarsPage() {
                     className="h-44 bg-cover bg-center md:h-full md:min-h-[300px]"
                     style={{
                       backgroundImage: `url(${
-                        active.imageUrl || IMAGE_FALLBACK
+                        active.imageUrl
+                          ? toMediaUrl(active.imageUrl)
+                          : IMAGE_FALLBACK
                       })`,
                     }}
                   />

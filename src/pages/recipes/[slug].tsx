@@ -61,6 +61,20 @@ function formatMin(m: number) {
   return m <= 60 ? `${m}′` : `${Math.floor(m / 60)} ώ ${m % 60}′`;
 }
 
+function resolveRecipeImage(image?: string | null): string {
+  const value = image?.trim();
+
+  if (!value) {
+    return "";
+  }
+
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return value;
+  }
+
+  return toMediaUrl(value);
+}
+
 function mapRecipe(dto: RecipesGetDto): Recipe {
   const title = dto.title ?? "";
 
@@ -82,7 +96,9 @@ type PageProps = {
   recipe: Recipe;
 };
 
-export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
+export const getServerSideProps: GetServerSideProps<PageProps> = async (
+  ctx,
+) => {
   try {
     const slug = String(ctx.params?.slug || "");
     const id = getIdFromSlug(slug);
@@ -136,9 +152,9 @@ export default function RecipePage({ recipe }: PageProps) {
   }, []);
 
   const categoryLabel = CATEGORY_LABELS[recipe.category] ?? recipe.category;
+  const recipeImageUrl = resolveRecipeImage(recipe.image);
   const metaDescription =
-    stripHtml(recipe.description).slice(0, 160) ||
-    `Συνταγή: ${recipe.title}`;
+    stripHtml(recipe.description).slice(0, 160) || `Συνταγή: ${recipe.title}`;
 
   return (
     <>
@@ -147,14 +163,14 @@ export default function RecipePage({ recipe }: PageProps) {
         <meta name="description" content={metaDescription} />
         <link
           rel="canonical"
-          href={`https://example.gr/recipes/${encodeURIComponent(
-            recipe.slug
-          )}`}
+          href={`https://example.gr/recipes/${encodeURIComponent(recipe.slug)}`}
         />
         <meta property="og:type" content="article" />
         <meta property="og:title" content={`${recipe.title} — Συνταγές`} />
         <meta property="og:description" content={metaDescription} />
-        {recipe.image ? <meta property="og:image" content={recipe.image} /> : null}
+        {recipeImageUrl ? (
+          <meta property="og:image" content={recipeImageUrl} />
+        ) : null}{" "}
         <meta property="og:locale" content="el_GR" />
         <meta name="twitter:card" content="summary_large_image" />
       </Head>
@@ -219,14 +235,15 @@ export default function RecipePage({ recipe }: PageProps) {
           ) : null}
         </header>
 
-        {recipe.image ? (
+        {recipeImageUrl ? (
           <div className="relative overflow-hidden rounded-3xl bg-slate-100 shadow-[0_18px_45px_rgba(15,23,42,0.12)]">
             <div className="relative aspect-[16/9]">
               <Image
-                src={recipe.image.startsWith("/media") ? toMediaUrl(recipe.image) : recipe.image}
+                src={recipeImageUrl}
                 alt={recipe.title}
                 fill
                 priority
+                unoptimized
                 className="object-cover"
               />
             </div>

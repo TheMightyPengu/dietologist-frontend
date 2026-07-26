@@ -1,8 +1,11 @@
 import Head from "next/head";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/router";
-import { api, toApiError } from "@/api/_axios-client";
+import { api, toApiError, type ApiFieldErrors } from "@/api/_axios-client";
 import { setAdminToken } from "@/lib/admin-auth";
+import FormFieldError from "@/components/admin/FormFieldError";
+import GeneralErrorDialog from "@/components/admin/GeneralErrorDialog";
+import { errorInputClass } from "@/lib/form-validation";
 
 type LoginResponseDto = {
   token: string;
@@ -16,15 +19,27 @@ export default function DashboardLoginPage() {
   const [password, setPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<ApiFieldErrors>({});
+
+  const [generalError, setGeneralError] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setError("");
+    const errors: ApiFieldErrors = {};
 
-    if (!username.trim() || !password.trim()) {
-      setError("Username and password are required.");
+    if (!username.trim()) {
+      errors.username = ["Το username είναι υποχρεωτικό."];
+    }
+
+    if (!password.trim()) {
+      errors.password = ["Ο κωδικός είναι υποχρεωτικός."];
+    }
+
+    setFieldErrors(errors);
+    setGeneralError(null);
+
+    if (Object.keys(errors).length > 0) {
       return;
     }
 
@@ -32,7 +47,7 @@ export default function DashboardLoginPage() {
       setLoading(true);
 
       const response = await api.post<LoginResponseDto>("/Admin/login", {
-        username,
+        username: username.trim(),
         password,
       });
 
@@ -46,15 +61,14 @@ export default function DashboardLoginPage() {
           : "/dashboard";
 
       await router.replace(next);
-    } catch (e) {
-      const apiError = toApiError(e);
+    } catch (error: unknown) {
+      const parsed = toApiError(error);
 
-      if (apiError.status === 401) {
-        setError("Invalid username or password.");
-        return;
+      if (parsed.status === 401) {
+        setGeneralError("Το username ή ο κωδικός είναι λανθασμένος.");
+      } else {
+        setGeneralError(parsed.message);
       }
-
-      setError(apiError.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -89,18 +103,34 @@ export default function DashboardLoginPage() {
                   htmlFor="username"
                   className="mb-2 block text-sm font-semibold text-[rgb(var(--ink))]"
                 >
-                  Username
+                  Username{" "}
+                  <span className="text-rose-600" aria-hidden="true">
+                    *
+                  </span>
                 </label>
 
                 <input
                   id="username"
                   type="text"
                   value={username}
-                  onChange={(event) => setUsername(event.target.value)}
+                  onChange={(event) => {
+                    setUsername(event.target.value);
+
+                    setFieldErrors((current) => {
+                      const next = { ...current };
+                      delete next.username;
+                      return next;
+                    });
+                  }}
                   placeholder="admin"
-                  className="w-full"
+                  className={errorInputClass(
+                    Boolean(fieldErrors.username),
+                    "w-full",
+                  )}
                   autoComplete="username"
                 />
+
+                <FormFieldError errors={fieldErrors.username} />
               </div>
 
               <div>
@@ -108,32 +138,51 @@ export default function DashboardLoginPage() {
                   htmlFor="password"
                   className="mb-2 block text-sm font-semibold text-[rgb(var(--ink))]"
                 >
-                  Password
+                  Password{" "}
+                  <span className="text-rose-600" aria-hidden="true">
+                    *
+                  </span>
                 </label>
 
                 <input
                   id="password"
                   type="password"
                   value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  onChange={(event) => {
+                    setPassword(event.target.value);
+
+                    setFieldErrors((current) => {
+                      const next = { ...current };
+                      delete next.password;
+                      return next;
+                    });
+                  }}
                   placeholder="••••••••"
-                  className="w-full"
+                  className={errorInputClass(
+                    Boolean(fieldErrors.password),
+                    "w-full",
+                  )}
                   autoComplete="current-password"
                 />
+
+                <FormFieldError errors={fieldErrors.password} />
               </div>
 
-              {error && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
-                </div>
-              )}
-
-              <button type="submit" className="btn-primary w-full" disabled={loading}>
+              <button
+                type="submit"
+                className="btn-primary w-full"
+                disabled={loading}
+              >
                 {loading ? "Signing in..." : "Sign in"}
               </button>
             </form>
           </div>
         </div>
+        <GeneralErrorDialog
+          open={Boolean(generalError)}
+          message={generalError ?? ""}
+          onClose={() => setGeneralError(null)}
+        />
       </section>
     </>
   );

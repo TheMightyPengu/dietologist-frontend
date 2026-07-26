@@ -1,7 +1,6 @@
-// pages/dashboard/contact.tsx
 import Head from "next/head";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AppointmentsApi,
   type AppointmentsGetDto,
@@ -29,6 +28,17 @@ import {
   type OfficeHoursPostDto,
   type WeeklyOfficeHours,
 } from "@/api/OfficeHoursController";
+import { type ApiFieldErrors } from "@/api/_axios-client";
+import FormFieldError from "@/components/admin/FormFieldError";
+import GeneralErrorDialog from "@/components/admin/GeneralErrorDialog";
+import { useFormErrors } from "@/components/hooks/useFormErrors";
+import {
+  addValidationError,
+  errorInputClass,
+  isRichTextBlank,
+  isValidEmail,
+  isValidPhone,
+} from "@/lib/form-validation";
 
 const cx = (...c: (string | false | null | undefined)[]) =>
   c.filter(Boolean).join(" ");
@@ -40,14 +50,15 @@ const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
   <div
     className={cx(
       "rounded-2xl bg-white backdrop-blur-sm shadow-sm border border-slate-200/50",
-      className
+      className,
     )}
   >
     {children}
   </div>
 );
 
-type Tab = "bookings" | "messages" | "newsletter" | "usefulInfo" | "officeHours";
+type Tab =
+  "bookings" | "messages" | "newsletter" | "usefulInfo" | "officeHours";
 
 type Slot = {
   id: string;
@@ -64,15 +75,6 @@ type CreateAppointmentForm = {
   customerPhone: string;
   message: string;
 };
-
-type CreateAppointmentErrors = Partial<{
-  providedServiceId: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  slot: string;
-  message: string;
-}>;
 
 function stripHtml(value?: string | null) {
   if (!value) return "";
@@ -102,13 +104,11 @@ function getServiceLabel(service?: ProvidedServicesGetDto | null) {
 
 function getAppointmentServiceLabel(
   b: AppointmentsGetDto,
-  services: ProvidedServicesGetDto[]
+  services: ProvidedServicesGetDto[],
 ) {
   const serviceId = getServiceIdFromAppointment(b);
 
-  const service =
-    b.providedService ||
-    services.find((s) => s.id === serviceId);
+  const service = b.providedService || services.find((s) => s.id === serviceId);
 
   return (
     stripHtml(service?.title) ||
@@ -124,7 +124,7 @@ function formatDateTimeLocal(value: string) {
   if (Number.isNaN(d.getTime())) return "";
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
-    d.getDate()
+    d.getDate(),
   )}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
@@ -155,8 +155,17 @@ function formatAppointmentTime(value: string) {
 }
 
 function toIsoFromLocal(value: string) {
-  if (!value) return new Date().toISOString();
-  return new Date(value).toISOString();
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toISOString();
 }
 
 function getServiceIdFromAppointment(b: AppointmentsGetDto) {
@@ -184,10 +193,84 @@ function todayDateOnly() {
   return `${y}-${m}-${day}`;
 }
 
+function validateAppointment(value: {
+  providedServiceId: number | string;
+  appointmentDate: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  message?: string | null;
+}): ApiFieldErrors {
+  const errors: ApiFieldErrors = {};
+
+  if (Number(value.providedServiceId) <= 0) {
+    addValidationError(errors, "providedServiceId", "Επιλέξτε υπηρεσία.");
+  }
+
+  if (!value.customerName.trim()) {
+    addValidationError(
+      errors,
+      "customerName",
+      "Το ονοματεπώνυμο είναι υποχρεωτικό.",
+    );
+  }
+
+  if (!value.customerEmail.trim()) {
+    addValidationError(errors, "customerEmail", "Το email είναι υποχρεωτικό.");
+  } else if (!isValidEmail(value.customerEmail)) {
+    addValidationError(errors, "customerEmail", "Το email δεν είναι έγκυρο.");
+  }
+
+  if (value.customerPhone.trim() && !isValidPhone(value.customerPhone)) {
+    addValidationError(
+      errors,
+      "customerPhone",
+      "Το τηλέφωνο πρέπει να περιέχει 10 έως 15 ψηφία.",
+    );
+  }
+
+  if (
+    !value.appointmentDate ||
+    Number.isNaN(new Date(value.appointmentDate).getTime())
+  ) {
+    addValidationError(
+      errors,
+      "appointmentDate",
+      "Επιλέξτε έγκυρη ημερομηνία και ώρα.",
+    );
+  } else if (new Date(value.appointmentDate).getTime() <= Date.now()) {
+    addValidationError(
+      errors,
+      "appointmentDate",
+      "Το ραντεβού πρέπει να είναι στο μέλλον.",
+    );
+  }
+
+  if ((value.message?.trim().length ?? 0) > 2000) {
+    addValidationError(
+      errors,
+      "message",
+      "Το μήνυμα δεν μπορεί να ξεπερνά τους 2000 χαρακτήρες.",
+    );
+  }
+
+  return errors;
+}
+
 /* ================= Page ================= */
 
 export default function ManagementContactPage() {
   const [active, setActive] = useState<Tab>("bookings");
+  const publicPageHref =
+    active === "bookings"
+      ? "/contact/book"
+      : active === "messages"
+        ? "/contact/form"
+        : active === "usefulInfo"
+          ? "/contact"
+          : active === "officeHours"
+            ? "/contact/book"
+            : "/contact";
 
   return (
     <>
@@ -198,17 +281,28 @@ export default function ManagementContactPage() {
 
       <div className="min-h-[70vh] bg-bg text-slate-800">
         <div className="mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-12 lg:px-8">
-          <div className="mb-6 flex items-center gap-3">
-            <Link
-              href="/dashboard"
-              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))]"
-            >
-              ← Πίσω στο Dashboard
-            </Link>
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Link
+                href="/dashboard"
+                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))]"
+              >
+                ← Πίσω στο Dashboard
+              </Link>
 
-            <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-              ΕΠΙΚΟΙΝΩΝΙΑ
-            </h1>
+              <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
+                ΕΠΙΚΟΙΝΩΝΙΑ
+              </h1>
+            </div>
+
+            <Link
+              href={publicPageHref}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm hover:border-[rgb(var(--primary))]"
+            >
+              Προβολή σελίδας
+            </Link>
           </div>
 
           <Card className="mb-6 p-4 md:p-5">
@@ -227,7 +321,7 @@ export default function ManagementContactPage() {
                     "rounded-full px-4 py-2 text-sm font-medium transition",
                     active === t.key
                       ? "bg-[rgb(var(--primary))] text-white"
-                      : "border border-[rgba(var(--border),0.9)] bg-white hover:border-[rgb(var(--primary))]"
+                      : "border border-[rgba(var(--border),0.9)] bg-white hover:border-[rgb(var(--primary))]",
                   )}
                 >
                   {t.label}
@@ -255,11 +349,10 @@ function BookingsManager() {
   const [creating, setCreating] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [q, setQ] = useState("");
-  const [date, setDate] = useState<string>("");
+  const [date, setDate] = useState("");
   const [toast, setToast] = useState<string | null>(null);
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [createErrors, setCreateErrors] = useState<CreateAppointmentErrors>({});
   const [createForm, setCreateForm] = useState<CreateAppointmentForm>({
     providedServiceId: "",
     customerName: "",
@@ -272,12 +365,14 @@ function BookingsManager() {
   const [createSlotsLoading, setCreateSlotsLoading] = useState(false);
   const [createSelectedDate, setCreateSelectedDate] = useState("");
   const [createSelectedSlotId, setCreateSelectedSlotId] = useState("");
-  const [createSubmitError, setCreateSubmitError] = useState<string | null>(
-    null
-  );
+
+  const pageErrors = useFormErrors();
+  const createValidation = useFormErrors();
 
   useEffect(() => {
-    (async () => {
+    let mounted = true;
+
+    void (async () => {
       try {
         setLoading(true);
 
@@ -286,36 +381,62 @@ function BookingsManager() {
           ProvidedServicesApi.list(),
         ]);
 
+        if (!mounted) {
+          return;
+        }
+
         setAll(appointmentsRes);
         setServices(servicesRes);
+      } catch (error: unknown) {
+        console.error(error);
+
+        if (mounted) {
+          pageErrors.applyApiError(
+            error,
+            "Δεν ήταν δυνατή η φόρτωση των ραντεβού.",
+          );
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     })();
-  }, []);
+
+    return () => {
+      mounted = false;
+    };
+  }, [pageErrors.applyApiError]);
 
   useEffect(() => {
-    if (!toast) return;
+    if (!toast) {
+      return;
+    }
 
-    const t = setTimeout(() => setToast(null), 1600);
-    return () => clearTimeout(t);
+    const timer = window.setTimeout(() => {
+      setToast(null);
+    }, 1600);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [toast]);
 
   useEffect(() => {
     let mounted = true;
 
-    (async () => {
+    void (async () => {
       setCreateSlots([]);
       setCreateSelectedDate("");
       setCreateSelectedSlotId("");
-      setCreateSubmitError(null);
-      setCreateErrors((prev) => ({
-        ...prev,
-        slot: undefined,
-        providedServiceId: undefined,
-      }));
 
-      if (!createOpen || !createForm.providedServiceId) return;
+      createValidation.clearFieldError("appointmentDate");
+      createValidation.clearFieldError("providedServiceId");
+      createValidation.closeGeneralError();
+
+      if (!createOpen || !createForm.providedServiceId) {
+        return;
+      }
 
       setCreateSlotsLoading(true);
 
@@ -325,7 +446,9 @@ function BookingsManager() {
           daysAhead: 30,
         });
 
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
 
         if (!dates.length) {
           setCreateSlots([]);
@@ -339,7 +462,10 @@ function BookingsManager() {
 
         for (const dateStr of dates) {
           const times = await AppointmentsApi.getAvailableSlots(dateStr);
-          if (!mounted) return;
+
+          if (!mounted) {
+            return;
+          }
 
           for (const timeStr of times) {
             allSlots.push({
@@ -353,106 +479,125 @@ function BookingsManager() {
         }
 
         allSlots.sort((a, b) => {
-          const ad = combineToDate(a.dateStr, a.timeStr).getTime();
-          const bd = combineToDate(b.dateStr, b.timeStr).getTime();
-          return ad - bd;
+          const first = combineToDate(a.dateStr, a.timeStr).getTime();
+          const second = combineToDate(b.dateStr, b.timeStr).getTime();
+
+          return first - second;
         });
 
         setCreateSlots(allSlots);
-      } catch (err: unknown) {
-        if (!mounted) return;
+      } catch (error: unknown) {
+        if (!mounted) {
+          return;
+        }
 
+        console.error(error);
         setCreateSlots([]);
         setCreateSelectedDate("");
 
-        const messageText =
-          err instanceof Error
-            ? err.message
-            : "Δεν ήταν δυνατή η φόρτωση διαθεσιμότητας.";
-
-        setCreateSubmitError(messageText);
+        createValidation.applyApiError(
+          error,
+          "Δεν ήταν δυνατή η φόρτωση της διαθεσιμότητας.",
+        );
       } finally {
-        if (mounted) setCreateSlotsLoading(false);
+        if (mounted) {
+          setCreateSlotsLoading(false);
+        }
       }
     })();
 
     return () => {
       mounted = false;
     };
-  }, [createOpen, createForm.providedServiceId]);
+  }, [
+    createOpen,
+    createForm.providedServiceId,
+    createValidation.applyApiError,
+    createValidation.clearFieldError,
+    createValidation.closeGeneralError,
+  ]);
 
   const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
+    const search = q.trim().toLowerCase();
 
-    return all.filter((b) => {
-      const appointmentDate = new Date(b.appointmentDate);
+    return all.filter((appointment) => {
+      const appointmentDate = new Date(appointment.appointmentDate);
       const dateOnly = Number.isNaN(appointmentDate.getTime())
         ? ""
         : appointmentDate.toISOString().slice(0, 10);
 
-      const matchesQ =
-        !s ||
+      const matchesQuery =
+        !search ||
         [
-          b.customerName,
-          b.customerEmail,
-          b.customerPhone,
-          b.message,
-          b.providedService?.title,
-          b.providedService?.category,
-          b.providedService?.description,
+          appointment.customerName,
+          appointment.customerEmail,
+          appointment.customerPhone,
+          appointment.message,
+          appointment.providedService?.title,
+          appointment.providedService?.category,
+          appointment.providedService?.description,
         ]
-          .filter(Boolean)
-          .map((t) => stripHtml(String(t)).toLowerCase())
-          .some((t) => t.includes(s));
+          .filter((value): value is string => typeof value === "string")
+          .map((value) => stripHtml(value).toLowerCase())
+          .some((value) => value.includes(search));
 
       const matchesDate = !date || dateOnly === date;
 
-      return matchesQ && matchesDate;
+      return matchesQuery && matchesDate;
     });
-  }, [all, q, date]);
+  }, [all, date, q]);
 
   const sortedFiltered = useMemo(() => {
     return [...filtered].sort((a, b) => {
-      const ad = new Date(a.appointmentDate).getTime();
-      const bd = new Date(b.appointmentDate).getTime();
+      const first = new Date(a.appointmentDate).getTime();
+      const second = new Date(b.appointmentDate).getTime();
 
-      if (Number.isNaN(ad) && Number.isNaN(bd)) return 0;
-      if (Number.isNaN(ad)) return 1;
-      if (Number.isNaN(bd)) return -1;
+      if (Number.isNaN(first) && Number.isNaN(second)) {
+        return 0;
+      }
 
-      return bd - ad;
+      if (Number.isNaN(first)) {
+        return 1;
+      }
+
+      if (Number.isNaN(second)) {
+        return -1;
+      }
+
+      return second - first;
     });
   }, [filtered]);
 
   const createAvailableDates = useMemo(() => {
-    const uniq = new Set<string>();
+    const uniqueDates = new Set<string>();
 
-    for (const s of createSlots) {
-      uniq.add(s.dateStr);
+    for (const slot of createSlots) {
+      uniqueDates.add(slot.dateStr);
     }
 
-    return Array.from(uniq);
+    return Array.from(uniqueDates);
   }, [createSlots]);
 
   const createSlotsForSelectedDate = useMemo(() => {
-    return createSlots.filter((s) => s.dateStr === createSelectedDate);
-  }, [createSlots, createSelectedDate]);
+    return createSlots.filter((slot) => slot.dateStr === createSelectedDate);
+  }, [createSelectedDate, createSlots]);
 
   const createSelectedSlot = useMemo(() => {
-    return createSlots.find((s) => s.id === createSelectedSlotId) || null;
-  }, [createSlots, createSelectedSlotId]);
+    return createSlots.find((slot) => slot.id === createSelectedSlotId) ?? null;
+  }, [createSelectedSlotId, createSlots]);
 
   function openCreateModal() {
     if (!services.length) {
-      setToast("Δεν υπάρχουν διαθέσιμες υπηρεσίες.");
+      pageErrors.showGeneralError("Δεν υπάρχουν διαθέσιμες υπηρεσίες.");
+
       return;
     }
 
-    setCreateErrors({});
-    setCreateSubmitError(null);
+    createValidation.clearAllErrors();
     setCreateSlots([]);
     setCreateSelectedDate("");
     setCreateSelectedSlotId("");
+
     setCreateForm({
       providedServiceId: String(services[0].id),
       customerName: "",
@@ -460,135 +605,122 @@ function BookingsManager() {
       customerPhone: "",
       message: "",
     });
+
     setCreateOpen(true);
   }
 
   function closeCreateModal() {
-    if (creating) return;
+    if (creating) {
+      return;
+    }
 
     setCreateOpen(false);
-    setCreateErrors({});
-    setCreateSubmitError(null);
-  }
-
-  function validateCreateForm(form: CreateAppointmentForm) {
-    const errors: CreateAppointmentErrors = {};
-
-    if (!form.providedServiceId) {
-      errors.providedServiceId = "Επιλέξτε υπηρεσία.";
-    }
-
-    if (!form.customerName.trim()) {
-      errors.customerName = "Συμπληρώστε όνομα.";
-    }
-
-    if (!form.customerEmail.trim()) {
-      errors.customerEmail = "Συμπληρώστε email.";
-    } else {
-      const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-        form.customerEmail.trim()
-      );
-
-      if (!ok) {
-        errors.customerEmail = "Μη έγκυρο email.";
-      }
-    }
-
-    if (form.message.trim().length > 2000) {
-      errors.message = "Το μήνυμα δεν μπορεί να ξεπερνά τους 2000 χαρακτήρες.";
-    }
-
-    if (!createSelectedSlot) {
-      errors.slot = "Παρακαλούμε επιλέξτε διαθέσιμη ημέρα και ώρα.";
-    }
-
-    if (createSelectedSlot) {
-      const when = combineToDate(
-        createSelectedSlot.dateStr,
-        createSelectedSlot.timeStr
-      );
-
-      if (when.getTime() <= Date.now()) {
-        errors.slot = "Παρακαλούμε επιλέξτε μελλοντικό διαθέσιμο ραντεβού.";
-      }
-    }
-
-    return errors;
+    createValidation.clearAllErrors();
   }
 
   async function handleCreateSubmit() {
-    const errors = validateCreateForm(createForm);
-    setCreateErrors(errors);
+    const appointmentDate = createSelectedSlot
+      ? combineToDate(
+          createSelectedSlot.dateStr,
+          createSelectedSlot.timeStr,
+        ).toISOString()
+      : "";
 
-    if (Object.keys(errors).length > 0) return;
-    if (!createSelectedSlot) return;
+    const validationErrors = validateAppointment({
+      providedServiceId: createForm.providedServiceId,
+      appointmentDate,
+      customerName: createForm.customerName,
+      customerEmail: createForm.customerEmail,
+      customerPhone: createForm.customerPhone,
+      message: createForm.message,
+    });
+
+    if (!createValidation.applyFrontendErrors(validationErrors)) {
+      return;
+    }
 
     try {
       setCreating(true);
-      setCreateSubmitError(null);
 
       const payload: AppointmentsPostDto = {
         providedServiceId: Number(createForm.providedServiceId),
-        appointmentDate: combineToDate(
-          createSelectedSlot.dateStr,
-          createSelectedSlot.timeStr
-        ).toISOString(),
+        appointmentDate,
         customerName: createForm.customerName.trim(),
         customerEmail: createForm.customerEmail.trim(),
         customerPhone: createForm.customerPhone.trim(),
-        message: createForm.message?.trim() || null,
+        message: createForm.message.trim() || null,
       };
 
       const created = await AppointmentsApi.create(payload);
 
-      setAll((prev) => [created, ...prev]);
+      setAll((previous) => [created, ...previous]);
       setCreateOpen(false);
+      createValidation.clearAllErrors();
       setToast("Δημιουργήθηκε.");
-    } catch (err: unknown) {
-      const messageText =
-        err instanceof Error
-          ? err.message
-          : "Κάτι πήγε στραβά. Δοκιμάστε ξανά.";
+    } catch (error: unknown) {
+      console.error(error);
 
-      setCreateSubmitError(messageText);
+      createValidation.applyApiError(
+        error,
+        "Δεν ήταν δυνατή η δημιουργία του ραντεβού.",
+      );
     } finally {
       setCreating(false);
     }
   }
 
-  async function handleSave(b: AppointmentsGetDto) {
+  async function handleSave(appointment: AppointmentsGetDto) {
     try {
-      setBusyId(b.id);
+      setBusyId(appointment.id);
 
       const payload: AppointmentsPostDto = {
-        providedServiceId: getServiceIdFromAppointment(b),
-        appointmentDate: b.appointmentDate,
-        customerName: b.customerName,
-        customerEmail: b.customerEmail,
-        customerPhone: b.customerPhone,
-        message: b.message || null,
+        providedServiceId: getServiceIdFromAppointment(appointment),
+        appointmentDate: appointment.appointmentDate,
+        customerName: appointment.customerName.trim(),
+        customerEmail: appointment.customerEmail.trim(),
+        customerPhone: appointment.customerPhone.trim(),
+        message: appointment.message?.trim() || null,
       };
 
-      await AppointmentsApi.update(b.id, payload);
+      await AppointmentsApi.update(appointment.id, payload);
 
-      const fresh = await AppointmentsApi.get(b.id);
-      setAll((prev) => prev.map((x) => (x.id === fresh.id ? fresh : x)));
+      const fresh = await AppointmentsApi.get(appointment.id);
+
+      setAll((previous) =>
+        previous.map((item) => (item.id === fresh.id ? fresh : item)),
+      );
+
       setToast("Αποθηκεύτηκε.");
+    } catch (error: unknown) {
+      console.error(error);
+      throw error;
     } finally {
       setBusyId(null);
     }
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("Διαγραφή ραντεβού;")) return;
+    if (!confirm("Διαγραφή ραντεβού;")) {
+      return;
+    }
 
     try {
       setBusyId(id);
 
       await AppointmentsApi.remove(id);
 
-      setAll((prev) => prev.filter((x) => x.id !== id));
+      setAll((previous) =>
+        previous.filter((appointment) => appointment.id !== id),
+      );
+
       setToast("Διαγράφηκε.");
+    } catch (error: unknown) {
+      console.error(error);
+
+      pageErrors.applyApiError(
+        error,
+        "Δεν ήταν δυνατή η διαγραφή του ραντεβού.",
+      );
     } finally {
       setBusyId(null);
     }
@@ -600,7 +732,7 @@ function BookingsManager() {
         <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_220px_auto]">
           <input
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(event) => setQ(event.target.value)}
             placeholder="Αναζήτηση όνομα, email, τηλέφωνο, υπηρεσία…"
             className="rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
           />
@@ -608,18 +740,19 @@ function BookingsManager() {
           <input
             type="date"
             value={date}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={(event) => setDate(event.target.value)}
             className="rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
           />
 
           <button
+            type="button"
             onClick={openCreateModal}
             disabled={loading || creating}
             className={cx(
               "rounded-full px-4 py-2 text-sm font-semibold transition",
               loading || creating
                 ? "cursor-wait bg-[rgba(var(--primary),0.7)] text-white"
-                : "bg-[rgb(var(--primary))] text-white hover:shadow"
+                : "bg-[rgb(var(--primary))] text-white hover:shadow",
             )}
           >
             Νέο ραντεβού
@@ -661,11 +794,11 @@ function BookingsManager() {
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {sortedFiltered.map((b) => (
+            {sortedFiltered.map((appointment) => (
               <AppointmentCard
-                key={b.id}
-                row={b}
-                busy={busyId === b.id}
+                key={appointment.id}
+                row={appointment}
+                busy={busyId === appointment.id}
                 services={services}
                 onSave={handleSave}
                 onDelete={handleDelete}
@@ -690,6 +823,7 @@ function BookingsManager() {
               </div>
 
               <button
+                type="button"
                 onClick={closeCreateModal}
                 disabled={creating}
                 className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-600 hover:border-[rgb(var(--primary))]"
@@ -727,37 +861,38 @@ function BookingsManager() {
 
                       <select
                         value={createForm.providedServiceId}
-                        onChange={(e) => {
-                          setCreateForm((prev) => ({
-                            ...prev,
-                            providedServiceId: e.target.value,
+                        onChange={(event) => {
+                          setCreateForm((previous) => ({
+                            ...previous,
+                            providedServiceId: event.target.value,
                           }));
-                          setCreateErrors((prev) => ({
-                            ...prev,
-                            providedServiceId: undefined,
-                            slot: undefined,
-                          }));
-                          setCreateSubmitError(null);
+
+                          createValidation.clearFieldError("providedServiceId");
+
+                          createValidation.clearFieldError("appointmentDate");
                         }}
                         disabled={creating}
-                        className="mt-1 h-12 w-full rounded-xl border border-black bg-white px-3 text-[15px] text-slate-900 outline-none focus:border-[rgb(var(--primary))] disabled:cursor-not-allowed disabled:opacity-60"
+                        className={errorInputClass(
+                          Boolean(
+                            createValidation.fieldErrors.providedServiceId,
+                          ),
+                          "mt-1 h-12 w-full rounded-xl border border-black bg-white px-3 text-[15px] text-slate-900 outline-none focus:border-[rgb(var(--primary))] disabled:cursor-not-allowed disabled:opacity-60",
+                        )}
                       >
                         <option value="" disabled>
                           — Επιλέξτε υπηρεσία —
                         </option>
 
-                        {services.map((s) => (
-                          <option key={s.id} value={String(s.id)}>
-                            {getServiceLabel(s)}
+                        {services.map((service) => (
+                          <option key={service.id} value={String(service.id)}>
+                            {getServiceLabel(service)}
                           </option>
                         ))}
                       </select>
 
-                      {createErrors.providedServiceId && (
-                        <p className="mt-1 text-sm text-rose-600">
-                          {createErrors.providedServiceId}
-                        </p>
-                      )}
+                      <FormFieldError
+                        errors={createValidation.fieldErrors.providedServiceId}
+                      />
                     </div>
 
                     <div>
@@ -767,26 +902,25 @@ function BookingsManager() {
 
                       <input
                         value={createForm.customerName}
-                        onChange={(e) => {
-                          setCreateForm((prev) => ({
-                            ...prev,
-                            customerName: e.target.value,
+                        onChange={(event) => {
+                          setCreateForm((previous) => ({
+                            ...previous,
+                            customerName: event.target.value,
                           }));
-                          setCreateErrors((prev) => ({
-                            ...prev,
-                            customerName: undefined,
-                          }));
+
+                          createValidation.clearFieldError("customerName");
                         }}
-                        className="mt-1 h-12 w-full rounded-xl border border-black bg-white px-3 text-[15px] text-slate-900 outline-none focus:border-[rgb(var(--primary))]"
+                        className={errorInputClass(
+                          Boolean(createValidation.fieldErrors.customerName),
+                          "mt-1 h-12 w-full rounded-xl border border-black bg-white px-3 text-[15px] text-slate-900 outline-none focus:border-[rgb(var(--primary))]",
+                        )}
                         placeholder="π.χ. Μαρία Παπαδοπούλου"
                         disabled={creating}
                       />
 
-                      {createErrors.customerName && (
-                        <p className="mt-1 text-sm text-rose-600">
-                          {createErrors.customerName}
-                        </p>
-                      )}
+                      <FormFieldError
+                        errors={createValidation.fieldErrors.customerName}
+                      />
                     </div>
 
                     <div>
@@ -797,26 +931,25 @@ function BookingsManager() {
                       <input
                         type="email"
                         value={createForm.customerEmail}
-                        onChange={(e) => {
-                          setCreateForm((prev) => ({
-                            ...prev,
-                            customerEmail: e.target.value,
+                        onChange={(event) => {
+                          setCreateForm((previous) => ({
+                            ...previous,
+                            customerEmail: event.target.value,
                           }));
-                          setCreateErrors((prev) => ({
-                            ...prev,
-                            customerEmail: undefined,
-                          }));
+
+                          createValidation.clearFieldError("customerEmail");
                         }}
-                        className="mt-1 h-12 w-full rounded-xl border border-black bg-white px-3 text-[15px] text-slate-900 outline-none focus:border-[rgb(var(--primary))]"
+                        className={errorInputClass(
+                          Boolean(createValidation.fieldErrors.customerEmail),
+                          "mt-1 h-12 w-full rounded-xl border border-black bg-white px-3 text-[15px] text-slate-900 outline-none focus:border-[rgb(var(--primary))]",
+                        )}
                         placeholder="π.χ. name@email.com"
                         disabled={creating}
                       />
 
-                      {createErrors.customerEmail && (
-                        <p className="mt-1 text-sm text-rose-600">
-                          {createErrors.customerEmail}
-                        </p>
-                      )}
+                      <FormFieldError
+                        errors={createValidation.fieldErrors.customerEmail}
+                      />
                     </div>
 
                     <div className="md:col-span-2">
@@ -826,26 +959,25 @@ function BookingsManager() {
 
                       <input
                         value={createForm.customerPhone}
-                        onChange={(e) => {
-                          setCreateForm((prev) => ({
-                            ...prev,
-                            customerPhone: e.target.value,
+                        onChange={(event) => {
+                          setCreateForm((previous) => ({
+                            ...previous,
+                            customerPhone: event.target.value,
                           }));
-                          setCreateErrors((prev) => ({
-                            ...prev,
-                            customerPhone: undefined,
-                          }));
+
+                          createValidation.clearFieldError("customerPhone");
                         }}
-                        className="mt-1 h-12 w-full rounded-xl border border-black bg-white px-3 text-[15px] text-slate-900 outline-none focus:border-[rgb(var(--primary))]"
+                        className={errorInputClass(
+                          Boolean(createValidation.fieldErrors.customerPhone),
+                          "mt-1 h-12 w-full rounded-xl border border-black bg-white px-3 text-[15px] text-slate-900 outline-none focus:border-[rgb(var(--primary))]",
+                        )}
                         placeholder="π.χ. 69XXXXXXXX προαιρετικό"
                         disabled={creating}
                       />
 
-                      {createErrors.customerPhone && (
-                        <p className="mt-1 text-sm text-rose-600">
-                          {createErrors.customerPhone}
-                        </p>
-                      )}
+                      <FormFieldError
+                        errors={createValidation.fieldErrors.customerPhone}
+                      />
                     </div>
 
                     <div className="md:col-span-2">
@@ -859,8 +991,11 @@ function BookingsManager() {
 
                       <div
                         className={cx(
-                          "mt-1 rounded-xl bg-white p-3 ring-1 ring-slate-300",
-                          !createForm.providedServiceId && "opacity-70"
+                          "mt-1 rounded-xl bg-white p-3 ring-1",
+                          createValidation.fieldErrors.appointmentDate
+                            ? "ring-rose-500"
+                            : "ring-slate-300",
+                          !createForm.providedServiceId && "opacity-70",
                         )}
                       >
                         <div className="mb-2 text-sm text-slate-600">
@@ -872,18 +1007,18 @@ function BookingsManager() {
                         {createSlotsLoading ? (
                           <div className="space-y-3">
                             <div className="flex flex-wrap gap-2">
-                              {Array.from({ length: 6 }).map((_, i) => (
+                              {Array.from({ length: 6 }).map((_, index) => (
                                 <div
-                                  key={i}
+                                  key={index}
                                   className="h-11 w-28 animate-pulse rounded-lg bg-white ring-1 ring-slate-200"
                                 />
                               ))}
                             </div>
 
                             <div className="flex flex-wrap gap-2">
-                              {Array.from({ length: 5 }).map((_, i) => (
+                              {Array.from({ length: 5 }).map((_, index) => (
                                 <div
-                                  key={i}
+                                  key={index}
                                   className="h-11 w-20 animate-pulse rounded-lg bg-white ring-1 ring-slate-200"
                                 />
                               ))}
@@ -899,21 +1034,23 @@ function BookingsManager() {
                         ) : (
                           <>
                             <div className="flex flex-wrap gap-2">
-                              {createAvailableDates.map((d) => {
-                                const active = d === createSelectedDate;
+                              {createAvailableDates.map((availableDate) => {
+                                const active =
+                                  availableDate === createSelectedDate;
 
                                 return (
                                   <button
-                                    key={d}
+                                    key={availableDate}
                                     type="button"
                                     disabled={creating}
                                     onClick={() => {
-                                      setCreateSelectedDate(d);
+                                      setCreateSelectedDate(availableDate);
+
                                       setCreateSelectedSlotId("");
-                                      setCreateErrors((p) => ({
-                                        ...p,
-                                        slot: undefined,
-                                      }));
+
+                                      createValidation.clearFieldError(
+                                        "appointmentDate",
+                                      );
                                     }}
                                     className={cx(
                                       "h-11 rounded-lg px-3 text-[15px] ring-1 transition",
@@ -921,12 +1058,12 @@ function BookingsManager() {
                                         ? "bg-[rgb(var(--primary))] text-white ring-[rgb(var(--primary))]"
                                         : "bg-white text-slate-800 ring-slate-300 hover:bg-slate-50",
                                       creating &&
-                                        "cursor-not-allowed opacity-70"
+                                        "cursor-not-allowed opacity-70",
                                     )}
-                                    title={toDateLabel(d)}
+                                    title={toDateLabel(availableDate)}
                                   >
                                     {new Date(
-                                      d + "T00:00:00"
+                                      `${availableDate}T00:00:00`,
                                     ).toLocaleDateString("el-GR", {
                                       weekday: "short",
                                       day: "2-digit",
@@ -949,21 +1086,21 @@ function BookingsManager() {
                                   </div>
                                 ) : (
                                   <div className="flex flex-wrap gap-2">
-                                    {createSlotsForSelectedDate.map((s) => {
+                                    {createSlotsForSelectedDate.map((slot) => {
                                       const active =
-                                        s.id === createSelectedSlotId;
+                                        slot.id === createSelectedSlotId;
 
                                       return (
                                         <button
-                                          key={s.id}
+                                          key={slot.id}
                                           type="button"
                                           disabled={creating}
                                           onClick={() => {
-                                            setCreateSelectedSlotId(s.id);
-                                            setCreateErrors((p) => ({
-                                              ...p,
-                                              slot: undefined,
-                                            }));
+                                            setCreateSelectedSlotId(slot.id);
+
+                                            createValidation.clearFieldError(
+                                              "appointmentDate",
+                                            );
                                           }}
                                           className={cx(
                                             "h-11 rounded-lg px-3 text-[15px] ring-1 transition",
@@ -971,10 +1108,10 @@ function BookingsManager() {
                                               ? "bg-[rgb(var(--primary))] text-white ring-[rgb(var(--primary))]"
                                               : "bg-white text-slate-800 ring-slate-300 hover:bg-slate-50",
                                             creating &&
-                                              "cursor-not-allowed opacity-70"
+                                              "cursor-not-allowed opacity-70",
                                           )}
                                         >
-                                          {s.timeStr}
+                                          {slot.timeStr}
                                         </button>
                                       );
                                     })}
@@ -993,16 +1130,14 @@ function BookingsManager() {
                       <p className="mt-2 text-sm text-slate-600">
                         {createSelectedSlot
                           ? `Επιλέξατε: ${toDateLabel(
-                              createSelectedSlot.dateStr
+                              createSelectedSlot.dateStr,
                             )} στις ${createSelectedSlot.timeStr}`
                           : "Δεν έχει επιλεγεί ραντεβού."}
                       </p>
 
-                      {createErrors.slot && (
-                        <p className="mt-1 text-sm text-rose-600">
-                          {createErrors.slot}
-                        </p>
-                      )}
+                      <FormFieldError
+                        errors={createValidation.fieldErrors.appointmentDate}
+                      />
                     </div>
 
                     <div className="md:col-span-2">
@@ -1013,20 +1148,24 @@ function BookingsManager() {
                       <textarea
                         rows={4}
                         value={createForm.message}
-                        onChange={(e) => {
-                          setCreateForm((prev) => ({
-                            ...prev,
-                            message: e.target.value,
+                        onChange={(event) => {
+                          setCreateForm((previous) => ({
+                            ...previous,
+                            message: event.target.value,
                           }));
 
-                          setCreateErrors((prev) => ({
-                            ...prev,
-                            message: undefined,
-                          }));
+                          createValidation.clearFieldError("message");
                         }}
                         disabled={creating}
-                        className="mt-1 w-full rounded-xl border border-black bg-white px-3 py-2 text-[15px] text-slate-900 outline-none focus:border-[rgb(var(--primary))] disabled:cursor-not-allowed disabled:opacity-60"
+                        className={errorInputClass(
+                          Boolean(createValidation.fieldErrors.message),
+                          "mt-1 w-full rounded-xl border border-black bg-white px-3 py-2 text-[15px] text-slate-900 outline-none focus:border-[rgb(var(--primary))] disabled:cursor-not-allowed disabled:opacity-60",
+                        )}
                         placeholder="Τυχόν απορίες ή προτιμήσεις."
+                      />
+
+                      <FormFieldError
+                        errors={createValidation.fieldErrors.message}
                       />
                     </div>
                   </div>
@@ -1034,6 +1173,7 @@ function BookingsManager() {
                   <div className="mt-6">
                     <div className="flex items-center justify-end gap-2">
                       <button
+                        type="button"
                         onClick={closeCreateModal}
                         disabled={creating}
                         className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700"
@@ -1042,12 +1182,12 @@ function BookingsManager() {
                       </button>
 
                       <button
+                        type="button"
                         onClick={handleCreateSubmit}
                         disabled={
                           creating ||
                           createSlotsLoading ||
-                          !createForm.providedServiceId ||
-                          !createSelectedSlotId
+                          !createForm.providedServiceId
                         }
                         className="rounded-full bg-[rgb(var(--primary))] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                       >
@@ -1059,12 +1199,6 @@ function BookingsManager() {
                       Το ραντεβού θα δημιουργηθεί με το επιλεγμένο διαθέσιμο
                       slot.
                     </p>
-
-                    {!!createSubmitError && (
-                      <p className="mt-3 text-sm text-rose-600">
-                        {createSubmitError}
-                      </p>
-                    )}
                   </div>
                 </div>
               </div>
@@ -1076,7 +1210,9 @@ function BookingsManager() {
                   </h3>
 
                   <ul className="mt-3 list-disc space-y-2 pl-5 text-[15px] text-slate-700">
-                    <li>Εμφανίζονται μόνο τα διαθέσιμα slots από το backend.</li>
+                    <li>
+                      Εμφανίζονται μόνο τα διαθέσιμα slots από το backend.
+                    </li>
                     <li>
                       Η επιλογή ώρας γίνεται μέσα από τις διαθέσιμες
                       ημερομηνίες.
@@ -1102,6 +1238,21 @@ function BookingsManager() {
           {toast}
         </div>
       )}
+
+      <GeneralErrorDialog
+        open={Boolean(pageErrors.generalError)}
+        title={pageErrors.generalError?.title}
+        message={pageErrors.generalError?.message ?? ""}
+        onClose={pageErrors.closeGeneralError}
+      />
+
+      <GeneralErrorDialog
+        open={Boolean(createValidation.generalError)}
+        title={createValidation.generalError?.title}
+        message={createValidation.generalError?.message ?? ""}
+        onClose={createValidation.closeGeneralError}
+        onRetry={handleCreateSubmit}
+      />
     </>
   );
 }
@@ -1116,26 +1267,37 @@ function AppointmentCard({
   row: AppointmentsGetDto;
   busy: boolean;
   services: ProvidedServicesGetDto[];
-  onSave: (b: AppointmentsGetDto) => void;
+  onSave: (appointment: AppointmentsGetDto) => void | Promise<void>;
   onDelete: (id: number) => void;
 }) {
-  const [b, setB] = useState<AppointmentsGetDto>(row);
+  const [appointment, setAppointment] = useState<AppointmentsGetDto>(row);
+
   const [editing, setEditing] = useState(false);
+  const formErrors = useFormErrors();
 
   useEffect(() => {
-    setB(row);
+    setAppointment(row);
     setEditing(false);
-  }, [row]);
+    formErrors.clearAllErrors();
+  }, [formErrors.clearAllErrors, row]);
 
-  const selectedServiceId = getServiceIdFromAppointment(b);
-  const selectedService = services.find((s) => s.id === selectedServiceId);
+  const selectedServiceId = getServiceIdFromAppointment(appointment);
+
+  const selectedService = services.find(
+    (service) => service.id === selectedServiceId,
+  );
 
   function handleServiceChange(serviceId: number) {
-    const service = services.find((x) => x.id === serviceId);
-    if (!service) return;
+    const service = services.find((item) => item.id === serviceId);
 
-    setB((prev) => ({
-      ...prev,
+    if (!service) {
+      return;
+    }
+
+    formErrors.clearFieldError("providedServiceId");
+
+    setAppointment((previous) => ({
+      ...previous,
       providedServiceId: service.id,
       serviceId: service.id,
       providedService: {
@@ -1150,13 +1312,34 @@ function AppointmentCard({
   }
 
   function resetChanges() {
-    setB(row);
+    formErrors.clearAllErrors();
+    setAppointment(row);
     setEditing(false);
   }
 
   async function saveChanges() {
-    await onSave(b);
-    setEditing(false);
+    const validationErrors = validateAppointment({
+      providedServiceId: getServiceIdFromAppointment(appointment),
+      appointmentDate: appointment.appointmentDate,
+      customerName: appointment.customerName,
+      customerEmail: appointment.customerEmail,
+      customerPhone: appointment.customerPhone,
+      message: appointment.message,
+    });
+
+    if (!formErrors.applyFrontendErrors(validationErrors)) {
+      return;
+    }
+
+    try {
+      await onSave(appointment);
+      setEditing(false);
+    } catch (error: unknown) {
+      formErrors.applyApiError(
+        error,
+        "Δεν ήταν δυνατή η αποθήκευση του ραντεβού.",
+      );
+    }
   }
 
   return (
@@ -1165,24 +1348,24 @@ function AppointmentCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-[rgba(var(--primary),0.1)] px-3 py-1 text-xs font-semibold text-[rgba(var(--primary),0.72)]">
-              #{b.id}
+              #{appointment.id}
             </span>
 
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-              {formatAppointmentDate(b.appointmentDate)}
+              {formatAppointmentDate(appointment.appointmentDate)}
             </span>
 
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-              {formatAppointmentTime(b.appointmentDate)}
+              {formatAppointmentTime(appointment.appointmentDate)}
             </span>
           </div>
 
           <h3 className="mt-3 text-lg font-semibold text-slate-900">
-            {b.customerName || "Χωρίς όνομα"}
+            {appointment.customerName || "Χωρίς όνομα"}
           </h3>
 
           <p className="mt-1 text-sm font-medium text-slate-700">
-            Υπηρεσία: {getAppointmentServiceLabel(b, services)}
+            Υπηρεσία: {getAppointmentServiceLabel(appointment, services)}
           </p>
 
           <div className="mt-3 grid gap-2 text-sm text-slate-600 md:grid-cols-2">
@@ -1192,7 +1375,7 @@ function AppointmentCard({
               </div>
 
               <div className="mt-0.5 break-all text-slate-800">
-                {b.customerEmail || "—"}
+                {appointment.customerEmail || "—"}
               </div>
             </div>
 
@@ -1202,19 +1385,19 @@ function AppointmentCard({
               </div>
 
               <div className="mt-0.5 text-slate-800">
-                {b.customerPhone || "—"}
+                {appointment.customerPhone || "—"}
               </div>
             </div>
           </div>
 
-          {b.message?.trim() && (
+          {appointment.message?.trim() && (
             <div className="mt-3 rounded-xl bg-slate-50 px-3 py-3">
               <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                 Μήνυμα
               </div>
 
               <p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">
-                {b.message}
+                {appointment.message}
               </p>
             </div>
           )}
@@ -1223,7 +1406,7 @@ function AppointmentCard({
         <div className="flex shrink-0 flex-wrap gap-2 lg:justify-end">
           <button
             type="button"
-            onClick={() => setEditing((prev) => !prev)}
+            onClick={() => setEditing((previous) => !previous)}
             disabled={busy}
             className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[rgb(var(--primary))]"
           >
@@ -1232,7 +1415,7 @@ function AppointmentCard({
 
           <button
             type="button"
-            onClick={() => onDelete(b.id)}
+            onClick={() => onDelete(appointment.id)}
             disabled={busy}
             className="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50"
           >
@@ -1246,35 +1429,53 @@ function AppointmentCard({
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Ημερομηνία και ώρα
+                Ημερομηνία και ώρα{" "}
+                <span className="text-rose-600" aria-hidden="true">
+                  *
+                </span>
               </label>
 
               <input
                 type="datetime-local"
-                value={formatDateTimeLocal(b.appointmentDate)}
-                onChange={(e) =>
-                  setB((prev) => ({
-                    ...prev,
-                    appointmentDate: toIsoFromLocal(e.target.value),
-                  }))
-                }
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))]"
+                value={formatDateTimeLocal(appointment.appointmentDate)}
+                onChange={(event) => {
+                  setAppointment((previous) => ({
+                    ...previous,
+                    appointmentDate: toIsoFromLocal(event.target.value),
+                  }));
+
+                  formErrors.clearFieldError("appointmentDate");
+                }}
+                className={errorInputClass(
+                  Boolean(formErrors.fieldErrors.appointmentDate),
+                  "h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))]",
+                )}
               />
+
+              <FormFieldError errors={formErrors.fieldErrors.appointmentDate} />
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Υπηρεσία
+                Υπηρεσία{" "}
+                <span className="text-rose-600" aria-hidden="true">
+                  *
+                </span>
               </label>
 
               <select
                 value={selectedServiceId}
-                onChange={(e) => handleServiceChange(Number(e.target.value))}
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))]"
+                onChange={(event) =>
+                  handleServiceChange(Number(event.target.value))
+                }
+                className={errorInputClass(
+                  Boolean(formErrors.fieldErrors.providedServiceId),
+                  "h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))]",
+                )}
               >
-                {services.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {getServiceLabel(s)}
+                {services.map((service) => (
+                  <option key={service.id} value={service.id}>
+                    {getServiceLabel(service)}
                   </option>
                 ))}
               </select>
@@ -1285,41 +1486,65 @@ function AppointmentCard({
                   {selectedService.priceIncludingVAT}€
                 </p>
               )}
-            </div>
 
-            <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Ονοματεπώνυμο
-              </label>
-
-              <input
-                value={b.customerName}
-                onChange={(e) =>
-                  setB((prev) => ({
-                    ...prev,
-                    customerName: e.target.value,
-                  }))
-                }
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))]"
+              <FormFieldError
+                errors={formErrors.fieldErrors.providedServiceId}
               />
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Email
+                Ονοματεπώνυμο{" "}
+                <span className="text-rose-600" aria-hidden="true">
+                  *
+                </span>
+              </label>
+
+              <input
+                value={appointment.customerName}
+                onChange={(event) => {
+                  setAppointment((previous) => ({
+                    ...previous,
+                    customerName: event.target.value,
+                  }));
+
+                  formErrors.clearFieldError("customerName");
+                }}
+                className={errorInputClass(
+                  Boolean(formErrors.fieldErrors.customerName),
+                  "h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))]",
+                )}
+              />
+
+              <FormFieldError errors={formErrors.fieldErrors.customerName} />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Email{" "}
+                <span className="text-rose-600" aria-hidden="true">
+                  *
+                </span>
               </label>
 
               <input
                 type="email"
-                value={b.customerEmail}
-                onChange={(e) =>
-                  setB((prev) => ({
-                    ...prev,
-                    customerEmail: e.target.value,
-                  }))
-                }
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))]"
+                value={appointment.customerEmail}
+                onChange={(event) => {
+                  setAppointment((previous) => ({
+                    ...previous,
+                    customerEmail: event.target.value,
+                  }));
+
+                  formErrors.clearFieldError("customerEmail");
+                }}
+                className={errorInputClass(
+                  Boolean(formErrors.fieldErrors.customerEmail),
+                  "h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))]",
+                )}
               />
+
+              <FormFieldError errors={formErrors.fieldErrors.customerEmail} />
             </div>
 
             <div>
@@ -1328,15 +1553,22 @@ function AppointmentCard({
               </label>
 
               <input
-                value={b.customerPhone}
-                onChange={(e) =>
-                  setB((prev) => ({
-                    ...prev,
-                    customerPhone: e.target.value,
-                  }))
-                }
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))]"
+                value={appointment.customerPhone}
+                onChange={(event) => {
+                  setAppointment((previous) => ({
+                    ...previous,
+                    customerPhone: event.target.value,
+                  }));
+
+                  formErrors.clearFieldError("customerPhone");
+                }}
+                className={errorInputClass(
+                  Boolean(formErrors.fieldErrors.customerPhone),
+                  "h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))]",
+                )}
               />
+
+              <FormFieldError errors={formErrors.fieldErrors.customerPhone} />
             </div>
 
             <div className="md:col-span-2">
@@ -1346,19 +1578,27 @@ function AppointmentCard({
 
               <textarea
                 rows={4}
-                value={b.message ?? ""}
-                onChange={(e) =>
-                  setB((prev) => ({
-                    ...prev,
-                    message: e.target.value,
-                  }))
-                }
-                className="w-full resize-y rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[rgb(var(--primary))]"
+                value={appointment.message ?? ""}
+                onChange={(event) => {
+                  setAppointment((previous) => ({
+                    ...previous,
+                    message: event.target.value,
+                  }));
+
+                  formErrors.clearFieldError("message");
+                }}
+                className={errorInputClass(
+                  Boolean(formErrors.fieldErrors.message),
+                  "w-full resize-y rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[rgb(var(--primary))]",
+                )}
                 placeholder="Προαιρετικό μήνυμα ή σημείωση"
               />
-            </div>
 
+              <FormFieldError errors={formErrors.fieldErrors.message} />
+            </div>
           </div>
+
+          <FormFieldError errors={formErrors.fieldErrors.form} />
 
           <div className="mt-4 flex flex-wrap justify-end gap-2">
             <button
@@ -1376,7 +1616,9 @@ function AppointmentCard({
               disabled={busy}
               className={cx(
                 "rounded-full px-4 py-2 text-sm font-semibold text-white",
-                busy ? "cursor-wait bg-[rgba(var(--primary),0.7)]" : "bg-[rgb(var(--primary))]"
+                busy
+                  ? "cursor-wait bg-[rgba(var(--primary),0.7)]"
+                  : "bg-[rgb(var(--primary))]",
               )}
             >
               {busy ? "Αποθήκευση…" : "Αποθήκευση"}
@@ -1384,10 +1626,17 @@ function AppointmentCard({
           </div>
         </div>
       )}
+
+      <GeneralErrorDialog
+        open={Boolean(formErrors.generalError)}
+        title={formErrors.generalError?.title}
+        message={formErrors.generalError?.message ?? ""}
+        onClose={formErrors.closeGeneralError}
+        onRetry={saveChanges}
+      />
     </div>
   );
 }
-
 
 /* =============== NEWSLETTER =============== */
 function escapeCsvValue(value: string | number | boolean | null | undefined) {
@@ -1401,11 +1650,15 @@ function escapeCsvValue(value: string | number | boolean | null | undefined) {
 }
 
 function formatNewsletterDate(value?: string | null) {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) return "";
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
 
   return date.toLocaleString("el-GR", {
     day: "2-digit",
@@ -1419,11 +1672,11 @@ function formatNewsletterDate(value?: string | null) {
 function buildNewsletterCsv(subscribers: NewsletterSubscriberGetDto[]) {
   const header = ["ID", "EMAIL", "FULLNAME", "SUBSCRIBED_AT"];
 
-  const rows = subscribers.map((s) => [
-    s.id,
-    s.email,
-    s.fullName,
-    formatNewsletterDate(s.subscribedAt),
+  const rows = subscribers.map((subscriber) => [
+    subscriber.id,
+    subscriber.email,
+    subscriber.fullName,
+    formatNewsletterDate(subscriber.subscribedAt),
   ]);
 
   return [header, ...rows]
@@ -1432,90 +1685,121 @@ function buildNewsletterCsv(subscribers: NewsletterSubscriberGetDto[]) {
 }
 
 function downloadTextFile(filename: string, content: string) {
-  const blob = new Blob(["\uFEFF" + content], {
+  const blob = new Blob([`\uFEFF${content}`], {
     type: "text/csv;charset=utf-8;",
   });
 
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
+  const anchor = document.createElement("a");
 
-  a.href = url;
-  a.download = filename;
-  a.click();
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
 
   URL.revokeObjectURL(url);
 }
 
 function NewsletterManager() {
   const [subscribers, setSubscribers] = useState<NewsletterSubscriberGetDto[]>(
-    []
+    [],
   );
+
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [toast, setToast] = useState<string | null>(null);
 
+  const errors = useFormErrors();
+
   useEffect(() => {
     let active = true;
 
-    (async () => {
+    void (async () => {
       try {
         setLoading(true);
-        const res = await NewsletterSubscribersApi.list();
 
-        if (!active) return;
+        const result = await NewsletterSubscribersApi.list();
 
-        setSubscribers(res);
+        if (active) {
+          setSubscribers(result);
+        }
+      } catch (error: unknown) {
+        console.error(error);
+
+        if (active) {
+          errors.applyApiError(
+            error,
+            "Δεν ήταν δυνατή η φόρτωση των συνδρομητών.",
+          );
+        }
       } finally {
-        if (active) setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     })();
 
     return () => {
       active = false;
     };
-  }, []);
+  }, [errors.applyApiError]);
 
   useEffect(() => {
-    if (!toast) return;
+    if (!toast) {
+      return;
+    }
 
-    const t = setTimeout(() => setToast(null), 1800);
-    return () => clearTimeout(t);
+    const timer = window.setTimeout(() => {
+      setToast(null);
+    }, 1800);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [toast]);
 
   const filtered = useMemo(() => {
     const search = q.trim().toLowerCase();
 
-    if (!search) return subscribers;
+    if (!search) {
+      return subscribers;
+    }
 
-    return subscribers.filter((s) => {
-      return [
-        s.id,
-        s.email,
-        s.fullName,
-        formatNewsletterDate(s.subscribedAt),
+    return subscribers.filter((subscriber) =>
+      [
+        subscriber.id,
+        subscriber.email,
+        subscriber.fullName,
+        formatNewsletterDate(subscriber.subscribedAt),
       ]
         .join(" ")
         .toLowerCase()
-        .includes(search);
-    });
-  }, [subscribers, q]);
+        .includes(search),
+    );
+  }, [q, subscribers]);
 
-  const csvContent = useMemo(() => {
-    return buildNewsletterCsv(filtered);
-  }, [filtered]);
+  const csvContent = useMemo(() => buildNewsletterCsv(filtered), [filtered]);
 
   async function copyList() {
     try {
       await navigator.clipboard.writeText(csvContent);
       setToast("Η λίστα αντιγράφηκε.");
-    } catch {
-      setToast("Δεν ήταν δυνατή η αντιγραφή.");
+    } catch (error: unknown) {
+      console.error(error);
+
+      errors.applyApiError(error, "Δεν ήταν δυνατή η αντιγραφή της λίστας.");
     }
   }
 
   function downloadCsv() {
-    downloadTextFile("newsletter-subscribers.csv", csvContent);
-    setToast("Το CSV κατέβηκε.");
+    try {
+      downloadTextFile("newsletter-subscribers.csv", csvContent);
+
+      setToast("Το CSV κατέβηκε.");
+    } catch (error: unknown) {
+      console.error(error);
+
+      errors.applyApiError(error, "Δεν ήταν δυνατή η δημιουργία του CSV.");
+    }
   }
 
   return (
@@ -1523,6 +1807,7 @@ function NewsletterManager() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="p-5">
           <div className="text-sm text-slate-500">Σύνολο συνδρομητών</div>
+
           <div className="mt-2 text-3xl font-semibold text-slate-900">
             {subscribers.length}
           </div>
@@ -1530,6 +1815,7 @@ function NewsletterManager() {
 
         <Card className="p-5">
           <div className="text-sm text-slate-500">Αποτελέσματα αναζήτησης</div>
+
           <div className="mt-2 text-3xl font-semibold text-slate-900">
             {filtered.length}
           </div>
@@ -1542,6 +1828,7 @@ function NewsletterManager() {
             <h2 className="text-xl font-semibold text-slate-900">
               Συνδρομητές Newsletter
             </h2>
+
             <p className="mt-1 text-sm text-slate-500">
               Προβολή, αναζήτηση, αντιγραφή και εξαγωγή λίστας συνδρομητών.
             </p>
@@ -1571,7 +1858,7 @@ function NewsletterManager() {
         <div className="mb-4">
           <input
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(event) => setQ(event.target.value)}
             placeholder="Αναζήτηση με όνομα, email ή ID..."
             className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[rgb(var(--primary))] focus:ring-4 focus:ring-[rgba(var(--primary),0.12)]"
           />
@@ -1600,12 +1887,15 @@ function NewsletterManager() {
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">
                       ID
                     </th>
+
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">
                       Ονοματεπώνυμο
                     </th>
+
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">
                       Email
                     </th>
+
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">
                       Ημερομηνία εγγραφής
                     </th>
@@ -1613,22 +1903,22 @@ function NewsletterManager() {
                 </thead>
 
                 <tbody className="divide-y divide-slate-100 bg-white">
-                  {filtered.map((s) => (
-                    <tr key={s.id} className="hover:bg-slate-50">
+                  {filtered.map((subscriber) => (
+                    <tr key={subscriber.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 font-medium text-slate-900">
-                        #{s.id}
+                        #{subscriber.id}
                       </td>
 
                       <td className="px-4 py-3 text-slate-700">
-                        {s.fullName || "—"}
+                        {subscriber.fullName || "—"}
                       </td>
 
                       <td className="px-4 py-3 text-slate-700">
-                        {s.email}
+                        {subscriber.email}
                       </td>
 
                       <td className="px-4 py-3 text-slate-600">
-                        {formatNewsletterDate(s.subscribedAt) || "—"}
+                        {formatNewsletterDate(subscriber.subscribedAt) || "—"}
                       </td>
                     </tr>
                   ))}
@@ -1643,58 +1933,109 @@ function NewsletterManager() {
           SUBSCRIBED_AT.
         </div>
       </Card>
+
+      <GeneralErrorDialog
+        open={Boolean(errors.generalError)}
+        title={errors.generalError?.title}
+        message={errors.generalError?.message ?? ""}
+        onClose={errors.closeGeneralError}
+      />
     </div>
   );
 }
 
-
 /* =============== ΜΗΝΥΜΑΤΑ =============== */
 function MessagesManager() {
   const [messages, setMessages] = useState<ContactMessagesGetDto[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
+
   const [q, setQ] = useState("");
   const [toast, setToast] = useState<string | null>(null);
 
+  const errors = useFormErrors();
+
   useEffect(() => {
-    (async () => {
+    let active = true;
+
+    void (async () => {
       try {
         setLoading(true);
-        setMessages(await ContactMessagesApi.list());
+
+        const result = await ContactMessagesApi.list();
+
+        if (active) {
+          setMessages(result);
+        }
+      } catch (error: unknown) {
+        console.error(error);
+
+        if (active) {
+          errors.applyApiError(
+            error,
+            "Δεν ήταν δυνατή η φόρτωση των μηνυμάτων.",
+          );
+        }
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     })();
-  }, []);
+
+    return () => {
+      active = false;
+    };
+  }, [errors.applyApiError]);
 
   useEffect(() => {
-    if (!toast) return;
+    if (!toast) {
+      return;
+    }
 
-    const t = setTimeout(() => setToast(null), 1600);
-    return () => clearTimeout(t);
+    const timer = window.setTimeout(() => {
+      setToast(null);
+    }, 1600);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [toast]);
 
   const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    if (!s) return messages;
+    const search = q.trim().toLowerCase();
 
-    return messages.filter((m) =>
-      [m.senderName, m.senderEmail, m.message]
-        .filter(Boolean)
-        .some((x) => x.toLowerCase().includes(s))
+    if (!search) {
+      return messages;
+    }
+
+    return messages.filter((message) =>
+      [message.senderName, message.senderEmail, message.message]
+        .filter((value): value is string => typeof value === "string")
+        .some((value) => value.toLowerCase().includes(search)),
     );
   }, [messages, q]);
 
   async function handleDelete(id: number) {
-    if (!confirm("Διαγραφή μηνύματος;")) return;
+    if (!confirm("Διαγραφή μηνύματος;")) {
+      return;
+    }
 
     try {
       setBusyId(id);
 
       await ContactMessagesApi.remove(id);
 
-      setMessages((prev) => prev.filter((x) => x.id !== id));
+      setMessages((previous) =>
+        previous.filter((message) => message.id !== id),
+      );
+
       setToast("Διαγράφηκε.");
+    } catch (error: unknown) {
+      console.error(error);
+
+      errors.applyApiError(error, "Δεν ήταν δυνατή η διαγραφή του μηνύματος.");
     } finally {
       setBusyId(null);
     }
@@ -1705,7 +2046,7 @@ function MessagesManager() {
       <Card className="mb-6 p-4 md:p-5">
         <input
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(event) => setQ(event.target.value)}
           placeholder="Αναζήτηση όνομα, email, μήνυμα…"
           className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
         />
@@ -1721,34 +2062,35 @@ function MessagesManager() {
             Κανένα μήνυμα.
           </div>
         ) : (
-          filtered.map((m) => (
-            <div key={m.id} className="p-4 md:p-5">
+          filtered.map((message) => (
+            <div key={message.id} className="p-4 md:p-5">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
                   <div className="text-sm font-semibold text-slate-900">
-                    {m.senderName}
+                    {message.senderName}
                   </div>
 
                   <div className="text-sm text-slate-600">
-                    {m.senderEmail}
+                    {message.senderEmail}
                   </div>
 
                   <div className="mt-1 text-xs text-slate-500">
-                    {new Date(m.sentAt).toLocaleString("el-GR")}
+                    {new Date(message.sentAt).toLocaleString("el-GR")}
                   </div>
                 </div>
 
                 <button
-                  onClick={() => handleDelete(m.id)}
-                  disabled={busyId === m.id}
+                  type="button"
+                  onClick={() => handleDelete(message.id)}
+                  disabled={busyId === message.id}
                   className="rounded-full border border-slate-300 bg-white px-3 py-1 text-[11px] text-slate-700"
                 >
-                  {busyId === m.id ? "Διαγραφή…" : "Διαγραφή"}
+                  {busyId === message.id ? "Διαγραφή…" : "Διαγραφή"}
                 </button>
               </div>
 
               <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700">
-                {m.message}
+                {message.message}
               </p>
             </div>
           ))
@@ -1760,78 +2102,111 @@ function MessagesManager() {
           {toast}
         </div>
       )}
+
+      <GeneralErrorDialog
+        open={Boolean(errors.generalError)}
+        title={errors.generalError?.title}
+        message={errors.generalError?.message ?? ""}
+        onClose={errors.closeGeneralError}
+      />
     </>
   );
 }
 
-
 /* =============== ΧΡΗΣΙΜΕΣ ΠΛΗΡΟΦΟΡΙΕΣ =============== */
 function UsefulInfoManager() {
   const [item, setItem] = useState<UsefulInfoGetDto | null>(null);
+
   const [title, setTitle] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  async function loadUsefulInfo() {
+  const formErrors = useFormErrors();
+
+  const loadUsefulInfo = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
+      formErrors.clearAllErrors();
 
       const data = await UsefulInfoApi.getSingle();
 
       setItem(data);
+      setTitle(data?.title ?? "");
+      setInfo(data?.info ?? "");
+    } catch (error: unknown) {
+      console.error(error);
 
-      if (data) {
-        setTitle(data.title || "");
-        setInfo(data.info || "");
-      } else {
-        setTitle("");
-        setInfo("");
-      }
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Δεν ήταν δυνατή η φόρτωση των χρήσιμων πληροφοριών."
+      formErrors.applyApiError(
+        error,
+        "Δεν ήταν δυνατή η φόρτωση των χρήσιμων πληροφοριών.",
       );
     } finally {
       setLoading(false);
     }
-  }
+  }, [formErrors.applyApiError, formErrors.clearAllErrors]);
 
   useEffect(() => {
-    loadUsefulInfo();
-  }, []);
+    void loadUsefulInfo();
+  }, [loadUsefulInfo]);
 
   useEffect(() => {
-    if (!toast) return;
+    if (!toast) {
+      return;
+    }
 
-    const t = setTimeout(() => setToast(null), 1600);
-    return () => clearTimeout(t);
+    const timer = window.setTimeout(() => {
+      setToast(null);
+    }, 1600);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [toast]);
 
   async function handleSave() {
+    const validationErrors: ApiFieldErrors = {};
+
+    if (isRichTextBlank(title)) {
+      addValidationError(
+        validationErrors,
+        "title",
+        "Ο τίτλος είναι υποχρεωτικός.",
+      );
+    }
+
+    if (isRichTextBlank(info)) {
+      addValidationError(
+        validationErrors,
+        "info",
+        "Οι πληροφορίες είναι υποχρεωτικές.",
+      );
+    }
+
+    if (!formErrors.applyFrontendErrors(validationErrors)) {
+      return;
+    }
+
     try {
       setSaving(true);
-      setError(null);
 
       const saved = await UsefulInfoApi.update(item?.id ?? 1, {
-        title,
-        info,
+        title: title.trim(),
+        info: info.trim(),
       });
 
       setItem(saved);
       setTitle(saved.title || "");
       setInfo(saved.info || "");
+      formErrors.clearAllErrors();
       setToast("Αποθηκεύτηκε.");
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Δεν ήταν δυνατή η αποθήκευση."
+    } catch (error: unknown) {
+      console.error(error);
+
+      formErrors.applyApiError(
+        error,
+        "Δεν ήταν δυνατή η αποθήκευση των χρήσιμων πληροφοριών.",
       );
     } finally {
       setSaving(false);
@@ -1860,35 +2235,63 @@ function UsefulInfoManager() {
           <div className="space-y-5">
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-900">
-                Τίτλος
+                Τίτλος{" "}
+                <span className="text-rose-600" aria-hidden="true">
+                  *
+                </span>
               </label>
 
-              <RichTextEditor
-                value={title}
-                onChange={setTitle}
-                placeholder="π.χ. Χρήσιμες Πληροφορίες"
-                minHeight={120}
-              />
+              <div
+                className={
+                  formErrors.fieldErrors.title
+                    ? "rounded-xl ring-2 ring-rose-400"
+                    : ""
+                }
+              >
+                <RichTextEditor
+                  value={title}
+                  onChange={(value) => {
+                    setTitle(value);
+                    formErrors.clearFieldError("title");
+                  }}
+                  placeholder="π.χ. Χρήσιμες Πληροφορίες"
+                  minHeight={120}
+                />
+              </div>
+
+              <FormFieldError errors={formErrors.fieldErrors.title} />
             </div>
 
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-900">
-                Πληροφορίες
+                Πληροφορίες{" "}
+                <span className="text-rose-600" aria-hidden="true">
+                  *
+                </span>
               </label>
 
-              <RichTextEditor
-                value={info}
-                onChange={setInfo}
-                placeholder="Γράψτε εδώ τις πληροφορίες που θα βλέπει ο χρήστης στη φόρμα ραντεβού."
-                minHeight={260}
-              />
+              <div
+                className={
+                  formErrors.fieldErrors.info
+                    ? "rounded-xl ring-2 ring-rose-400"
+                    : ""
+                }
+              >
+                <RichTextEditor
+                  value={info}
+                  onChange={(value) => {
+                    setInfo(value);
+                    formErrors.clearFieldError("info");
+                  }}
+                  placeholder="Γράψτε εδώ τις πληροφορίες που θα βλέπει ο χρήστης στη φόρμα ραντεβού."
+                  minHeight={260}
+                />
+              </div>
+
+              <FormFieldError errors={formErrors.fieldErrors.info} />
             </div>
 
-            {error && (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
-                {error}
-              </div>
-            )}
+            <FormFieldError errors={formErrors.fieldErrors.form} />
 
             <div className="flex justify-end">
               <button
@@ -1899,7 +2302,7 @@ function UsefulInfoManager() {
                   "rounded-full px-5 py-2 text-sm font-semibold text-white transition",
                   saving
                     ? "cursor-wait bg-[rgba(var(--primary),0.65)]"
-                    : "bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary-dark))]"
+                    : "bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary-dark))]",
                 )}
               >
                 {saving ? "Αποθήκευση…" : "Αποθήκευση"}
@@ -1914,10 +2317,17 @@ function UsefulInfoManager() {
           {toast}
         </div>
       )}
+
+      <GeneralErrorDialog
+        open={Boolean(formErrors.generalError)}
+        title={formErrors.generalError?.title}
+        message={formErrors.generalError?.message ?? ""}
+        onClose={formErrors.closeGeneralError}
+        onRetry={handleSave}
+      />
     </>
   );
 }
-
 
 /* =============== ΩΡΕΣ ΓΡΑΦΕΙΟΥ =============== */
 type OfficeHoursFormRow = {
@@ -1971,22 +2381,24 @@ const officeDays: Array<{
 ];
 
 function normalizeTime(value?: string | null) {
-  if (!value) return "09:00";
+  if (!value) {
+    return "09:00";
+  }
 
   return value.slice(0, 5);
 }
 
-function weeklyResponseToRows(
-  weekly: WeeklyOfficeHours
-): OfficeHoursFormRow[] {
+function weeklyResponseToRows(weekly: WeeklyOfficeHours): OfficeHoursFormRow[] {
   return officeDays.map((day) => {
     const existing = weekly[day.key]?.[0];
 
     return {
       dayOfWeek: day.dayOfWeek,
       label: day.label,
-      startTime: normalizeTime(existing?.startTime),
-      endTime: normalizeTime(existing?.endTime) || "17:00",
+      startTime: existing?.startTime
+        ? normalizeTime(existing.startTime)
+        : "09:00",
+      endTime: existing?.endTime ? normalizeTime(existing.endTime) : "17:00",
       isActive: existing?.isActive ?? false,
     };
   });
@@ -1994,54 +2406,57 @@ function weeklyResponseToRows(
 
 function OfficeHoursManager() {
   const [rows, setRows] = useState<OfficeHoursFormRow[]>([]);
-  const [originalRows, setOriginalRows] = useState<
-    OfficeHoursFormRow[]
-  >([]);
+
+  const [originalRows, setOriginalRows] = useState<OfficeHoursFormRow[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  async function loadOfficeHours() {
+  const formErrors = useFormErrors();
+
+  const loadOfficeHours = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
+      formErrors.clearAllErrors();
 
       const weekly = await OfficeHoursApi.getWeekly();
+
       const mappedRows = weeklyResponseToRows(weekly);
 
       setRows(mappedRows);
-      setOriginalRows(mappedRows);
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Δεν ήταν δυνατή η φόρτωση των ωρών γραφείου."
+      setOriginalRows(mappedRows.map((row) => ({ ...row })));
+    } catch (error: unknown) {
+      console.error(error);
+
+      formErrors.applyApiError(
+        error,
+        "Δεν ήταν δυνατή η φόρτωση των ωρών γραφείου.",
       );
     } finally {
       setLoading(false);
     }
-  }
+  }, [formErrors.applyApiError, formErrors.clearAllErrors]);
 
   useEffect(() => {
-    loadOfficeHours();
-  }, []);
+    void loadOfficeHours();
+  }, [loadOfficeHours]);
 
   useEffect(() => {
-    if (!toast) return;
+    if (!toast) {
+      return;
+    }
 
-    const timer = setTimeout(() => {
+    const timer = window.setTimeout(() => {
       setToast(null);
     }, 1800);
 
-    return () => clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [toast]);
 
-  function updateRow(
-    dayOfWeek: number,
-    updates: Partial<OfficeHoursFormRow>
-  ) {
+  function updateRow(dayOfWeek: number, updates: Partial<OfficeHoursFormRow>) {
     setRows((previous) =>
       previous.map((row) =>
         row.dayOfWeek === dayOfWeek
@@ -2049,44 +2464,79 @@ function OfficeHoursManager() {
               ...row,
               ...updates,
             }
-          : row
-      )
+          : row,
+      ),
     );
 
-    setError(null);
+    formErrors.clearFieldError(`startTime_${dayOfWeek}`);
+
+    formErrors.clearFieldError(`endTime_${dayOfWeek}`);
+
+    formErrors.clearFieldError("form");
   }
 
-  function validateRows() {
+  function validateRows(): ApiFieldErrors {
+    const validationErrors: ApiFieldErrors = {};
+
     const timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
     for (const row of rows) {
-      if (!row.isActive) continue;
-
-      if (!row.startTime || !row.endTime) {
-        return `Συμπληρώστε ώρες για ${row.label}.`;
+      if (!row.isActive) {
+        continue;
       }
 
-      if (!timePattern.test(row.startTime)) {
-        return `Η ώρα έναρξης για ${row.label} πρέπει να είναι στη μορφή ΩΩ:ΛΛ/ΩΩΛΛ, π.χ. 09:00.`;
+      const startKey = `startTime_${row.dayOfWeek}`;
+
+      const endKey = `endTime_${row.dayOfWeek}`;
+
+      if (!row.startTime) {
+        addValidationError(
+          validationErrors,
+          startKey,
+          `Συμπληρώστε ώρα έναρξης για ${row.label}.`,
+        );
+      } else if (!timePattern.test(row.startTime)) {
+        addValidationError(
+          validationErrors,
+          startKey,
+          "Η ώρα πρέπει να έχει μορφή ΩΩ:ΛΛ, π.χ. 09:00.",
+        );
       }
 
-      if (!timePattern.test(row.endTime)) {
-        return `Η ώρα λήξης για ${row.label} πρέπει να είναι στη μορφή ΩΩ:ΛΛ/ΩΩΛΛ, π.χ. 17:00.`;
+      if (!row.endTime) {
+        addValidationError(
+          validationErrors,
+          endKey,
+          `Συμπληρώστε ώρα λήξης για ${row.label}.`,
+        );
+      } else if (!timePattern.test(row.endTime)) {
+        addValidationError(
+          validationErrors,
+          endKey,
+          "Η ώρα πρέπει να έχει μορφή ΩΩ:ΛΛ, π.χ. 17:00.",
+        );
       }
 
-      if (row.startTime >= row.endTime) {
-        return `Η ώρα έναρξης πρέπει να είναι πριν από την ώρα λήξης για ${row.label}.`;
+      if (
+        timePattern.test(row.startTime) &&
+        timePattern.test(row.endTime) &&
+        row.startTime >= row.endTime
+      ) {
+        addValidationError(
+          validationErrors,
+          endKey,
+          "Η ώρα λήξης πρέπει να είναι μετά την ώρα έναρξης.",
+        );
       }
     }
 
-    return null;
+    return validationErrors;
   }
 
   async function handleSave() {
-    const validationError = validateRows();
+    const validationErrors = validateRows();
 
-    if (validationError) {
-      setError(validationError);
+    if (!formErrors.applyFrontendErrors(validationErrors)) {
       return;
     }
 
@@ -2099,21 +2549,24 @@ function OfficeHoursManager() {
 
     try {
       setSaving(true);
-      setError(null);
 
       await OfficeHoursApi.replaceWeekly(payload);
 
       const weekly = await OfficeHoursApi.getWeekly();
+
       const freshRows = weeklyResponseToRows(weekly);
 
       setRows(freshRows);
-      setOriginalRows(freshRows);
+      setOriginalRows(freshRows.map((row) => ({ ...row })));
+
+      formErrors.clearAllErrors();
       setToast("Οι ώρες γραφείου αποθηκεύτηκαν.");
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Δεν ήταν δυνατή η αποθήκευση."
+    } catch (error: unknown) {
+      console.error(error);
+
+      formErrors.applyApiError(
+        error,
+        "Δεν ήταν δυνατή η αποθήκευση των ωρών γραφείου.",
       );
     } finally {
       setSaving(false);
@@ -2121,8 +2574,13 @@ function OfficeHoursManager() {
   }
 
   function handleReset() {
-    setRows(originalRows.map((row) => ({ ...row })));
-    setError(null);
+    formErrors.clearAllErrors();
+
+    setRows(
+      originalRows.map((row) => ({
+        ...row,
+      })),
+    );
   }
 
   function normalizeTypedTime(value: string) {
@@ -2135,8 +2593,7 @@ function OfficeHoursManager() {
     return `${digits.slice(0, 2)}:${digits.slice(2)}`;
   }
 
-  const hasChanges =
-    JSON.stringify(rows) !== JSON.stringify(originalRows);
+  const hasChanges = JSON.stringify(rows) !== JSON.stringify(originalRows);
 
   return (
     <>
@@ -2147,8 +2604,8 @@ function OfficeHoursManager() {
           </h2>
 
           <p className="mt-1 max-w-3xl text-sm text-slate-600">
-            Επιλέξτε τις ημέρες κατά τις οποίες δέχεστε ραντεβού
-            και ορίστε το ωράριο κάθε ημέρας.
+            Επιλέξτε τις ημέρες κατά τις οποίες δέχεστε ραντεβού και ορίστε το
+            ωράριο κάθε ημέρας.
           </p>
         </div>
 
@@ -2158,105 +2615,136 @@ function OfficeHoursManager() {
           </div>
         ) : (
           <div className="space-y-3">
-            {rows.map((row) => (
-              <div
-                key={row.dayOfWeek}
-                className={cx(
-                  "grid gap-4 rounded-2xl border p-4 transition md:grid-cols-[180px_1fr_1fr_auto] md:items-center",
-                  row.isActive
-                    ? "border-slate-200 bg-white"
-                    : "border-slate-200 bg-slate-50/70"
-                )}
-              >
-                <div>
-                  <div className="font-semibold text-slate-900">
-                    {row.label}
+            {rows.map((row) => {
+              const startErrorKey = `startTime_${row.dayOfWeek}`;
+
+              const endErrorKey = `endTime_${row.dayOfWeek}`;
+
+              return (
+                <div
+                  key={row.dayOfWeek}
+                  className={cx(
+                    "grid gap-4 rounded-2xl border p-4 transition md:grid-cols-[180px_1fr_1fr_auto] md:items-start",
+                    row.isActive
+                      ? "border-slate-200 bg-white"
+                      : "border-slate-200 bg-slate-50/70",
+                  )}
+                >
+                  <div className="md:pt-1">
+                    <div className="font-semibold text-slate-900">
+                      {row.label}
+                    </div>
+
+                    <div
+                      className={cx(
+                        "mt-1 text-xs font-medium",
+                        row.isActive ? "text-emerald-700" : "text-slate-500",
+                      )}
+                    >
+                      {row.isActive ? "Ανοιχτά" : "Κλειστά"}
+                    </div>
                   </div>
 
-                  <div
-                    className={cx(
-                      "mt-1 text-xs font-medium",
-                      row.isActive
-                        ? "text-emerald-700"
-                        : "text-slate-500"
-                    )}
-                  >
-                    {row.isActive ? "Ανοιχτά" : "Κλειστά"}
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Από{" "}
+                      {row.isActive && (
+                        <span className="text-rose-600" aria-hidden="true">
+                          *
+                        </span>
+                      )}
+                    </label>
+
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={row.startTime}
+                      disabled={!row.isActive || saving}
+                      placeholder="09:00 ή 0900"
+                      maxLength={5}
+                      onChange={(event) =>
+                        updateRow(row.dayOfWeek, {
+                          startTime: normalizeTypedTime(event.target.value),
+                        })
+                      }
+                      className={errorInputClass(
+                        Boolean(formErrors.fieldErrors[startErrorKey]),
+                        "h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400",
+                      )}
+                    />
+
+                    <FormFieldError
+                      errors={formErrors.fieldErrors[startErrorKey]}
+                    />
                   </div>
-                </div>
 
-                <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Από
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Έως{" "}
+                      {row.isActive && (
+                        <span className="text-rose-600" aria-hidden="true">
+                          *
+                        </span>
+                      )}
+                    </label>
+
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={row.endTime}
+                      disabled={!row.isActive || saving}
+                      placeholder="17:00 ή 1700"
+                      maxLength={5}
+                      onChange={(event) =>
+                        updateRow(row.dayOfWeek, {
+                          endTime: normalizeTypedTime(event.target.value),
+                        })
+                      }
+                      className={errorInputClass(
+                        Boolean(formErrors.fieldErrors[endErrorKey]),
+                        "h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400",
+                      )}
+                    />
+
+                    <FormFieldError
+                      errors={formErrors.fieldErrors[endErrorKey]}
+                    />
+                  </div>
+
+                  <label className="flex cursor-pointer items-center gap-3 md:justify-end md:pt-6">
+                    <input
+                      type="checkbox"
+                      checked={row.isActive}
+                      disabled={saving}
+                      onChange={(event) =>
+                        updateRow(row.dayOfWeek, {
+                          isActive: event.target.checked,
+                        })
+                      }
+                      className="h-5 w-5 accent-[rgb(var(--primary))]"
+                    />
+
+                    <span className="text-sm font-medium text-slate-700">
+                      Ενεργή ημέρα
+                    </span>
                   </label>
-
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={row.startTime}
-                    disabled={!row.isActive || saving}
-                    placeholder="09:00 ή 0900"
-                    maxLength={5}
-                    onChange={(event) =>
-                      updateRow(row.dayOfWeek, {
-                        startTime: normalizeTypedTime(event.target.value),
-                      })
-                    }
-                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-                  />
                 </div>
+              );
+            })}
 
-                <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Έως
-                  </label>
-
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={row.endTime}
-                    disabled={!row.isActive || saving}
-                    placeholder="17:00 ή 1700"
-                    maxLength={5}
-                    onChange={(event) =>
-                      updateRow(row.dayOfWeek, {
-                        endTime: normalizeTypedTime(event.target.value),
-                      })
-                    }
-                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-                  />
-                </div>
-
-                <label className="flex cursor-pointer items-center gap-3 md:justify-end">
-                  <input
-                    type="checkbox"
-                    checked={row.isActive}
-                    disabled={saving}
-                    onChange={(event) =>
-                      updateRow(row.dayOfWeek, {
-                        isActive: event.target.checked,
-                      })
-                    }
-                    className="h-5 w-5 accent-[rgb(var(--primary))]"
-                  />
-
-                  <span className="text-sm font-medium text-slate-700">
-                    Ενεργή ημέρα
-                  </span>
-                </label>
-              </div>
-            ))}
-
-            {error && (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                {error}
-              </div>
-            )}
+            <FormFieldError
+              errors={[
+                ...(formErrors.fieldErrors.form ?? []),
+                ...(formErrors.fieldErrors.startTime ?? []),
+                ...(formErrors.fieldErrors.endTime ?? []),
+                ...(formErrors.fieldErrors.dayOfWeek ?? []),
+              ]}
+            />
 
             <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-slate-500">
-                Οι μη ενεργές ημέρες δεν θα εμφανίζονται ως διαθέσιμες
-                για ραντεβού.
+                Οι μη ενεργές ημέρες δεν θα εμφανίζονται ως διαθέσιμες για
+                ραντεβού.
               </p>
 
               <div className="flex justify-end gap-2">
@@ -2277,7 +2765,7 @@ function OfficeHoursManager() {
                     "rounded-full px-5 py-2 text-sm font-semibold text-white transition",
                     !hasChanges || saving
                       ? "cursor-not-allowed bg-[rgba(var(--primary),0.6)]"
-                      : "bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary-dark))]"
+                      : "bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary-dark))]",
                   )}
                 >
                   {saving ? "Αποθήκευση…" : "Αποθήκευση"}
@@ -2293,6 +2781,14 @@ function OfficeHoursManager() {
           {toast}
         </div>
       )}
+
+      <GeneralErrorDialog
+        open={Boolean(formErrors.generalError)}
+        title={formErrors.generalError?.title}
+        message={formErrors.generalError?.message ?? ""}
+        onClose={formErrors.closeGeneralError}
+        onRetry={handleSave}
+      />
     </>
   );
 }

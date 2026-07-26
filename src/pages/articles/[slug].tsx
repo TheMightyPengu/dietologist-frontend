@@ -1,10 +1,16 @@
 import Head from "next/head";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import type { GetServerSideProps } from "next";
 import Image from "next/image";
-import { ArticlesApi, type ArticlesGetDto } from "@/api/ArticlesController";
+import type { GetServerSideProps } from "next";
+import { useEffect, useMemo, useState } from "react";
+
+import {
+  ArticlesApi,
+  type ArticlesGetDto,
+} from "@/api/ArticlesController";
+
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
+import { toMediaUrl } from "@/api/_axios-client";
 
 type Article = {
   id: number;
@@ -13,12 +19,14 @@ type Article = {
   subtitle: string;
   heading: string;
   excerpt: string;
-  category: "Διατροφή" | "Ευεξία" | "Συνταγές" | "Επιστήμη";
+  category: string;
   dateISO: string;
-  readMinutes: number;
-  hero: string | null;
-  tags: string[];
+  hero: string;
   contentHtml: string;
+};
+
+type PageProps = {
+  article: Article;
 };
 
 function slugifyArticle(title: string, id: number) {
@@ -42,52 +50,76 @@ function slugifyArticle(title: string, id: number) {
   return `${base || "article"}-${id}`;
 }
 
-function stripHtml(value: string) {
+function getIdFromSlug(slug: string) {
+  const match = slug.match(/-(\d+)$/);
+
+  return match ? Number(match[1]) : Number(slug);
+}
+
+function stripHtml(value?: string | null) {
   return (value || "")
     .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-function estimateReadMinutes(text: string) {
-  const words = stripHtml(text).split(/\s+/).filter(Boolean).length;
-  return Math.max(1, Math.ceil(words / 200));
+function resolveArticleImage(image?: string | null): string {
+  const value = image?.trim();
+
+  if (!value) {
+    return "";
+  }
+
+  if (
+    value.startsWith("http://") ||
+    value.startsWith("https://")
+  ) {
+    return value;
+  }
+
+  return toMediaUrl(value);
 }
 
 function mapArticleDtoToUi(dto: ArticlesGetDto): Article {
-  const plainContent = stripHtml(dto.content);
+  const content = dto.content ?? "";
+  const title = dto.title ?? "";
 
   return {
     id: dto.id,
-    slug: slugifyArticle(dto.title, dto.id),
-    title: dto.title,
+    slug: slugifyArticle(title, dto.id),
+    title,
     subtitle: dto.subtitle ?? "",
     heading: dto.heading ?? "",
-    excerpt: dto.subtitle?.trim() || plainContent.slice(0, 160) || "",
-    category: "Διατροφή",
-    dateISO: dto.publishedAt,
-    readMinutes: estimateReadMinutes(dto.content),
-    hero:
-      dto.imageUrl ?? null,
-    tags: [],
-    contentHtml: dto.content || "",
+
+    excerpt:
+      dto.subtitle?.trim() ||
+      stripHtml(content).slice(0, 160),
+
+    // Use the real category instead of always using "Διατροφή".
+    category: dto.category?.trim() || "Χωρίς κατηγορία",
+
+    dateISO: dto.publishedAt ?? "",
+    hero: resolveArticleImage(dto.imageUrl),
+    contentHtml: content,
   };
 }
 
-type PageProps = {
-  article: Article;
-};
-
-export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
+export const getServerSideProps: GetServerSideProps<
+  PageProps
+> = async (context) => {
   try {
-    const slug = String(ctx.params?.slug || "");
-    const data = await ArticlesApi.list();
-    const articles = data.map(mapArticleDtoToUi);
-    const article = articles.find((a) => a.slug === slug);
+    const slug = String(context.params?.slug || "");
+    const id = getIdFromSlug(slug);
 
-    if (!article) {
-      return { notFound: true };
+    if (!Number.isFinite(id) || id <= 0) {
+      return {
+        notFound: true,
+      };
     }
+
+    const data = await ArticlesApi.get(id);
+    const article = mapArticleDtoToUi(data);
 
     return {
       props: {
@@ -95,73 +127,139 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       },
     };
   } catch (error) {
-    console.error("Failed to fetch article by slug:", error);
-    return { notFound: true };
+    console.error(
+      "Failed to fetch article by slug:",
+      error,
+    );
+
+    return {
+      notFound: true,
+    };
   }
 };
 
-export default function ArticlePage({ article }: { article: Article }) {
-  const formattedDate = useMemo(
-    () =>
-      new Date(article.dateISO).toLocaleDateString("el-GR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }),
-    [article.dateISO]
-  );
+export default function ArticlePage({
+  article,
+}: PageProps) {
+  const formattedDate = useMemo(() => {
+    if (!article.dateISO) {
+      return "—";
+    }
+
+    const date = new Date(article.dateISO);
+
+    if (Number.isNaN(date.getTime())) {
+      return "—";
+    }
+
+    return date.toLocaleDateString("el-GR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  }, [article.dateISO]);
 
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const onScroll = () => {
-      const doc = document.documentElement;
-      const scrollTop = doc.scrollTop || document.body.scrollTop;
-      const scrollHeight = doc.scrollHeight || document.body.scrollHeight;
-      const clientHeight = doc.clientHeight;
-      const total = Math.max(1, scrollHeight - clientHeight);
+    function onScroll() {
+      const documentElement =
+        document.documentElement;
 
-      setProgress(Math.min(1, Math.max(0, scrollTop / total)));
-    };
+      const scrollTop =
+        documentElement.scrollTop ||
+        document.body.scrollTop;
+
+      const scrollHeight =
+        documentElement.scrollHeight ||
+        document.body.scrollHeight;
+
+      const clientHeight =
+        documentElement.clientHeight;
+
+      const total = Math.max(
+        1,
+        scrollHeight - clientHeight,
+      );
+
+      setProgress(
+        Math.min(
+          1,
+          Math.max(0, scrollTop / total),
+        ),
+      );
+    }
 
     onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
 
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("scroll", onScroll, {
+      passive: true,
+    });
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+    };
   }, []);
 
   return (
     <>
       <Head>
         <title>{`${article.title} — Άρθρα`}</title>
-        <meta name="description" content={article.excerpt} />
+
+        <meta
+          name="description"
+          content={article.excerpt}
+        />
+
         <link
           rel="canonical"
           href={`https://example.com/articles/${encodeURIComponent(
-            article.slug
+            article.slug,
           )}`}
         />
+
         <meta property="og:type" content="article" />
-        <meta property="og:title" content={`${article.title} — Άρθρα`} />
-        <meta property="og:description" content={article.excerpt} />
-        {article.hero ? <meta property="og:image" content={article.hero} /> : null}
+
+        <meta
+          property="og:title"
+          content={`${article.title} — Άρθρα`}
+        />
+
+        <meta
+          property="og:description"
+          content={article.excerpt}
+        />
+
+        {article.hero ? (
+          <meta
+            property="og:image"
+            content={article.hero}
+          />
+        ) : null}
+
         <meta property="og:locale" content="el_GR" />
-        <meta name="twitter:card" content="summary_large_image" />
+
+        <meta
+          name="twitter:card"
+          content="summary_large_image"
+        />
       </Head>
 
       <div className="fixed left-0 top-0 z-50 h-0.5 w-full bg-transparent">
         <div
           className="h-full bg-primary transition-[width] duration-75"
-          style={{ width: `${progress * 100}%` }}
+          style={{
+            width: `${progress * 100}%`,
+          }}
           aria-hidden
         />
       </div>
 
-      <article className="mx-auto max-w-4xl px-4 md:px-6 lg:px-8 py-8">
+      <article className="mx-auto max-w-4xl px-4 py-8 md:px-6 lg:px-8">
         <div className="mb-4">
           <Link
             href="/articles"
-            className="inline-flex items-center gap-2 rounded-xl bg-white/70 px-3 py-2 text-sm font-medium text-slate-800 ring-1 ring-slate-200 hover:bg-white transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+            className="inline-flex items-center gap-2 rounded-xl bg-white/70 px-3 py-2 text-sm font-medium text-slate-800 ring-1 ring-slate-200 transition hover:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
           >
             <span aria-hidden>←</span>
             Πίσω στα άρθρα
@@ -176,20 +274,14 @@ export default function ArticlePage({ article }: { article: Article }) {
 
             <span className="inline-flex items-center gap-1.5 tabular-nums">
               <span aria-hidden>📅</span>
-              <span>Δημοσίευση: {formattedDate}</span>
-            </span>
 
-            <span className="text-slate-300" aria-hidden>
-              •
-            </span>
-
-            <span className="inline-flex items-center gap-1.5 tabular-nums">
-              <span aria-hidden>⏱</span>
-              <span>{article.readMinutes}′ ανάγνωση</span>
+              <span>
+                Δημοσίευση: {formattedDate}
+              </span>
             </span>
           </div>
 
-          <h1 className="mt-2 max-w-[22ch] text-3xl md:text-4xl font-semibold tracking-tight leading-[1.1] text-slate-900">
+          <h1 className="mt-2 max-w-[22ch] text-3xl font-semibold leading-[1.1] tracking-tight text-slate-900 md:text-4xl">
             {article.title}
           </h1>
 
@@ -208,15 +300,16 @@ export default function ArticlePage({ article }: { article: Article }) {
                 alt={article.title}
                 fill
                 priority
+                unoptimized
                 className="object-cover"
               />
             </div>
           </div>
         ) : null}
 
-        <div className="mt-8 rounded-3xl bg-white/85 ring-1 ring-accent/20 shadow-[0_12px_35px_rgba(164,199,126,0.12)] p-6 md:p-8">
+        <div className="mt-8 rounded-3xl bg-white/85 p-6 shadow-[0_12px_35px_rgba(164,199,126,0.12)] ring-1 ring-accent/20 md:p-8">
           {article.heading ? (
-            <h2 className="mb-5 text-2xl md:text-3xl font-semibold tracking-tight text-slate-900">
+            <h2 className="mb-5 text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">
               {article.heading}
             </h2>
           ) : null}
@@ -226,19 +319,6 @@ export default function ArticlePage({ article }: { article: Article }) {
             className="article-rich-content"
           />
         </div>
-
-        {article.tags.length > 0 ? (
-          <footer className="mt-8 flex flex-wrap gap-2">
-            {article.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full bg-white px-3 py-1 text-sm text-slate-700 ring-1 ring-slate-200"
-              >
-                #{tag}
-              </span>
-            ))}
-          </footer>
-        ) : null}
       </article>
     </>
   );

@@ -8,6 +8,15 @@ import {
 } from "@/api/ProvidedServicesController";
 import RichTextEditor from "@/components/admin/RichTextEditor";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
+import FormFieldError from "@/components/admin/FormFieldError";
+import GeneralErrorDialog from "@/components/admin/GeneralErrorDialog";
+import { useFormErrors } from "@/components/hooks/useFormErrors";
+import {
+  addValidationError,
+  errorInputClass,
+  validateImageFile,
+} from "@/lib/form-validation";
+import type { ApiFieldErrors } from "@/api/_axios-client";
 
 const cx = (...c: (string | false | null | undefined)[]) =>
   c.filter(Boolean).join(" ");
@@ -19,7 +28,7 @@ const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
   <div
     className={cx(
       "rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-200/50",
-      className
+      className,
     )}
   >
     {children}
@@ -40,6 +49,38 @@ type ProvidedServiceDraft = ProvidedServicesGetDto & {
   imageFile?: File | null;
 };
 
+function validateService(value: ProvidedServicesPostDto): ApiFieldErrors {
+  const errors: ApiFieldErrors = {};
+
+  if (!value.title.trim()) {
+    addValidationError(errors, "title", "Ο τίτλος είναι υποχρεωτικός.");
+  }
+
+  if (!value.category.trim()) {
+    addValidationError(errors, "category", "Η κατηγορία είναι υποχρεωτική.");
+  }
+
+  if (Number(value.duration) <= 0) {
+    addValidationError(
+      errors,
+      "duration",
+      "Η διάρκεια πρέπει να είναι μεγαλύτερη από 0.",
+    );
+  }
+
+  if (Number(value.priceIncludingVAT) < 0) {
+    addValidationError(
+      errors,
+      "priceIncludingVAT",
+      "Η τιμή δεν μπορεί να είναι αρνητική.",
+    );
+  }
+
+  validateImageFile(value.imageFile, "imageFile", errors);
+
+  return errors;
+}
+
 export default function ManagementServicesPage() {
   const [all, setAll] = useState<ProvidedServicesGetDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +93,11 @@ export default function ManagementServicesPage() {
   const [creating, setCreating] = useState(false);
   const [createForm, setCreateForm] =
     useState<ProvidedServicesPostDto>(EMPTY_CREATE_FORM);
+  const {
+    generalError: pageGeneralError,
+    applyApiError: applyPageApiError,
+    closeGeneralError: closePageGeneralError,
+  } = useFormErrors();
 
   useEffect(() => {
     if (!toast) return;
@@ -67,16 +113,15 @@ export default function ManagementServicesPage() {
       const data = await ProvidedServicesApi.list();
       setAll(data);
 
-      if (!activeCategory && data.length > 0) {
-        setActiveCategory(data[0].category);
-      }
-    } catch (error) {
+      setActiveCategory((current) => current || data[0]?.category || "");
+    } catch (error: unknown) {
       console.error(error);
-      setToast("Αποτυχία φόρτωσης υπηρεσιών.");
+
+      applyPageApiError(error, "Δεν ήταν δυνατή η φόρτωση των υπηρεσιών.");
     } finally {
       setLoading(false);
     }
-  }, [activeCategory]);
+  }, [applyPageApiError]);
 
   const categories = useMemo(() => {
     return Array.from(new Set(all.map((s) => s.category).filter(Boolean)));
@@ -114,7 +159,9 @@ export default function ManagementServicesPage() {
         description: createForm.description.trim(),
         priceIncludingVAT: Number(createForm.priceIncludingVAT),
         imageFile: createForm.imageFile ?? null,
-        imageAssetId: createForm.imageFile ? null : createForm.imageAssetId ?? null,
+        imageAssetId: createForm.imageFile
+          ? null
+          : (createForm.imageAssetId ?? null),
       };
 
       const created = await ProvidedServicesApi.create(payload);
@@ -132,9 +179,9 @@ export default function ManagementServicesPage() {
       setCreateModalOpen(false);
       setCreateForm(EMPTY_CREATE_FORM);
       setToast("Δημιουργήθηκε η υπηρεσία.");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
-      setToast("Αποτυχία δημιουργίας υπηρεσίας.");
+      throw error;
     } finally {
       setCreating(false);
     }
@@ -151,7 +198,7 @@ export default function ManagementServicesPage() {
         description: service.description.trim(),
         priceIncludingVAT: Number(service.priceIncludingVAT),
         imageFile: service.imageFile ?? null,
-        imageAssetId: service.imageFile ? null : service.imageAssetId ?? null,
+        imageAssetId: service.imageFile ? null : (service.imageAssetId ?? null),
       };
 
       await ProvidedServicesApi.update(service.id, payload);
@@ -159,9 +206,9 @@ export default function ManagementServicesPage() {
       const fresh = await ProvidedServicesApi.get(service.id);
       setAll((prev) => prev.map((x) => (x.id === service.id ? fresh : x)));
       setToast("Αποθηκεύτηκε.");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
-      setToast("Αποτυχία αποθήκευσης.");
+      throw error;
     } finally {
       setBusyId(null);
     }
@@ -190,9 +237,10 @@ export default function ManagementServicesPage() {
       });
 
       setToast("Διαγράφηκε.");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
-      setToast("Αποτυχία διαγραφής.");
+
+      applyPageApiError(error, "Δεν ήταν δυνατή η διαγραφή της υπηρεσίας.");
     } finally {
       setBusyId(null);
     }
@@ -207,17 +255,28 @@ export default function ManagementServicesPage() {
 
       <div className="min-h-[70vh] bg-bg text-slate-800">
         <div className="mx-auto max-w-6xl px-4 md:px-6 lg:px-8 py-8 md:py-12">
-          <div className="mb-6 flex items-center gap-3">
-            <Link
-              href="/dashboard"
-              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))]"
-            >
-              ← Πίσω στο Dashboard
-            </Link>
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Link
+                href="/dashboard"
+                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))]"
+              >
+                ← Πίσω στο Dashboard
+              </Link>
 
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-              ΥΠΗΡΕΣΙΕΣ
-            </h1>
+              <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+                ΥΠΗΡΕΣΙΕΣ
+              </h1>
+            </div>
+
+            <Link
+              href="/services"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm hover:border-[rgb(var(--primary))]"
+            >
+              Προβολή σελίδας
+            </Link>
           </div>
 
           <Card className="p-4 md:p-5 mb-6">
@@ -236,7 +295,7 @@ export default function ManagementServicesPage() {
                           "px-3 md:px-4 py-2 rounded-full text-sm font-medium transition",
                           sel
                             ? "bg-[rgb(var(--primary))] text-white"
-                            : "bg-white border border-slate-200 hover:border-[rgb(var(--primary))]"
+                            : "bg-white border border-slate-200 hover:border-[rgb(var(--primary))]",
                         )}
                       >
                         {category}
@@ -298,6 +357,12 @@ export default function ManagementServicesPage() {
             {toast}
           </div>
         )}
+        <GeneralErrorDialog
+          open={Boolean(pageGeneralError)}
+          title={pageGeneralError?.title}
+          message={pageGeneralError?.message ?? ""}
+          onClose={closePageGeneralError}
+        />
       </div>
     </>
   );
@@ -314,8 +379,30 @@ function CreateServiceModal({
   setForm: React.Dispatch<React.SetStateAction<ProvidedServicesPostDto>>;
   creating: boolean;
   onClose: () => void;
-  onSubmit: () => void;
+  onSubmit: () => void | Promise<void>;
 }) {
+  const {
+    fieldErrors,
+    generalError,
+    clearFieldError,
+    applyFrontendErrors,
+    applyApiError,
+    closeGeneralError,
+  } = useFormErrors();
+
+  async function submitCreateForm() {
+    const errors = validateService(form);
+
+    if (!applyFrontendErrors(errors)) {
+      return;
+    }
+
+    try {
+      await onSubmit();
+    } catch (error: unknown) {
+      applyApiError(error, "Δεν ήταν δυνατή η δημιουργία της υπηρεσίας.");
+    }
+  }
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <button
@@ -351,56 +438,95 @@ function CreateServiceModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700">
-                Τίτλος
+                Τίτλος{" "}
+                <span className="text-rose-600" aria-hidden="true">
+                  *
+                </span>
               </label>
 
               <input
                 type="text"
                 value={form.title}
-                onChange={(e) =>
-                  setForm((d) => ({ ...d, title: e.target.value }))
-                }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                onChange={(e) => {
+                  setForm((current) => ({
+                    ...current,
+                    title: e.target.value,
+                  }));
+
+                  clearFieldError("title");
+                }}
+                className={errorInputClass(
+                  Boolean(fieldErrors.title),
+                  "mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]",
+                )}
               />
+
+              <FormFieldError errors={fieldErrors.title} />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700">
-                Κατηγορία
+                Κατηγορία{" "}
+                <span className="text-rose-600" aria-hidden="true">
+                  *
+                </span>
               </label>
 
               <input
                 type="text"
                 value={form.category}
-                onChange={(e) =>
-                  setForm((d) => ({ ...d, category: e.target.value }))
-                }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                onChange={(e) => {
+                  setForm((d) => ({
+                    ...d,
+                    category: e.target.value,
+                  }));
+
+                  clearFieldError("category");
+                }}
+                className={errorInputClass(
+                  Boolean(fieldErrors.category),
+                  "mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]",
+                )}
               />
+
+              <FormFieldError errors={fieldErrors.category} />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700">
-                Διάρκεια
+                Διάρκεια{" "}
+                <span className="text-rose-600" aria-hidden="true">
+                  *
+                </span>
               </label>
 
               <input
                 type="number"
                 min={0}
                 value={form.duration}
-                onChange={(e) =>
-                  setForm((d) => ({
-                    ...d,
+                onChange={(e) => {
+                  setForm((current) => ({
+                    ...current,
                     duration: Number(e.target.value),
-                  }))
-                }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                  }));
+
+                  clearFieldError("duration");
+                }}
+                className={errorInputClass(
+                  Boolean(fieldErrors.duration),
+                  "mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]",
+                )}
               />
+
+              <FormFieldError errors={fieldErrors.duration} />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700">
-                Τιμή με ΦΠΑ
+                Τιμή με ΦΠΑ{" "}
+                <span className="text-rose-600" aria-hidden="true">
+                  *
+                </span>
               </label>
 
               <input
@@ -408,14 +534,21 @@ function CreateServiceModal({
                 min={0}
                 step="0.01"
                 value={form.priceIncludingVAT}
-                onChange={(e) =>
-                  setForm((d) => ({
-                    ...d,
+                onChange={(e) => {
+                  setForm((current) => ({
+                    ...current,
                     priceIncludingVAT: Number(e.target.value),
-                  }))
-                }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                  }));
+
+                  clearFieldError("priceIncludingVAT");
+                }}
+                className={errorInputClass(
+                  Boolean(fieldErrors.priceIncludingVAT),
+                  "mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]",
+                )}
               />
+
+              <FormFieldError errors={fieldErrors.priceIncludingVAT} />
             </div>
 
             <div className="md:col-span-2">
@@ -425,21 +558,34 @@ function CreateServiceModal({
 
               <input
                 type="file"
-                accept="image/*"
-                onChange={(e) =>
-                  setForm((d) => ({
-                    ...d,
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => {
+                  setForm((current) => ({
+                    ...current,
                     imageFile: e.target.files?.[0] ?? null,
-                  }))
-                }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                  }));
+
+                  clearFieldError("imageFile");
+                  clearFieldError("imageAssetId");
+                }}
+                className={errorInputClass(
+                  Boolean(fieldErrors.imageFile || fieldErrors.imageAssetId),
+                  "mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]",
+                )}
               />
 
-              {form.imageFile ? (
+              {form.imageFile && (
                 <p className="mt-2 text-xs text-slate-500">
                   Επιλέχθηκε: {form.imageFile.name}
                 </p>
-              ) : null}
+              )}
+
+              <FormFieldError
+                errors={[
+                  ...(fieldErrors.imageFile ?? []),
+                  ...(fieldErrors.imageAssetId ?? []),
+                ]}
+              />
             </div>
           </div>
 
@@ -450,9 +596,7 @@ function CreateServiceModal({
 
             <RichTextEditor
               value={form.description}
-              onChange={(html) =>
-                setForm((d) => ({ ...d, description: html }))
-              }
+              onChange={(html) => setForm((d) => ({ ...d, description: html }))}
               placeholder="Γράψε την περιγραφή της υπηρεσίας..."
               minHeight={180}
             />
@@ -483,19 +627,26 @@ function CreateServiceModal({
 
           <button
             type="button"
-            onClick={onSubmit}
+            onClick={submitCreateForm}
             disabled={creating}
             className={cx(
               "rounded-full px-4 py-2 text-sm font-semibold transition",
               creating
                 ? "bg-[rgba(var(--primary),0.7)] text-white cursor-wait"
-                : "bg-[rgb(var(--primary))] text-white hover:shadow"
+                : "bg-[rgb(var(--primary))] text-white hover:shadow",
             )}
           >
             {creating ? "Δημιουργία…" : "Δημιουργία υπηρεσίας"}
           </button>
         </div>
       </div>
+      <GeneralErrorDialog
+        open={Boolean(generalError)}
+        title={generalError?.title}
+        message={generalError?.message ?? ""}
+        onClose={closeGeneralError}
+        onRetry={submitCreateForm}
+      />
     </div>
   );
 }
@@ -508,7 +659,7 @@ function ServiceEditorCard({
 }: {
   svc: ProvidedServicesGetDto;
   busy: boolean;
-  onSave: (s: ProvidedServiceDraft) => void;
+  onSave: (s: ProvidedServiceDraft) => void | Promise<void>;
   onDelete: (id: number) => void;
 }) {
   const [draft, setDraft] = useState<ProvidedServiceDraft>({
@@ -517,13 +668,49 @@ function ServiceEditorCard({
   });
   const [open, setOpen] = useState(false);
   const [fileInputKey, setFileInputKey] = useState(0);
+  const {
+    fieldErrors,
+    generalError,
+    clearFieldError,
+    clearAllErrors,
+    applyFrontendErrors,
+    applyApiError,
+    closeGeneralError,
+  } = useFormErrors();
+
+  async function saveService() {
+    const payload: ProvidedServicesPostDto = {
+      category: draft.category,
+      duration: draft.duration,
+      title: draft.title,
+      description: draft.description,
+      priceIncludingVAT: draft.priceIncludingVAT,
+      imageFile: draft.imageFile ?? null,
+      imageAssetId: draft.imageFile ? null : (draft.imageAssetId ?? null),
+    };
+
+    const errors = validateService(payload);
+
+    if (!applyFrontendErrors(errors)) {
+      setOpen(true);
+      return;
+    }
+
+    try {
+      await onSave(draft);
+    } catch (error: unknown) {
+      applyApiError(error, "Δεν ήταν δυνατή η αποθήκευση της υπηρεσίας.");
+    }
+  }
 
   useEffect(() => {
     setDraft({
       ...svc,
       imageFile: null,
     });
-  }, [svc]);
+
+    clearAllErrors();
+  }, [svc, clearAllErrors]);
 
   return (
     <Card className="p-5 md:p-6">
@@ -565,56 +752,95 @@ function ServiceEditorCard({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700">
-                Τίτλος
+                Τίτλος{" "}
+                <span className="text-rose-600" aria-hidden="true">
+                  *
+                </span>
               </label>
 
               <input
                 type="text"
                 value={draft.title}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, title: e.target.value }))
-                }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                onChange={(e) => {
+                  setDraft((current) => ({
+                    ...current,
+                    title: e.target.value,
+                  }));
+
+                  clearFieldError("title");
+                }}
+                className={errorInputClass(
+                  Boolean(fieldErrors.title),
+                  "mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]",
+                )}
               />
+
+              <FormFieldError errors={fieldErrors.title} />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700">
-                Κατηγορία
+                Κατηγορία{" "}
+                <span className="text-rose-600" aria-hidden="true">
+                  *
+                </span>
               </label>
 
               <input
                 type="text"
                 value={draft.category}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, category: e.target.value }))
-                }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                onChange={(e) => {
+                  setDraft((current) => ({
+                    ...current,
+                    category: e.target.value,
+                  }));
+
+                  clearFieldError("category");
+                }}
+                className={errorInputClass(
+                  Boolean(fieldErrors.category),
+                  "mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]",
+                )}
               />
+
+              <FormFieldError errors={fieldErrors.category} />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700">
-                Διάρκεια
+                Διάρκεια{" "}
+                <span className="text-rose-600" aria-hidden="true">
+                  *
+                </span>
               </label>
 
               <input
                 type="number"
                 min={0}
                 value={draft.duration}
-                onChange={(e) =>
-                  setDraft((d) => ({
-                    ...d,
+                onChange={(e) => {
+                  setDraft((current) => ({
+                    ...current,
                     duration: Number(e.target.value),
-                  }))
-                }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                  }));
+
+                  clearFieldError("duration");
+                }}
+                className={errorInputClass(
+                  Boolean(fieldErrors.duration),
+                  "mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]",
+                )}
               />
+
+              <FormFieldError errors={fieldErrors.duration} />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700">
-                Τιμή με ΦΠΑ
+                Τιμή με ΦΠΑ{" "}
+                <span className="text-rose-600" aria-hidden="true">
+                  *
+                </span>
               </label>
 
               <input
@@ -622,14 +848,21 @@ function ServiceEditorCard({
                 min={0}
                 step="0.01"
                 value={draft.priceIncludingVAT}
-                onChange={(e) =>
-                  setDraft((d) => ({
-                    ...d,
+                onChange={(e) => {
+                  setDraft((current) => ({
+                    ...current,
                     priceIncludingVAT: Number(e.target.value),
-                  }))
-                }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                  }));
+
+                  clearFieldError("priceIncludingVAT");
+                }}
+                className={errorInputClass(
+                  Boolean(fieldErrors.priceIncludingVAT),
+                  "mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]",
+                )}
               />
+
+              <FormFieldError errors={fieldErrors.priceIncludingVAT} />
             </div>
 
             <div className="md:col-span-2">
@@ -640,14 +873,20 @@ function ServiceEditorCard({
               <input
                 key={fileInputKey}
                 type="file"
-                accept="image/*"
-                onChange={(e) =>
-                  setDraft((d) => ({
-                    ...d,
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => {
+                  setDraft((current) => ({
+                    ...current,
                     imageFile: e.target.files?.[0] ?? null,
-                  }))
-                }
-                className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                  }));
+
+                  clearFieldError("imageFile");
+                  clearFieldError("imageAssetId");
+                }}
+                className={errorInputClass(
+                  Boolean(fieldErrors.imageFile || fieldErrors.imageAssetId),
+                  "mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]",
+                )}
               />
 
               {draft.imageFile ? (
@@ -665,23 +904,25 @@ function ServiceEditorCard({
               )}
 
               {draft.imageFile || draft.imageUrl ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setDraft((d) => ({
-                    ...d,
-                    imageFile: null,
-                    imageAssetId: null,
-                    imageUrl: null,
-                  }));
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraft((current) => ({
+                      ...current,
+                      imageFile: null,
+                      imageAssetId: null,
+                      imageUrl: null,
+                    }));
 
-                  setFileInputKey((k) => k + 1);
-                }}
-                className="mt-3 rounded-full border border-rose-200 bg-white px-3 py-1.5 text-sm text-rose-700 hover:border-rose-300"
-              >
-                Αφαίρεση εικόνας
-              </button>
-            ) : null}
+                    clearFieldError("imageFile");
+                    clearFieldError("imageAssetId");
+                    setFileInputKey((key) => key + 1);
+                  }}
+                  className="mt-3 rounded-full border border-rose-200 bg-white px-3 py-1.5 text-sm text-rose-700 hover:border-rose-300"
+                >
+                  Αφαίρεση εικόνας
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -715,13 +956,13 @@ function ServiceEditorCard({
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              onClick={() => onSave(draft)}
+              onClick={saveService}
               disabled={busy}
               className={cx(
                 "rounded-full px-4 py-2 text-sm font-semibold transition",
                 busy
                   ? "bg-[rgba(var(--primary),0.7)] text-white cursor-wait"
-                  : "bg-[rgb(var(--primary))] text-white hover:shadow"
+                  : "bg-[rgb(var(--primary))] text-white hover:shadow",
               )}
             >
               {busy ? "Αποθήκευση…" : "Αποθήκευση"}
@@ -729,12 +970,14 @@ function ServiceEditorCard({
             <button
               type="button"
               onClick={() => {
+                clearAllErrors();
+
                 setDraft({
                   ...svc,
                   imageFile: null,
                 });
 
-                setFileInputKey((k) => k + 1);
+                setFileInputKey((key) => key + 1);
               }}
               className="rounded-full border border-slate-400 bg-white px-4 py-2 text-sm hover:border-[rgb(var(--primary))]"
             >
@@ -743,6 +986,13 @@ function ServiceEditorCard({
           </div>
         </div>
       )}
+      <GeneralErrorDialog
+        open={Boolean(generalError)}
+        title={generalError?.title}
+        message={generalError?.message ?? ""}
+        onClose={closeGeneralError}
+        onRetry={saveService}
+      />
     </Card>
   );
 }

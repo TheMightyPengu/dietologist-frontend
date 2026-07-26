@@ -1,22 +1,18 @@
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { NavbarApi, type NavbarGetDto } from "@/api/NavbarController";
+import { toMediaUrl, type ApiFieldErrors } from "@/api/_axios-client";
+import FormFieldError from "@/components/admin/FormFieldError";
+import GeneralErrorDialog from "@/components/admin/GeneralErrorDialog";
+import { useFormErrors } from "@/components/hooks/useFormErrors";
 import {
-  useEffect,
-  useMemo,
-  useState,
-  type FormEvent,
-} from "react";
-
-import {
-  NavbarApi,
-  type NavbarGetDto,
-} from "@/api/NavbarController";
-
-import { toMediaUrl } from "@/api/_axios-client";
-
+  addValidationError,
+  errorInputClass,
+  validateImageFile,
+} from "@/lib/form-validation";
 import { WebsiteThemeApi } from "@/api/WebsiteThemeController";
-
 import {
   applyTheme,
   DEFAULT_MAIN_THEME,
@@ -32,10 +28,27 @@ const FALLBACK_NAVBAR: NavbarGetDto = {
   imageUrl: "/logo.svg",
 };
 
+function validateTheme(theme: MainThemeColors): ApiFieldErrors {
+  const errors: ApiFieldErrors = {};
+
+  for (const [field, value] of Object.entries(theme)) {
+    if (!isValidHexColor(value)) {
+      addValidationError(
+        errors,
+        field,
+        "Το χρώμα πρέπει να έχει μορφή #RRGGBB.",
+      );
+    }
+  }
+
+  return errors;
+}
+
 type ThemeColorFieldProps = {
   label: string;
   description: string;
   value: string;
+  errors?: string[];
   onChange: (value: string) => void;
 };
 
@@ -43,16 +56,20 @@ function ThemeColorField({
   label,
   description,
   value,
+  errors,
   onChange,
 }: ThemeColorFieldProps) {
-  const pickerValue = isValidHexColor(value)
-    ? value
-    : "#000000";
+  const pickerValue = isValidHexColor(value) ? value : "#000000";
+
+  const hasError = Boolean(errors?.length);
 
   return (
     <label className="block">
       <span className="block text-sm font-medium text-[rgb(var(--ink))]">
-        {label}
+        {label}{" "}
+        <span className="text-rose-600" aria-hidden="true">
+          *
+        </span>
       </span>
 
       <span className="mt-1 block text-xs text-[rgb(var(--muted))]">
@@ -63,9 +80,7 @@ function ThemeColorField({
         <input
           type="color"
           value={pickerValue}
-          onChange={(event) =>
-            onChange(event.target.value.toUpperCase())
-          }
+          onChange={(event) => onChange(event.target.value.toUpperCase())}
           className="h-11 w-14 shrink-0 cursor-pointer rounded-lg border border-[rgba(var(--border),1)] bg-[rgb(var(--surface))] p-1"
         />
 
@@ -73,32 +88,32 @@ function ThemeColorField({
           type="text"
           value={value}
           maxLength={7}
-          onChange={(event) =>
-            onChange(event.target.value.toUpperCase())
-          }
-          className="min-w-0 flex-1 rounded-xl border border-[rgba(var(--border),1)] bg-[rgb(var(--surface))] px-4 py-2.5 font-mono text-sm uppercase outline-none focus:border-[rgb(var(--primary))] focus:ring-2 focus:ring-[rgba(var(--primary),0.18)]"
+          onChange={(event) => onChange(event.target.value.toUpperCase())}
+          className={errorInputClass(
+            hasError,
+            "min-w-0 flex-1 rounded-xl border border-[rgba(var(--border),1)] bg-[rgb(var(--surface))] px-4 py-2.5 font-mono text-sm uppercase outline-none focus:border-[rgb(var(--primary))] focus:ring-2 focus:ring-[rgba(var(--primary),0.18)]",
+          )}
           placeholder="#698556"
         />
       </div>
+
+      <FormFieldError errors={errors} />
     </label>
   );
 }
 
 export default function DashboardNavbar() {
   // Navbar state
-  const [navbar, setNavbar] =
-    useState<NavbarGetDto | null>(null);
+  const [navbar, setNavbar] = useState<NavbarGetDto | null>(null);
 
   const [title, setTitle] = useState("");
-  const [imageFile, setImageFile] =
-    useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const [imagePreview, setImagePreview] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [error, setError] =
-    useState<string | null>(null);
+  const navbarForm = useFormErrors();
 
   // Only four colors are editable.
   const [mainTheme, setMainTheme] =
@@ -110,19 +125,18 @@ export default function DashboardNavbar() {
   const [themeLoading, setThemeLoading] = useState(true);
   const [themeSaving, setThemeSaving] = useState(false);
   const [themeSaved, setThemeSaved] = useState(false);
-  const [themeError, setThemeError] =
-    useState<string | null>(null);
+  const themeForm = useFormErrors();
 
   // Generates the full 15-field object required by the backend.
   const generatedTheme = useMemo(
     () => generateWebsiteTheme(mainTheme),
-    [mainTheme]
+    [mainTheme],
   );
 
   async function loadNavbar(): Promise<void> {
     try {
       setLoading(true);
-      setError(null);
+      navbarForm.clearAllErrors();
 
       const data = await NavbarApi.getSingle();
       const current = data ?? FALLBACK_NAVBAR;
@@ -130,12 +144,10 @@ export default function DashboardNavbar() {
       setNavbar(current);
       setTitle(current.title || "");
       setImagePreview(current.imageUrl || "");
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Δεν ήταν δυνατή η φόρτωση του navbar."
-      );
+    } catch (error: unknown) {
+      console.error(error);
+
+      navbarForm.applyApiError(error, "Δεν ήταν δυνατή η φόρτωση του navbar.");
     } finally {
       setLoading(false);
     }
@@ -144,31 +156,25 @@ export default function DashboardNavbar() {
   async function loadTheme(): Promise<void> {
     try {
       setThemeLoading(true);
-      setThemeError(null);
+      themeForm.clearAllErrors();
 
       const data = await WebsiteThemeApi.get();
       const loadedMainColors = getMainThemeColors(data);
-      const completeTheme =
-        generateWebsiteTheme(loadedMainColors);
+
+      const completeTheme = generateWebsiteTheme(loadedMainColors);
 
       setMainTheme(loadedMainColors);
       setSavedMainTheme(loadedMainColors);
       applyTheme(completeTheme);
-    } catch (err: unknown) {
-      console.error("Theme loading failed:", err);
+    } catch (error: unknown) {
+      console.error("Theme loading failed:", error);
 
       setMainTheme(DEFAULT_MAIN_THEME);
       setSavedMainTheme(DEFAULT_MAIN_THEME);
 
-      applyTheme(
-        generateWebsiteTheme(DEFAULT_MAIN_THEME)
-      );
+      applyTheme(generateWebsiteTheme(DEFAULT_MAIN_THEME));
 
-      setThemeError(
-        err instanceof Error
-          ? err.message
-          : "Δεν ήταν δυνατή η φόρτωση των χρωμάτων."
-      );
+      themeForm.applyApiError(error, "Δεν ήταν δυνατή η φόρτωση των χρωμάτων.");
     } finally {
       setThemeLoading(false);
     }
@@ -204,24 +210,32 @@ export default function DashboardNavbar() {
   }, [themeSaved]);
 
   async function handleNavbarSave(
-    event: FormEvent<HTMLFormElement>
+    event: FormEvent<HTMLFormElement>,
   ): Promise<void> {
     event.preventDefault();
 
+    const errors: ApiFieldErrors = {};
+
+    validateImageFile(imageFile, "imageFile", errors);
+
+    if (!navbarForm.applyFrontendErrors(errors)) {
+      return;
+    }
+
     if (!navbar?.id) {
-      setError(
-        "Δεν υπάρχει εγγραφή Navbar στη βάση. Δημιούργησε πρώτα μία εγγραφή."
+      navbarForm.showGeneralError(
+        "Δεν υπάρχει εγγραφή Navbar στη βάση. Δημιούργησε πρώτα μία εγγραφή.",
       );
+
       return;
     }
 
     try {
       setSaving(true);
       setSaved(false);
-      setError(null);
 
       await NavbarApi.update(navbar.id, {
-        title,
+        title: title.trim(),
         imageFile: imageFile ?? undefined,
       });
 
@@ -235,17 +249,19 @@ export default function DashboardNavbar() {
       } else {
         setNavbar({
           id: navbar.id,
-          title,
+          title: title.trim(),
           imageUrl: imagePreview,
         });
       }
 
+      navbarForm.clearAllErrors();
       setSaved(true);
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Δεν ήταν δυνατή η αποθήκευση."
+    } catch (error: unknown) {
+      console.error(error);
+
+      navbarForm.applyApiError(
+        error,
+        "Δεν ήταν δυνατή η αποθήκευση του navbar.",
       );
     } finally {
       setSaving(false);
@@ -254,10 +270,10 @@ export default function DashboardNavbar() {
 
   function handleMainColorChange(
     field: keyof MainThemeColors,
-    value: string
+    value: string,
   ): void {
     setThemeSaved(false);
-    setThemeError(null);
+    themeForm.clearFieldError(field);
 
     setMainTheme((currentTheme) => {
       const updatedMainTheme = {
@@ -265,14 +281,11 @@ export default function DashboardNavbar() {
         [field]: value,
       };
 
-      const allValuesAreValid = Object.values(
-        updatedMainTheme
-      ).every(isValidHexColor);
+      const allValuesAreValid =
+        Object.values(updatedMainTheme).every(isValidHexColor);
 
       if (allValuesAreValid) {
-        applyTheme(
-          generateWebsiteTheme(updatedMainTheme)
-        );
+        applyTheme(generateWebsiteTheme(updatedMainTheme));
       }
 
       return updatedMainTheme;
@@ -280,49 +293,40 @@ export default function DashboardNavbar() {
   }
 
   async function handleThemeSave(
-    event: FormEvent<HTMLFormElement>
+    event: FormEvent<HTMLFormElement>,
   ): Promise<void> {
     event.preventDefault();
 
-    const hasInvalidColor = Object.values(
-      mainTheme
-    ).some((value) => !isValidHexColor(value));
+    const errors = validateTheme(mainTheme);
 
-    if (hasInvalidColor) {
-      setThemeError(
-        "Όλα τα χρώματα πρέπει να έχουν μορφή #RRGGBB, για παράδειγμα #698556."
-      );
+    if (!themeForm.applyFrontendErrors(errors)) {
       return;
     }
 
     try {
       setThemeSaving(true);
       setThemeSaved(false);
-      setThemeError(null);
 
-      const completeTheme =
-        generateWebsiteTheme(mainTheme);
+      const completeTheme = generateWebsiteTheme(mainTheme);
 
-      const response = await WebsiteThemeApi.update(
-        completeTheme
-      );
+      const response = await WebsiteThemeApi.update(completeTheme);
 
       const savedColors = getMainThemeColors(response);
-      const savedCompleteTheme =
-        generateWebsiteTheme(savedColors);
+
+      const savedCompleteTheme = generateWebsiteTheme(savedColors);
 
       setMainTheme(savedColors);
       setSavedMainTheme(savedColors);
       applyTheme(savedCompleteTheme);
 
+      themeForm.clearAllErrors();
       setThemeSaved(true);
-    } catch (err: unknown) {
-      console.error("Theme saving failed:", err);
+    } catch (error: unknown) {
+      console.error("Theme saving failed:", error);
 
-      setThemeError(
-        err instanceof Error
-          ? err.message
-          : "Δεν ήταν δυνατή η αποθήκευση των χρωμάτων."
+      themeForm.applyApiError(
+        error,
+        "Δεν ήταν δυνατή η αποθήκευση των χρωμάτων.",
       );
     } finally {
       setThemeSaving(false);
@@ -332,28 +336,22 @@ export default function DashboardNavbar() {
   function handleThemeCancel(): void {
     setMainTheme(savedMainTheme);
 
-    applyTheme(
-      generateWebsiteTheme(savedMainTheme)
-    );
+    applyTheme(generateWebsiteTheme(savedMainTheme));
 
     setThemeSaved(false);
-    setThemeError(null);
+    themeForm.clearAllErrors();
   }
 
   function handleThemeReset(): void {
     setMainTheme(DEFAULT_MAIN_THEME);
 
-    applyTheme(
-      generateWebsiteTheme(DEFAULT_MAIN_THEME)
-    );
+    applyTheme(generateWebsiteTheme(DEFAULT_MAIN_THEME));
 
     setThemeSaved(false);
-    setThemeError(null);
+    themeForm.clearAllErrors();
   }
 
-  const navbarPreviewUrl = imagePreview.startsWith(
-    "/media"
-  )
+  const navbarPreviewUrl = imagePreview.startsWith("/media")
     ? toMediaUrl(imagePreview)
     : imagePreview;
 
@@ -366,12 +364,21 @@ export default function DashboardNavbar() {
 
       <div className="min-h-[70vh] text-slate-800">
         <div className="mx-auto max-w-5xl px-4 py-8 md:px-6 md:py-12 lg:px-8">
-          <div className="mb-6">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <Link
               href="/dashboard"
               className="text-sm text-slate-500 transition hover:text-[rgb(var(--primary))]"
             >
               ← Πίσω στο Dashboard
+            </Link>
+
+            <Link
+              href="/"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-full border border-[rgba(var(--border),1)] bg-[rgb(var(--surface))] px-4 py-2 text-sm font-medium text-[rgb(var(--ink))] transition hover:border-[rgb(var(--primary))]"
+            >
+              Προβολή σελίδας
             </Link>
           </div>
 
@@ -382,8 +389,8 @@ export default function DashboardNavbar() {
             </h1>
 
             <p className="mt-2 text-[rgb(var(--muted))]">
-              Εδώ μπορείς να αλλάξεις τον τίτλο και την εικόνα
-              που εμφανίζονται στο navbar.
+              Εδώ μπορείς να αλλάξεις τον τίτλο και την εικόνα που εμφανίζονται
+              στο navbar.
             </p>
 
             {loading ? (
@@ -393,10 +400,7 @@ export default function DashboardNavbar() {
                 <div className="h-24 rounded-2xl bg-[rgba(var(--primary),0.12)]" />
               </div>
             ) : (
-              <form
-                onSubmit={handleNavbarSave}
-                className="mt-8 space-y-6"
-              >
+              <form onSubmit={handleNavbarSave} className="mt-8 space-y-6">
                 <div>
                   <label
                     htmlFor="navbar-title"
@@ -408,12 +412,18 @@ export default function DashboardNavbar() {
                   <input
                     id="navbar-title"
                     value={title}
-                    onChange={(event) =>
-                      setTitle(event.target.value)
-                    }
-                    className="w-full rounded-xl border border-[rgba(var(--border),1)] bg-[rgb(var(--surface))] px-4 py-3 text-sm outline-none focus:border-[rgb(var(--primary))] focus:ring-2 focus:ring-[rgba(var(--primary),0.18)]"
+                    onChange={(event) => {
+                      setTitle(event.target.value);
+                      navbarForm.clearFieldError("title");
+                    }}
+                    className={errorInputClass(
+                      Boolean(navbarForm.fieldErrors.title),
+                      "w-full rounded-xl border border-[rgba(var(--border),1)] bg-[rgb(var(--surface))] px-4 py-3 text-sm outline-none focus:border-[rgb(var(--primary))] focus:ring-2 focus:ring-[rgba(var(--primary),0.18)]",
+                    )}
                     placeholder="π.χ. Διαιτολογικό Κέντρο"
                   />
+
+                  <FormFieldError errors={navbarForm.fieldErrors.title} />
                 </div>
 
                 <div>
@@ -427,21 +437,35 @@ export default function DashboardNavbar() {
                   <input
                     id="navbar-image"
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     onChange={(event) => {
-                      const file =
-                        event.target.files?.[0];
-
-                      if (!file) {
-                        return;
-                      }
+                      const file = event.target.files?.[0] ?? null;
 
                       setImageFile(file);
-                      setImagePreview(
-                        URL.createObjectURL(file)
-                      );
+
+                      navbarForm.clearFieldError("imageFile");
+                      navbarForm.clearFieldError("imageAssetId");
+
+                      if (file) {
+                        setImagePreview(URL.createObjectURL(file));
+                      }
+
+                      event.target.value = "";
                     }}
-                    className="w-full rounded-xl border border-[rgba(var(--border),1)] bg-[rgb(var(--surface))] px-4 py-2.5 text-sm outline-none focus:border-[rgb(var(--primary))] focus:ring-2 focus:ring-[rgba(var(--primary),0.18)] file:mr-3 file:rounded-lg file:border-0 file:bg-[rgba(var(--primary),0.1)] file:px-3 file:py-1 file:text-sm file:font-medium file:text-[rgb(var(--primary))]"
+                    className={errorInputClass(
+                      Boolean(
+                        navbarForm.fieldErrors.imageFile ||
+                        navbarForm.fieldErrors.imageAssetId,
+                      ),
+                      "w-full rounded-xl border border-[rgba(var(--border),1)] bg-[rgb(var(--surface))] px-4 py-2.5 text-sm outline-none focus:border-[rgb(var(--primary))] focus:ring-2 focus:ring-[rgba(var(--primary),0.18)] file:mr-3 file:rounded-lg file:border-0 file:bg-[rgba(var(--primary),0.1)] file:px-3 file:py-1 file:text-sm file:font-medium file:text-[rgb(var(--primary))]",
+                    )}
+                  />
+
+                  <FormFieldError
+                    errors={[
+                      ...(navbarForm.fieldErrors.imageFile ?? []),
+                      ...(navbarForm.fieldErrors.imageAssetId ?? []),
+                    ]}
                   />
                 </div>
 
@@ -473,11 +497,7 @@ export default function DashboardNavbar() {
                   </div>
                 </div>
 
-                {error && (
-                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
-                    {error}
-                  </div>
-                )}
+                <FormFieldError errors={navbarForm.fieldErrors.form} />
 
                 <div className="flex items-center gap-3">
                   <button
@@ -491,9 +511,7 @@ export default function DashboardNavbar() {
                         : "bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary-dark))]",
                     ].join(" ")}
                   >
-                    {saving
-                      ? "Αποθήκευση…"
-                      : "Αποθήκευση"}
+                    {saving ? "Αποθήκευση…" : "Αποθήκευση"}
                   </button>
 
                   {saved && (
@@ -515,9 +533,8 @@ export default function DashboardNavbar() {
                 </h2>
 
                 <p className="mt-2 max-w-2xl text-[rgb(var(--muted))]">
-                  Επίλεξε μόνο τα τέσσερα βασικά χρώματα.
-                  Οι υπόλοιπες αποχρώσεις δημιουργούνται
-                  αυτόματα.
+                  Επίλεξε μόνο τα τέσσερα βασικά χρώματα. Οι υπόλοιπες
+                  αποχρώσεις δημιουργούνται αυτόματα.
                 </p>
               </div>
 
@@ -533,30 +550,23 @@ export default function DashboardNavbar() {
 
             {themeLoading ? (
               <div className="mt-8 grid gap-5 animate-pulse md:grid-cols-2">
-                {Array.from({ length: 4 }).map(
-                  (_, index) => (
-                    <div
-                      key={index}
-                      className="h-20 rounded-xl bg-[rgba(var(--primary),0.12)]"
-                    />
-                  )
-                )}
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="h-20 rounded-xl bg-[rgba(var(--primary),0.12)]"
+                  />
+                ))}
               </div>
             ) : (
-              <form
-                onSubmit={handleThemeSave}
-                className="mt-8"
-              >
+              <form onSubmit={handleThemeSave} className="mt-8">
                 <div className="grid gap-6 md:grid-cols-2">
                   <ThemeColorField
                     label="Κύριο χρώμα"
                     description="Κουμπιά, σύνδεσμοι και ενεργά στοιχεία."
                     value={mainTheme.primary}
+                    errors={themeForm.fieldErrors.primary}
                     onChange={(value) =>
-                      handleMainColorChange(
-                        "primary",
-                        value
-                      )
+                      handleMainColorChange("primary", value)
                     }
                   />
 
@@ -564,23 +574,17 @@ export default function DashboardNavbar() {
                     label="Χρώμα έμφασης"
                     description="Διακοσμητικές γραμμές, highlights και δευτερεύοντα στοιχεία."
                     value={mainTheme.accent}
-                    onChange={(value) =>
-                      handleMainColorChange(
-                        "accent",
-                        value
-                      )
-                    }
+                    errors={themeForm.fieldErrors.accent}
+                    onChange={(value) => handleMainColorChange("accent", value)}
                   />
 
                   <ThemeColorField
                     label="Χρώμα φόντου"
                     description="Το βασικό φόντο της ιστοσελίδας και οι αυτόματες διαβαθμίσεις."
                     value={mainTheme.background}
+                    errors={themeForm.fieldErrors.background}
                     onChange={(value) =>
-                      handleMainColorChange(
-                        "background",
-                        value
-                      )
+                      handleMainColorChange("background", value)
                     }
                   />
 
@@ -588,20 +592,15 @@ export default function DashboardNavbar() {
                     label="Χρώμα κειμένου"
                     description="Τίτλοι, παράγραφοι και βοηθητικό κείμενο."
                     value={mainTheme.text}
-                    onChange={(value) =>
-                      handleMainColorChange(
-                        "text",
-                        value
-                      )
-                    }
+                    errors={themeForm.fieldErrors.text}
+                    onChange={(value) => handleMainColorChange("text", value)}
                   />
                 </div>
 
                 <div
                   className="mt-8 rounded-3xl border p-6 md:p-8"
                   style={{
-                    backgroundColor:
-                      generatedTheme.background,
+                    backgroundColor: generatedTheme.background,
                     borderColor: generatedTheme.border,
                   }}
                 >
@@ -617,8 +616,7 @@ export default function DashboardNavbar() {
                   <div
                     className="mt-4 rounded-2xl border p-6 shadow-sm"
                     style={{
-                      backgroundColor:
-                        generatedTheme.surface,
+                      backgroundColor: generatedTheme.surface,
                       borderColor: generatedTheme.border,
                     }}
                   >
@@ -637,9 +635,8 @@ export default function DashboardNavbar() {
                         color: generatedTheme.muted,
                       }}
                     >
-                      Οι κάρτες, τα περιγράμματα, τα hover
-                      χρώματα και οι απαλές αποχρώσεις
-                      παράγονται αυτόματα.
+                      Οι κάρτες, τα περιγράμματα, τα hover χρώματα και οι απαλές
+                      αποχρώσεις παράγονται αυτόματα.
                     </p>
 
                     <div className="mt-5 flex flex-wrap gap-3">
@@ -647,10 +644,8 @@ export default function DashboardNavbar() {
                         type="button"
                         className="rounded-full px-5 py-2.5 text-sm font-semibold"
                         style={{
-                          backgroundColor:
-                            generatedTheme.primary,
-                          color:
-                            generatedTheme.buttonText,
+                          backgroundColor: generatedTheme.primary,
+                          color: generatedTheme.buttonText,
                         }}
                       >
                         Κύριο κουμπί
@@ -660,11 +655,8 @@ export default function DashboardNavbar() {
                         type="button"
                         className="rounded-full px-5 py-2.5 text-sm font-semibold"
                         style={{
-                          backgroundColor:
-                            generatedTheme.accent,
-                          color: getReadablePreviewText(
-                            generatedTheme.accent
-                          ),
+                          backgroundColor: generatedTheme.accent,
+                          color: getReadablePreviewText(generatedTheme.accent),
                         }}
                       >
                         Δευτερεύον κουμπί
@@ -674,10 +666,8 @@ export default function DashboardNavbar() {
                     <div
                       className="mt-5 rounded-xl border p-4"
                       style={{
-                        backgroundColor:
-                          generatedTheme.accentSoft,
-                        borderColor:
-                          generatedTheme.border,
+                        backgroundColor: generatedTheme.accentSoft,
+                        borderColor: generatedTheme.border,
                       }}
                     >
                       <p
@@ -686,18 +676,13 @@ export default function DashboardNavbar() {
                           color: generatedTheme.ink,
                         }}
                       >
-                        Παράδειγμα απαλού ενημερωτικού
-                        στοιχείου.
+                        Παράδειγμα απαλού ενημερωτικού στοιχείου.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {themeError && (
-                  <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
-                    {themeError}
-                  </div>
-                )}
+                <FormFieldError errors={themeForm.fieldErrors.form} />
 
                 <div className="mt-6 flex flex-wrap items-center gap-3">
                   <button
@@ -734,29 +719,31 @@ export default function DashboardNavbar() {
               </form>
             )}
           </section>
+          <GeneralErrorDialog
+            open={Boolean(navbarForm.generalError || themeForm.generalError)}
+            title={(navbarForm.generalError || themeForm.generalError)?.title}
+            message={
+              (navbarForm.generalError || themeForm.generalError)?.message ?? ""
+            }
+            onClose={() => {
+              navbarForm.closeGeneralError();
+              themeForm.closeGeneralError();
+            }}
+          />
         </div>
       </div>
     </>
   );
 }
 
-function getReadablePreviewText(
-  background: string
-): string {
+function getReadablePreviewText(background: string): string {
   const normalized = background.replace("#", "");
 
   const red = parseInt(normalized.substring(0, 2), 16);
-  const green = parseInt(
-    normalized.substring(2, 4),
-    16
-  );
-  const blue = parseInt(
-    normalized.substring(4, 6),
-    16
-  );
+  const green = parseInt(normalized.substring(2, 4), 16);
+  const blue = parseInt(normalized.substring(4, 6), 16);
 
-  const brightness =
-    red * 0.299 + green * 0.587 + blue * 0.114;
+  const brightness = red * 0.299 + green * 0.587 + blue * 0.114;
 
   return brightness > 155 ? "#182018" : "#FFFFFF";
 }

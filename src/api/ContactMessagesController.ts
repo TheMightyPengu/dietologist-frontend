@@ -4,15 +4,16 @@ export type ContactMessagesGetDto = {
   id: number;
   senderName: string;
   senderEmail: string;
+  subject: string;
   message: string;
-  sentAt: string; // ISO
+  sentAt: string;
 };
 
 export type ContactMessagesPostDto = {
   senderName: string;
   senderEmail: string;
+  subject: string;
   message: string;
-  sentAt: string; // ISO
 };
 
 const base = '/ContactMessages';

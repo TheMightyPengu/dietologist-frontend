@@ -2,7 +2,10 @@ import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ContactMessagesApi } from "../../api/ContactMessagesController";
-import { ContactInfoApi, type ContactInfoGetDto } from "../../api/ContactInfoController";
+import {
+  ContactInfoApi,
+  type ContactInfoGetDto,
+} from "../../api/ContactInfoController";
 import LeafBurstButton from "@/components/decorative/LeafBurstButton";
 
 type FieldErrors = Partial<{
@@ -91,10 +94,12 @@ export default function ContactFormPage() {
       // TODO: Δεν υπάρχει ακόμη working-hours field στο ContactInfo DTO/backend.
       // Όταν προστεθεί, αντικατάστησε το static κείμενο πιο κάτω.
     }),
-    []
+    [],
   );
 
-  const [contactInfo, setContactInfo] = useState<ContactInfoGetDto | null>(null);
+  const [contactInfo, setContactInfo] = useState<ContactInfoGetDto | null>(
+    null,
+  );
 
   useEffect(() => {
     let active = true;
@@ -133,7 +138,12 @@ export default function ContactFormPage() {
     setTouched((p) => ({ ...p, [name]: true }));
   }
 
-  function validate(payload: { fullName: string; email: string; subject: string; message: string }) {
+  function validate(payload: {
+    fullName: string;
+    email: string;
+    subject: string;
+    message: string;
+  }) {
     const next: FieldErrors = {};
 
     if (!payload.fullName.trim()) next.fullName = "Συμπληρώστε ονοματεπώνυμο.";
@@ -166,7 +176,13 @@ export default function ContactFormPage() {
     const subject = String(fd.get("subject") || "");
     const message = String(fd.get("message") || "");
 
-    setTouched((p) => ({ ...p, fullName: true, email: true, subject: true, message: true }));
+    setTouched((p) => ({
+      ...p,
+      fullName: true,
+      email: true,
+      subject: true,
+      message: true,
+    }));
 
     const nextErrors = validate({ fullName, email, subject, message });
     setFieldErrors(nextErrors);
@@ -180,10 +196,8 @@ export default function ContactFormPage() {
       await ContactMessagesApi.create({
         senderName: fullName.trim(),
         senderEmail: email.trim(),
+        subject: subject.trim(),
         message: message.trim(),
-        sentAt: new Date().toISOString(),
-        // TODO: Το backend contract δεν έχει ακόμη "subject".
-        // Όταν προστεθεί στο API/DB, στείλ’ το κανονικά από εδώ.
       });
 
       setSuccessPayload({
@@ -197,7 +211,9 @@ export default function ContactFormPage() {
       setTouched({});
     } catch (err: unknown) {
       const messageText =
-        err instanceof Error ? err.message : "Κάτι πήγε στραβά. Δοκιμάστε ξανά.";
+        err instanceof Error
+          ? err.message
+          : "Κάτι πήγε στραβά. Δοκιμάστε ξανά.";
       setSubmitError(messageText);
     } finally {
       setLoading(false);
@@ -227,27 +243,38 @@ export default function ContactFormPage() {
               Φόρμα Επικοινωνίας
             </h1>
             <p className="mt-2 max-w-2xl text-slate-700 leading-relaxed">
-              Πείτε μας πώς μπορούμε να βοηθήσουμε. Απαντάμε συνήθως εντός 1–2 εργάσιμων.
+              Πείτε μας πώς μπορούμε να βοηθήσουμε. Απαντάμε συνήθως εντός 1–2
+              εργάσιμων.
             </p>
           </header>
 
           {successPayload && (
             <div className="mb-6 rounded-2xl bg-white p-6 ring-1 ring-accent/25 shadow-[0_16px_34px_rgba(164,199,126,0.14)]">
-              <h2 className="text-xl font-semibold text-slate-900">Το μήνυμα στάλθηκε</h2>
-              <p className="mt-1 text-base text-slate-700">Θα επικοινωνήσουμε σύντομα.</p>
+              <h2 className="text-xl font-semibold text-slate-900">
+                Το μήνυμα στάλθηκε
+              </h2>
+              <p className="mt-1 text-base text-slate-700">
+                Θα επικοινωνήσουμε σύντομα.
+              </p>
 
               <div className="mt-4 grid grid-cols-1 gap-3 text-[15px] text-slate-800 md:grid-cols-2">
                 <div className="rounded-xl bg-white p-3 ring-1 ring-accent/20">
                   <div className="text-sm text-slate-600">Ονοματεπώνυμο</div>
-                  <div className="mt-0.5 font-medium">{successPayload.fullName}</div>
+                  <div className="mt-0.5 font-medium">
+                    {successPayload.fullName}
+                  </div>
                 </div>
                 <div className="rounded-xl bg-white p-3 ring-1 ring-accent/20">
                   <div className="text-sm text-slate-600">Email</div>
-                  <div className="mt-0.5 font-medium">{successPayload.email}</div>
+                  <div className="mt-0.5 font-medium">
+                    {successPayload.email}
+                  </div>
                 </div>
                 <div className="rounded-xl bg-white p-3 ring-1 ring-accent/20 md:col-span-2">
                   <div className="text-sm text-slate-600">Θέμα</div>
-                  <div className="mt-0.5 font-medium">{successPayload.subject}</div>
+                  <div className="mt-0.5 font-medium">
+                    {successPayload.subject}
+                  </div>
                 </div>
               </div>
 
@@ -272,7 +299,9 @@ export default function ContactFormPage() {
                     Στείλτε μήνυμα
                   </h2>
                   <p className="mt-1 text-[15px] text-slate-600">
-                    <span className="font-semibold text-slate-800">Υποχρεωτικά πεδία</span>
+                    <span className="font-semibold text-slate-800">
+                      Υποχρεωτικά πεδία
+                    </span>
                     <span className="text-slate-600"> με </span>
                     <span className="font-semibold text-rose-600">*</span>
                   </p>
@@ -288,9 +317,13 @@ export default function ContactFormPage() {
                       required
                       disabled={loading}
                       onBlur={() => markTouched("fullName")}
-                      onChange={() => setFieldErrors((p) => ({ ...p, fullName: undefined }))}
+                      onChange={() =>
+                        setFieldErrors((p) => ({ ...p, fullName: undefined }))
+                      }
                       aria-invalid={show("fullName")}
-                      aria-describedby={show("fullName") ? "fullName-error" : undefined}
+                      aria-describedby={
+                        show("fullName") ? "fullName-error" : undefined
+                      }
                       className={INPUT_BASE}
                       placeholder="π.χ. Νίκος Παπ."
                     />
@@ -311,14 +344,18 @@ export default function ContactFormPage() {
                       required
                       disabled={loading}
                       onBlur={() => markTouched("email")}
-                      onChange={() => setFieldErrors((p) => ({ ...p, email: undefined }))}
+                      onChange={() =>
+                        setFieldErrors((p) => ({ ...p, email: undefined }))
+                      }
                       aria-invalid={show("email")}
-                      aria-describedby={show("email") ? "email-error" : "email-help"}
+                      aria-describedby={
+                        show("email") ? "email-error" : "email-help"
+                      }
                       className={INPUT_BASE}
                       placeholder="name@email.com"
                     />
                     <p id="email-help" className={HELP_TEXT}>
-                      Προαιρετικό, για απάντηση με email.
+                      Θα χρησιμοποιηθεί για να σας απαντήσουμε.
                     </p>
                     {show("email") && (
                       <p id="email-error" className={ERROR_TEXT}>
@@ -336,9 +373,13 @@ export default function ContactFormPage() {
                       required
                       disabled={loading}
                       onBlur={() => markTouched("subject")}
-                      onChange={() => setFieldErrors((p) => ({ ...p, subject: undefined }))}
+                      onChange={() =>
+                        setFieldErrors((p) => ({ ...p, subject: undefined }))
+                      }
                       aria-invalid={show("subject")}
-                      aria-describedby={show("subject") ? "subject-error" : undefined}
+                      aria-describedby={
+                        show("subject") ? "subject-error" : undefined
+                      }
                       className={INPUT_BASE}
                       placeholder="Σύντομος τίτλος μηνύματος"
                     />
@@ -359,9 +400,13 @@ export default function ContactFormPage() {
                       disabled={loading}
                       rows={4}
                       onBlur={() => markTouched("message")}
-                      onChange={() => setFieldErrors((p) => ({ ...p, message: undefined }))}
+                      onChange={() =>
+                        setFieldErrors((p) => ({ ...p, message: undefined }))
+                      }
                       aria-invalid={show("message")}
-                      aria-describedby={show("message") ? "message-error" : undefined}
+                      aria-describedby={
+                        show("message") ? "message-error" : undefined
+                      }
                       className={[
                         "mt-1 min-h-[120px] w-full resize-y rounded-xl bg-white px-3 py-2 text-[15px] text-slate-900 ring-1 ring-accent/30 outline-none",
                         "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35",
@@ -394,7 +439,9 @@ export default function ContactFormPage() {
                     </Link>
                   </div>
 
-                  {!!submitError && <p className="mt-3 text-sm text-rose-600">{submitError}</p>}
+                  {!!submitError && (
+                    <p className="mt-3 text-sm text-rose-600">{submitError}</p>
+                  )}
                 </div>
               </form>
             </div>

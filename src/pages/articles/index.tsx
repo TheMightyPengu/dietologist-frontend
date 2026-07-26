@@ -1,38 +1,32 @@
-/* eslint-disable @typescript-eslint/no-unused-expressions */
-
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import type { GetServerSideProps } from "next";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
 import { ArticlesApi, type ArticlesGetDto } from "@/api/ArticlesController";
+
 import { toMediaUrl } from "@/api/_axios-client";
-import LeafBurstButton from "@/components/decorative/LeafBurstButton";
 
-/**
- * ΑΡΘΡΑ — Κεντρική σελίδα καταλόγου
- * - Ελληνικό UI
- * - Εικονική "κλήση API" με dummy δεδομένα
- * - Sidebar φίλτρων (sticky σε desktop, drawer σε tablet/mobile)
- * - Πλέγμα καρτών ίσου ύψους με line-clamp
- * - Active filters chips πάνω από τα αποτελέσματα
- * - Range slider για χρόνο ανάγνωσης
- * - Presets + custom range για ημερομηνία
- * - Results count
- * - Load more + loading state + skeletons + empty state με reset
- */
-
-// ---------------- Mock "API" ----------------
 export type Article = {
   id: number;
   slug: string;
   title: string;
   excerpt: string;
-  category: "Διατροφή" | "Ευεξία" | "Συνταγές" | "Επιστήμη";
+  category: string;
   dateISO: string;
-  readMinutes: number;
   hero: string;
-  tags: string[];
 };
+
+type Props = {
+  articles: Article[];
+  loadError?: string;
+};
+
+type SortKey = "newest" | "oldest" | "az";
+type DatePreset = "all" | "30d" | "6m" | "12m" | "custom";
+
+const PER_PAGE = 9;
 
 function slugifyArticle(title: string, id: number) {
   const base = (title || `article-${id}`)
@@ -55,667 +49,471 @@ function slugifyArticle(title: string, id: number) {
   return `${base || "article"}-${id}`;
 }
 
-function estimateReadMinutes(text: string) {
-  const words = (text || "").trim().split(/\s+/).filter(Boolean).length;
-  return Math.max(1, Math.ceil(words / 200));
+function stripHtml(value?: string | null) {
+  return (value || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function resolveArticleImage(image?: string | null): string {
+  const value = image?.trim();
+
+  if (!value) {
+    return "";
+  }
+
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return value;
+  }
+
+  return toMediaUrl(value);
 }
 
 function mapArticleDtoToUi(dto: ArticlesGetDto): Article {
+  const content = dto.content ?? "";
+
   return {
     id: dto.id,
-    slug: slugifyArticle(dto.title, dto.id),
+    slug: slugifyArticle(dto.title ?? "", dto.id),
+    title: dto.title ?? "",
 
-    title: dto.title,
+    excerpt: dto.subtitle?.trim() || stripHtml(content).slice(0, 160),
 
-    // Το backend δεν δίνει excerpt.
-    // Μέχρι να προστεθεί, χρησιμοποιούμε subtitle ή μικρό κομμάτι από content.
-    excerpt:
-      dto.subtitle?.trim() ||
-      dto.content?.replace(/<[^>]*>/g, "").slice(0, 160) ||
-      "",
+    // Use the real category stored in the database.
+    category: dto.category?.trim() || "Χωρίς κατηγορία",
 
-    // Το backend δεν δίνει category.
-    // Placeholder μέχρι να προστεθεί σχετικό πεδίο.
-    category: "Διατροφή",
-
-    dateISO: dto.publishedAt,
-
-    // Το backend δεν δίνει readMinutes.
-    // Πρόχειρος υπολογισμός από το content.
-    readMinutes: estimateReadMinutes(dto.content),
-
-    // Το backend δίνει imageUrl.
-    // Fallback placeholder αν λείπει.
-    hero:
-      (dto.imageUrl ? toMediaUrl(dto.imageUrl) : null) ||
-      "https://via.placeholder.com/1200x750?text=Article+Image",
-
-    // Το backend δεν δίνει tags.
-    // Placeholder μέχρι να προστεθούν.
-    tags: [],
+    dateISO: dto.publishedAt ?? "",
+    hero: resolveArticleImage(dto.imageUrl),
   };
 }
 
-// ---------------- Page ----------------
-type Props = {
-  articles?: Article[];
-  categories?: string[];
-  tags?: string[];
-  minRead?: number;
-  maxRead?: number;
-};
-
-export async function getServerSideProps() {
-  try {
-    const data = await ArticlesApi.list();
-    const articles = data.map(mapArticleDtoToUi);
-
-    const categories = Array.from(new Set(articles.map((a) => a.category)));
-    const tags = Array.from(new Set(articles.flatMap((a) => a.tags))).sort((a, b) =>
-      a.localeCompare(b, "el"),
-    );
-
-    const readMinutesAll = articles.map((a) => a.readMinutes);
-    const minRead = readMinutesAll.length ? Math.min(...readMinutesAll) : 1;
-    const maxRead = readMinutesAll.length ? Math.max(...readMinutesAll) : 10;
-
-    return {
-      props: {
-        articles,
-        categories,
-        tags,
-        minRead,
-        maxRead,
-      },
-    };
-  } catch (error) {
-    console.error("Failed to fetch articles:", error);
-    if (error instanceof Error) {
-      console.error("Error message:", error.message);
-    }
-
-    return {
-      props: {
-        articles: [],
-        categories: [],
-        tags: [],
-        minRead: 1,
-        maxRead: 10,
-      },
-    };
-  }
-}
-
-type SortKey = "newest" | "oldest" | "readAsc" | "readDesc";
-type DatePreset = "all" | "30d" | "6m" | "12m" | "custom";
-
 function formatDateISOToEl(iso: string) {
-  return new Date(iso).toLocaleDateString("el-GR", {
+  if (!iso) {
+    return "—";
+  }
+
+  const date = new Date(iso);
+
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return date.toLocaleDateString("el-GR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   });
 }
 
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
+function classNames(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
 }
 
-export default function ArticlesIndex(props: Props) {
-  const [articles, setArticles] = useState<Article[]>(props.articles ?? []);
-  const [pageLoading, setPageLoading] = useState(!props.articles?.length);
+function paginateNumbers(
+  totalPages: number,
+  currentPage: number,
+): Array<number | "…"> {
+  const maxVisible = 7;
 
-  useEffect(() => {
-    let active = true;
+  if (totalPages <= maxVisible) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
 
-    async function loadArticles() {
-      try {
-        const data = await ArticlesApi.list();
-        if (!active) return;
-        const mapped = data.map(mapArticleDtoToUi);
-        setArticles(mapped);
-      } catch (error) {
-        console.error("Failed to fetch articles:", error);
-        if (!active) return;
-        setArticles(props.articles ?? []);
-      } finally {
-        if (!active) return;
-        setPageLoading(false);
-      }
-    }
+  const pages: Array<number | "…"> = [];
+  const left = Math.max(2, currentPage - 1);
+  const right = Math.min(totalPages - 1, currentPage + 1);
 
-    loadArticles();
-    return () => { active = false; };
-  }, [props.articles]);
+  pages.push(1);
 
-  const categories = useMemo(
-    () => Array.from(new Set(articles.map((a) => a.category))),
-    [articles],
-  );
-  const tags = useMemo(
-    () => Array.from(new Set(articles.flatMap((a) => a.tags))).sort((a, b) => a.localeCompare(b, "el")),
-    [articles],
-  );
-  const readMinutesAll = useMemo(() => articles.map((a) => a.readMinutes), [articles]);
-  const minRead = readMinutesAll.length ? Math.min(...readMinutesAll) : 1;
-  const maxRead = readMinutesAll.length ? Math.max(...readMinutesAll) : 10;
+  if (left > 2) {
+    pages.push("…");
+  }
 
-  // Αναζήτηση
+  for (let page = left; page <= right; page += 1) {
+    pages.push(page);
+  }
+
+  if (right < totalPages - 1) {
+    pages.push("…");
+  }
+
+  pages.push(totalPages);
+
+  return pages;
+}
+
+export const getServerSideProps: GetServerSideProps<Props> = async () => {
+  try {
+    const data = await ArticlesApi.list();
+
+    return {
+      props: {
+        articles: Array.isArray(data) ? data.map(mapArticleDtoToUi) : [],
+      },
+    };
+  } catch (error) {
+    console.error("Failed to fetch articles:", error);
+
+    return {
+      props: {
+        articles: [],
+        loadError: "Δεν ήταν δυνατή η φόρτωση των άρθρων.",
+      },
+    };
+  }
+};
+
+export default function ArticlesIndex({ articles, loadError }: Props) {
   const [query, setQuery] = useState("");
+  const [categorySet, setCategorySet] = useState<Set<string>>(new Set());
 
-  // Κατηγορίες & Ετικέτες
-  const [catSet, setCatSet] = useState<Set<string>>(new Set());
-  const [tagSet, setTagSet] = useState<Set<string>>(new Set());
-
-  // Mini search για ετικέτες
-  const [tagQuery, setTagQuery] = useState("");
-
-  // Χρόνος ανάγνωσης (range)
-  const [readRange, setReadRange] = useState<[number, number]>([minRead, maxRead]);
-
-  // Ημερομηνία
   const [datePreset, setDatePreset] = useState<DatePreset>("all");
-  const [dateFrom, setDateFrom] = useState<string>(""); // YYYY-MM-DD
-  const [dateTo, setDateTo] = useState<string>(""); // YYYY-MM-DD
 
-  // Ταξινόμηση
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
   const [sortKey, setSortKey] = useState<SortKey>("newest");
 
-  // Responsive drawer
+  const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  // Pagination / Load more
-  const PAGE_SIZE = 9;
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const categories = useMemo(() => {
+    return Array.from(
+      new Set(
+        articles.map((article) => article.category.trim()).filter(Boolean),
+      ),
+    ).sort((first, second) => first.localeCompare(second, "el-GR"));
+  }, [articles]);
 
-  // Loading / skeleton simulation
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const toggleCategory = useCallback((category: string) => {
+    setCategorySet((current) => {
+      const next = new Set(current);
 
-  useEffect(() => {
-    setReadRange([minRead, maxRead]);
-  }, [minRead, maxRead]);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
 
-  // Helpers αλλαγών
-  const toggleCat = (c: string) =>
-    setCatSet((prev) => {
-      const next = new Set(prev);
-      next.has(c) ? next.delete(c) : next.add(c);
       return next;
     });
+  }, []);
 
-  const toggleTag = (t: string) =>
-    setTagSet((prev) => {
-      const next = new Set(prev);
-      next.has(t) ? next.delete(t) : next.add(t);
-      return next;
-    });
-
-  const resetAll = () => {
+  function clearFilters() {
     setQuery("");
-    setCatSet(new Set());
-    setTagSet(new Set());
-    setTagQuery("");
-    setReadRange([minRead, maxRead]);
+    setCategorySet(new Set());
     setDatePreset("all");
     setDateFrom("");
     setDateTo("");
     setSortKey("newest");
-    setVisibleCount(PAGE_SIZE);
-  };
+    setPage(1);
+  }
 
-  // Φιλτραρισμένες ετικέτες στο sidebar
-  const visibleTags = useMemo(() => {
-    const q = tagQuery.trim().toLowerCase();
-    if (!q) return tags;
-    return tags.filter((t) => t.toLowerCase().includes(q));
-  }, [tags, tagQuery]);
-
-  // Υπολογισμός φίλτρων & ταξινόμησης
   const filteredSorted = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const search = query.trim().toLocaleLowerCase("el-GR");
     const now = new Date();
 
     const dateCutoff = (() => {
-      if (datePreset === "all" || datePreset === "custom") return null;
-      const d = new Date(now);
-      if (datePreset === "30d") d.setDate(d.getDate() - 30);
-      if (datePreset === "6m") d.setMonth(d.getMonth() - 6);
-      if (datePreset === "12m") d.setFullYear(d.getFullYear() - 1);
-      return d;
+      if (datePreset === "all" || datePreset === "custom") {
+        return null;
+      }
+
+      const date = new Date(now);
+
+      if (datePreset === "30d") {
+        date.setDate(date.getDate() - 30);
+      }
+
+      if (datePreset === "6m") {
+        date.setMonth(date.getMonth() - 6);
+      }
+
+      if (datePreset === "12m") {
+        date.setFullYear(date.getFullYear() - 1);
+      }
+
+      return date;
     })();
 
-    const customFrom = datePreset === "custom" && dateFrom ? new Date(dateFrom) : null;
-    const customTo = datePreset === "custom" && dateTo ? new Date(dateTo) : null;
+    const customFrom =
+      datePreset === "custom" && dateFrom
+        ? new Date(`${dateFrom}T00:00:00`)
+        : null;
 
-    let list = articles.filter((a) => {
-      // Αναζήτηση
-      if (q) {
-        const hay = (a.title + " " + a.excerpt + " " + a.tags.join(" ")).toLowerCase();
-        if (!hay.includes(q)) return false;
+    const customTo =
+      datePreset === "custom" && dateTo ? new Date(`${dateTo}T23:59:59`) : null;
+
+    const filtered = articles.filter((article) => {
+      if (search) {
+        const searchableText = [
+          article.title,
+          article.excerpt,
+          article.category,
+        ]
+          .join(" ")
+          .toLocaleLowerCase("el-GR");
+
+        if (!searchableText.includes(search)) {
+          return false;
+        }
       }
 
-      // Κατηγορίες
-      if (catSet.size > 0 && !catSet.has(a.category)) return false;
-
-      // Ετικέτες (OR)
-      if (tagSet.size > 0) {
-        const hasAny = a.tags.some((t) => tagSet.has(t));
-        if (!hasAny) return false;
+      if (categorySet.size > 0 && !categorySet.has(article.category)) {
+        return false;
       }
 
-      // Χρόνος ανάγνωσης
-      if (a.readMinutes < readRange[0] || a.readMinutes > readRange[1]) return false;
+      const publishedAt = new Date(article.dateISO);
 
-      // Ημερομηνία
-      const pub = new Date(a.dateISO);
-      if (dateCutoff && pub < dateCutoff) return false;
+      if (!Number.isNaN(publishedAt.getTime())) {
+        if (dateCutoff && publishedAt < dateCutoff) {
+          return false;
+        }
 
-      if (datePreset === "custom") {
-        if (customFrom && pub < customFrom) return false;
-        if (customTo) {
-          const end = new Date(customTo);
-          end.setHours(23, 59, 59, 999);
-          if (pub > end) return false;
+        if (customFrom && publishedAt < customFrom) {
+          return false;
+        }
+
+        if (customTo && publishedAt > customTo) {
+          return false;
         }
       }
 
       return true;
     });
 
-    // Ταξινόμηση
-    list = list.sort((a, b) => {
-      switch (sortKey) {
-        case "newest": {
-          const diff =
-            new Date(b.dateISO).getTime() - new Date(a.dateISO).getTime();
-          return diff !== 0 ? diff : b.id - a.id;
-        }
-
-        case "oldest": {
-          const diff =
-            new Date(a.dateISO).getTime() - new Date(b.dateISO).getTime();
-          return diff !== 0 ? diff : a.id - b.id;
-        }
-
-        case "readAsc": {
-          const diff = a.readMinutes - b.readMinutes;
-          return diff !== 0 ? diff : a.id - b.id;
-        }
-
-        case "readDesc": {
-          const diff = b.readMinutes - a.readMinutes;
-          return diff !== 0 ? diff : b.id - a.id;
-        }
-
-        default:
-          return 0;
+    return filtered.sort((first, second) => {
+      if (sortKey === "az") {
+        return first.title.localeCompare(second.title, "el-GR");
       }
+
+      const firstDate = new Date(first.dateISO).getTime();
+      const secondDate = new Date(second.dateISO).getTime();
+
+      const safeFirst = Number.isNaN(firstDate) ? 0 : firstDate;
+
+      const safeSecond = Number.isNaN(secondDate) ? 0 : secondDate;
+
+      if (sortKey === "oldest") {
+        return safeFirst - safeSecond || first.id - second.id;
+      }
+
+      return safeSecond - safeFirst || second.id - first.id;
     });
+  }, [articles, query, categorySet, datePreset, dateFrom, dateTo, sortKey]);
 
-    return list;
-  }, [articles, query, catSet, tagSet, readRange, datePreset, dateFrom, dateTo, sortKey]);
+  useEffect(() => {
+    setPage(1);
+  }, [query, categorySet, datePreset, dateFrom, dateTo, sortKey]);
 
-  // Active filters chips
-  const activeChips = useMemo(() => {
-    const chips: Array<{ key: string; label: string; onRemove: () => void }> = [];
+  const totalPages = Math.max(1, Math.ceil(filteredSorted.length / PER_PAGE));
 
-    const q = query.trim();
-    if (q) {
-      chips.push({
-        key: "q",
-        label: `Αναζήτηση: “${q}”`,
+  const pageClamped = Math.min(totalPages, Math.max(1, page));
+
+  const pagedArticles = filteredSorted.slice(
+    (pageClamped - 1) * PER_PAGE,
+    pageClamped * PER_PAGE,
+  );
+
+  const activeFilters = useMemo(() => {
+    const filters: Array<{
+      key: string;
+      label: string;
+      onRemove: () => void;
+    }> = [];
+
+    const search = query.trim();
+
+    if (search) {
+      filters.push({
+        key: "query",
+        label: `Αναζήτηση: ${search}`,
         onRemove: () => setQuery(""),
       });
     }
 
-    if (catSet.size > 0) {
-      Array.from(catSet).forEach((c) => {
-        chips.push({
-          key: `cat:${c}`,
-          label: c,
-          onRemove: () => toggleCat(c),
-        });
+    Array.from(categorySet).forEach((category) => {
+      filters.push({
+        key: `category-${category}`,
+        label: `Κατηγορία: ${category}`,
+        onRemove: () => toggleCategory(category),
       });
-    }
-
-    if (tagSet.size > 0) {
-      Array.from(tagSet).forEach((t) => {
-        chips.push({
-          key: `tag:${t}`,
-          label: `#${t}`,
-          onRemove: () => toggleTag(t),
-        });
-      });
-    }
-
-    if (!(readRange[0] === minRead && readRange[1] === maxRead)) {
-      chips.push({
-        key: "read",
-        label: `Χρόνος: ${readRange[0]}–${readRange[1]}′`,
-        onRemove: () => setReadRange([minRead, maxRead]),
-      });
-    }
+    });
 
     if (datePreset !== "all") {
+      let label = "";
+
       if (datePreset === "30d") {
-        chips.push({ key: "date:30d", label: "Τελευταίος μήνας", onRemove: () => setDatePreset("all") });
-      } else if (datePreset === "6m") {
-        chips.push({ key: "date:6m", label: "Τελευταίο 6μηνο", onRemove: () => setDatePreset("all") });
-      } else if (datePreset === "12m") {
-        chips.push({ key: "date:12m", label: "Τελευταίος χρόνος", onRemove: () => setDatePreset("all") });
-      } else if (datePreset === "custom") {
-        const fromLabel = dateFrom ? formatDateISOToEl(dateFrom) : "—";
-        const toLabel = dateTo ? formatDateISOToEl(dateTo) : "—";
-        chips.push({
-          key: "date:custom",
-          label: `Ημερομηνία: ${fromLabel} → ${toLabel}`,
-          onRemove: () => {
-            setDatePreset("all");
-            setDateFrom("");
-            setDateTo("");
-          },
-        });
+        label = "Τελευταίος μήνας";
       }
+
+      if (datePreset === "6m") {
+        label = "Τελευταίο εξάμηνο";
+      }
+
+      if (datePreset === "12m") {
+        label = "Τελευταίος χρόνος";
+      }
+
+      if (datePreset === "custom") {
+        label = `Ημερομηνία: ${dateFrom || "—"} έως ${dateTo || "—"}`;
+      }
+
+      filters.push({
+        key: "date",
+        label,
+        onRemove: () => {
+          setDatePreset("all");
+          setDateFrom("");
+          setDateTo("");
+        },
+      });
     }
 
-    return chips;
-  }, [query, catSet, tagSet, readRange, minRead, maxRead, datePreset, dateFrom, dateTo]);
-
-  // Reset pagination + show loading when filters change
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, catSet, tagSet, readRange, datePreset, dateFrom, dateTo, sortKey]);
-
-  const shownArticles = useMemo(() => {
-    return filteredSorted.slice(0, visibleCount);
-  }, [filteredSorted, visibleCount]);
-
-  const canLoadMore = shownArticles.length < filteredSorted.length;
-
-  const onLoadMore = async () => {
-    setIsLoadingMore(true);
-    await new Promise((r) => setTimeout(r, 300));
-    setVisibleCount((v) => v + PAGE_SIZE);
-    setIsLoadingMore(false);
-  };
-
-  const openFilters = () => setFiltersOpen(true);
-  const closeFilters = () => setFiltersOpen(false);
+    return filters;
+  }, [query, categorySet, datePreset, dateFrom, dateTo, toggleCategory]);
 
   const renderFilterSidebar = (inDrawer = false) => (
     <aside
-      className={[
-        "rounded-2xl bg-white ring-1 ring-slate-200",
-        "p-5",
-        inDrawer ? "" : "h-fit lg:sticky lg:top-24 self-start",
-      ].join(" ")}
-      aria-label="Φίλτρα"
+      className={classNames(
+        "rounded-2xl bg-white p-5 ring-1 ring-slate-200",
+        !inDrawer && "h-fit self-start lg:sticky lg:top-24",
+      )}
+      aria-label="Φίλτρα άρθρων"
     >
-      {/* Αναζήτηση */}
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold text-slate-900">Φίλτρα</h2>
+
+        <button
+          type="button"
+          onClick={clearFilters}
+          className="text-xs font-semibold text-primary transition hover:text-primary/80"
+        >
+          Καθαρισμός φίλτρων
+        </button>
+      </div>
+
       <div className="mb-5">
-        <label htmlFor={inDrawer ? "q-drawer" : "q"} className="block text-sm font-medium text-slate-700 mb-2">
+        <label
+          htmlFor={inDrawer ? "article-query-drawer" : "article-query"}
+          className="mb-2 block text-sm font-medium text-slate-700"
+        >
           Αναζήτηση
         </label>
+
         <input
-          id={inDrawer ? "q-drawer" : "q"}
+          id={inDrawer ? "article-query-drawer" : "article-query"}
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(event) => setQuery(event.target.value)}
           placeholder="Αναζήτηση άρθρων..."
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none focus:ring-4 focus:ring-primary/20"
+          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/20"
         />
       </div>
 
-      {/* Κατηγορίες */}
       <fieldset className="mb-5">
-        <legend className="text-sm font-medium text-slate-700 mb-2">Κατηγορίες</legend>
-        <div className="flex flex-col gap-1.5">
-          {categories.map((c) => {
-            const checked = catSet.has(c);
-            return (
-              <label
-                key={c}
-                className={[
-                  "flex items-center gap-2 rounded-xl px-2.5 py-2",
-                  "hover:bg-slate-50 transition",
-                  "cursor-pointer select-none",
-                  checked ? "bg-primary/5" : "",
-                ].join(" ")}
-              >
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
-                  checked={checked}
-                  onChange={() => toggleCat(c)}
-                />
-                <span className="text-sm text-slate-800">{c}</span>
-              </label>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      {/* Ετικέτες (chips + mini search) */}
-      <fieldset className="mb-5">
-        <legend className="text-sm font-medium text-slate-700 mb-2">Ετικέτες</legend>
-
-        <div className="mb-2">
-          <label htmlFor={inDrawer ? "tag-q-drawer" : "tag-q"} className="sr-only">
-            Αναζήτηση ετικέτας
-          </label>
-          <input
-            id={inDrawer ? "tag-q-drawer" : "tag-q"}
-            value={tagQuery}
-            onChange={(e) => setTagQuery(e.target.value)}
-            placeholder="Αναζήτηση ετικέτας…"
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-4 focus:ring-primary/20"
-          />
-        </div>
-
-        <div className="max-h-44 overflow-auto rounded-xl border border-slate-200 p-2">
-          <div className="flex flex-wrap gap-2">
-            {visibleTags.length === 0 ? (
-              <div className="w-full py-3 text-sm text-slate-600 text-center">
-                Δεν βρέθηκαν ετικέτες.
-              </div>
-            ) : (
-              visibleTags.map((t) => {
-                const active = tagSet.has(t);
-                return (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => toggleTag(t)}
-                    className={[
-                      "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium",
-                      "focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
-                      active
-                        ? "bg-primary text-white"
-                        : "bg-primary/10 text-primary hover:bg-primary/15",
-                    ].join(" ")}
-                    aria-pressed={active}
-                  >
-                    #{t}
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
-      </fieldset>
-
-      {/* Χρόνος ανάγνωσης (range slider) */}
-      <fieldset className="mb-5">
-        <legend className="text-sm font-medium text-slate-700 mb-2">
-          Χρόνος ανάγνωσης (λεπτά)
+        <legend className="mb-2 text-sm font-medium text-slate-700">
+          Κατηγορίες
         </legend>
 
-        <div className="flex items-center justify-between text-sm text-slate-700">
-          <span className="font-medium tabular-nums">{readRange[0]}′</span>
-          <span className="text-slate-400">—</span>
-          <span className="font-medium tabular-nums">{readRange[1]}′</span>
-        </div>
+        <div className="flex flex-col gap-1.5">
+          {categories.length === 0 ? (
+            <p className="text-sm text-slate-500">Δεν υπάρχουν κατηγορίες.</p>
+          ) : (
+            categories.map((category) => {
+              const checked = categorySet.has(category);
 
-        <div className="mt-3 space-y-3">
-          <div>
-            <label className="sr-only">Ελάχιστος χρόνος</label>
-            <input
-              type="range"
-              min={minRead}
-              max={maxRead}
-              value={readRange[0]}
-              onChange={(e) => {
-                const v = clamp(Number(e.target.value), minRead, readRange[1]);
-                setReadRange([v, readRange[1]]);
-              }}
-              className="w-full accent-primary"
-            />
-          </div>
-          <div>
-            <label className="sr-only">Μέγιστος χρόνος</label>
-            <input
-              type="range"
-              min={minRead}
-              max={maxRead}
-              value={readRange[1]}
-              onChange={(e) => {
-                const v = clamp(Number(e.target.value), readRange[0], maxRead);
-                setReadRange([readRange[0], v]);
-              }}
-              className="w-full accent-primary"
-            />
-          </div>
+              return (
+                <label
+                  key={category}
+                  className={classNames(
+                    "flex cursor-pointer select-none items-center gap-2 rounded-xl px-2.5 py-2 transition hover:bg-slate-50",
+                    checked && "bg-primary/5",
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleCategory(category)}
+                    className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                  />
 
-          <div className="flex gap-2">
-            <input
-              type="number"
-              min={minRead}
-              max={maxRead}
-              value={readRange[0]}
-              onChange={(e) => {
-                const v = clamp(Number(e.target.value), minRead, readRange[1]);
-                setReadRange([v, readRange[1]]);
-              }}
-              className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-4 focus:ring-primary/20"
-              aria-label="Ελάχιστα λεπτά"
-            />
-            <input
-              type="number"
-              min={minRead}
-              max={maxRead}
-              value={readRange[1]}
-              onChange={(e) => {
-                const v = clamp(Number(e.target.value), readRange[0], maxRead);
-                setReadRange([readRange[0], v]);
-              }}
-              className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-4 focus:ring-primary/20"
-              aria-label="Μέγιστα λεπτά"
-            />
-          </div>
+                  <span className="text-sm text-slate-800">{category}</span>
+                </label>
+              );
+            })
+          )}
         </div>
       </fieldset>
 
-      {/* Ημερομηνία (presets + custom) */}
-      <fieldset className="mb-5">
-        <legend className="text-sm font-medium text-slate-700 mb-2">Ημερομηνία</legend>
-        <div className="flex flex-col gap-1.5 text-sm">
+      <fieldset>
+        <legend className="mb-2 text-sm font-medium text-slate-700">
+          Ημερομηνία
+        </legend>
+
+        <div className="flex flex-col gap-1.5">
           <RadioRow
             label="Όλο το εύρος"
-            name={inDrawer ? "datePresetDrawer" : "datePreset"}
+            name={inDrawer ? "article-date-drawer" : "article-date"}
             checked={datePreset === "all"}
             onChange={() => setDatePreset("all")}
           />
+
           <RadioRow
             label="Τελευταίος μήνας"
-            name={inDrawer ? "datePresetDrawer" : "datePreset"}
+            name={inDrawer ? "article-date-drawer" : "article-date"}
             checked={datePreset === "30d"}
             onChange={() => setDatePreset("30d")}
           />
+
           <RadioRow
-            label="Τελευταίο 6μηνο"
-            name={inDrawer ? "datePresetDrawer" : "datePreset"}
+            label="Τελευταίο εξάμηνο"
+            name={inDrawer ? "article-date-drawer" : "article-date"}
             checked={datePreset === "6m"}
             onChange={() => setDatePreset("6m")}
           />
+
           <RadioRow
             label="Τελευταίος χρόνος"
-            name={inDrawer ? "datePresetDrawer" : "datePreset"}
+            name={inDrawer ? "article-date-drawer" : "article-date"}
             checked={datePreset === "12m"}
             onChange={() => setDatePreset("12m")}
           />
+
           <RadioRow
             label="Προσαρμοσμένο εύρος"
-            name={inDrawer ? "datePresetDrawer" : "datePreset"}
+            name={inDrawer ? "article-date-drawer" : "article-date"}
             checked={datePreset === "custom"}
             onChange={() => setDatePreset("custom")}
           />
         </div>
 
         {datePreset === "custom" && (
-          <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="mt-3 grid grid-cols-1 gap-3">
             <div>
-              <label className="block text-xs text-slate-600 mb-1">Από</label>
+              <label className="mb-1 block text-xs text-slate-600">Από</label>
+
               <input
                 type="date"
                 value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
+                onChange={(event) => setDateFrom(event.target.value)}
                 className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-4 focus:ring-primary/20"
               />
             </div>
+
             <div>
-              <label className="block text-xs text-slate-600 mb-1">Έως</label>
+              <label className="mb-1 block text-xs text-slate-600">Έως</label>
+
               <input
                 type="date"
                 value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
+                onChange={(event) => setDateTo(event.target.value)}
                 className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-4 focus:ring-primary/20"
               />
             </div>
           </div>
         )}
       </fieldset>
-
-      {/* Ταξινόμηση */}
-      <fieldset className="mb-6">
-        <legend className="text-sm font-medium text-slate-700 mb-2">Ταξινόμηση</legend>
-        <div className="flex flex-col gap-1.5 text-sm">
-          <RadioRow
-            label="Νεότερα πρώτα"
-            name={inDrawer ? "sortKeyDrawer" : "sortKey"}
-            checked={sortKey === "newest"}
-            onChange={() => setSortKey("newest")}
-          />
-          <RadioRow
-            label="Παλαιότερα πρώτα"
-            name={inDrawer ? "sortKeyDrawer" : "sortKey"}
-            checked={sortKey === "oldest"}
-            onChange={() => setSortKey("oldest")}
-          />
-          <RadioRow
-            label="Χρόνος ανάγνωσης (αύξουσα)"
-            name={inDrawer ? "sortKeyDrawer" : "sortKey"}
-            checked={sortKey === "readAsc"}
-            onChange={() => setSortKey("readAsc")}
-          />
-          <RadioRow
-            label="Χρόνος ανάγνωσης (φθίνουσα)"
-            name={inDrawer ? "sortKeyDrawer" : "sortKey"}
-            checked={sortKey === "readDesc"}
-            onChange={() => setSortKey("readDesc")}
-          />
-        </div>
-      </fieldset>
-
-      {/* Ενέργειες */}
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={resetAll}
-          className="w-full rounded-xl bg-primary/10 px-3 py-2 text-sm text-primary hover:bg-primary/20 transition font-medium focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
-        >
-          Επαναφορά φίλτρων
-        </button>
-      </div>
     </aside>
   );
 
@@ -723,288 +521,288 @@ export default function ArticlesIndex(props: Props) {
     <>
       <Head>
         <title>Άρθρα — Διατροφή & Ευεξία</title>
+
         <meta
           name="description"
-          content="Όλα τα άρθρα σχετικά με διατροφή, ευεξία και επιστημονικά ευρήματα. Αναζητήστε και φιλτράρετε εύκολα."
+          content="Άρθρα για τη διατροφή, την ευεξία και την καθημερινότητα."
         />
+
         <link rel="canonical" href="https://example.com/articles" />
       </Head>
 
-      <section className="mx-auto max-w-6xl px-4 md:px-6 lg:px-8 py-8 md:py-10">
-        {/* Hero (πιο σφιχτό + max-width κειμένου) */}
-        <div className="mb-7 rounded-2xl bg-accent/10 px-6 py-5 md:px-10 md:py-7">
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mb-2">
+      <section className="mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-10 lg:px-8">
+        <header className="mb-8">
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
             Άρθρα
           </h1>
-          <p className="text-slate-700 max-w-[60ch] leading-relaxed">
-            Επιμελημένο περιεχόμενο για υγιεινή, απολαυστική και ισορροπημένη καθημερινότητα. Αναζητήστε θέματα που σας ενδιαφέρουν ή περιηγηθείτε στις κατηγορίες.
-          </p>
-        </div>
 
-        {/* Top bar (mobile/tablet): Filters button */}
-        <div className="mb-4 flex items-center justify-between gap-3 lg:hidden">
+          <p className="mt-3 max-w-2xl leading-relaxed text-slate-600">
+            Επιμελημένο περιεχόμενο για υγιεινή, απολαυστική και ισορροπημένη
+            καθημερινότητα. Αναζητήστε θέματα που σας ενδιαφέρουν ή περιηγηθείτε
+            στις κατηγορίες.
+          </p>
+        </header>
+
+        <div className="mb-5 flex items-center justify-between gap-3 lg:hidden">
           <button
             type="button"
-            onClick={openFilters}
-            className="inline-flex items-center gap-2 rounded-xl bg-white ring-1 ring-slate-200 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+            onClick={() => setFiltersOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-medium text-slate-800 ring-1 ring-slate-200 transition hover:bg-slate-50"
           >
             Φίλτρα
-            {activeChips.length > 0 && (
-              <span className="inline-flex min-w-[1.5rem] justify-center rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary tabular-nums">
-                {activeChips.length}
+            {activeFilters.length > 0 && (
+              <span className="inline-flex min-w-6 justify-center rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                {activeFilters.length}
               </span>
             )}
           </button>
 
-          <button
-            type="button"
-            onClick={resetAll}
-            className="rounded-xl bg-primary/10 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/20 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
-          >
-            Reset
-          </button>
+          <div className="flex items-center gap-2">
+            <span className="hidden text-sm text-slate-600 sm:inline">
+              Ταξινόμηση:
+            </span>
+
+            <select
+              value={sortKey}
+              onChange={(event) => setSortKey(event.target.value as SortKey)}
+              className="rounded-xl bg-white px-3 py-2 text-sm text-slate-800 ring-1 ring-slate-200 shadow-sm outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="newest">Νεότερα</option>
+              <option value="oldest">Παλαιότερα</option>
+              <option value="az">Αλφαβητικά (Α–Ω)</option>
+            </select>
+          </div>
         </div>
 
-        {/* Layout: Sidebar + Grid (με μεγαλύτερο gap) */}
-        <div className="grid grid-cols-1 lg:grid-cols-[280px,1fr] gap-8">
-          {/* Sidebar (desktop) */}
-          <div className="hidden lg:block">
-            {renderFilterSidebar()}
-          </div>
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
+          <div className="hidden lg:block">{renderFilterSidebar()}</div>
 
-          {/* Results */}
-          <div>
-            {/* Active filters chips + results count */}
-            <div className="mb-4">
-              <div className="flex items-end justify-between gap-4">
-                <div className="text-sm text-slate-600">
-                  <span className="font-medium text-slate-800 tabular-nums">
-                    {filteredSorted.length}
-                  </span>{" "}
-                  άρθρα
-                </div>
-
-                {activeChips.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={resetAll}
-                    className="hidden sm:inline-flex rounded-xl bg-primary/10 px-3 py-2 text-sm font-medium text-primary hover:bg-primary/20 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
-                  >
-                    Καθαρισμός φίλτρων
-                  </button>
-                )}
+          <main>
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div className="text-sm text-slate-600">
+                Βρέθηκαν{" "}
+                <span className="font-semibold text-slate-900">
+                  {filteredSorted.length}
+                </span>{" "}
+                άρθρα
               </div>
 
-              {activeChips.length > 0 && (
-                <div
-                  className={[
-                    "mt-3 flex gap-2",
-                    "overflow-x-auto pb-1",
-                    "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-                  ].join(" ")}
-                  aria-label="Ενεργά φίλτρα"
+              <div className="hidden items-center gap-2 lg:flex">
+                <span className="text-sm text-slate-600">Ταξινόμηση:</span>
+
+                <select
+                  value={sortKey}
+                  onChange={(event) =>
+                    setSortKey(event.target.value as SortKey)
+                  }
+                  className="rounded-xl bg-white px-3 py-2 text-sm text-slate-800 ring-1 ring-slate-200 shadow-sm outline-none focus:ring-2 focus:ring-primary"
                 >
-                  {activeChips.map((chip) => (
-                    <button
-                      key={chip.key}
-                      type="button"
-                      onClick={chip.onRemove}
-                      className={[
-                        "shrink-0 inline-flex items-center gap-2 rounded-full",
-                        "bg-white ring-1 ring-slate-200",
-                        "px-3 py-1.5 text-xs font-medium text-slate-800",
-                        "hover:bg-slate-50 transition",
-                        "focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
-                      ].join(" ")}
-                      title="Αφαίρεση φίλτρου"
-                    >
-                      <span className="whitespace-nowrap">{chip.label}</span>
-                      <span className="text-slate-400">✕</span>
-                    </button>
-                  ))}
-                </div>
-              )}
+                  <option value="newest">Νεότερα</option>
+
+                  <option value="oldest">Παλαιότερα</option>
+
+                  <option value="az">Αλφαβητικά (Α–Ω)</option>
+                </select>
+              </div>
             </div>
 
-            {/* Empty state */}
-            {pageLoading ? (
-              <div className="rounded-2xl border border-slate-200 p-10 text-center text-slate-600">
-                Φόρτωση άρθρων...
+            {activeFilters.length > 0 && (
+              <div className="mb-5 flex flex-wrap gap-2">
+                {activeFilters.map((filter) => (
+                  <button
+                    key={filter.key}
+                    type="button"
+                    onClick={filter.onRemove}
+                    className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-800 ring-1 ring-slate-200 transition hover:bg-slate-50"
+                  >
+                    {filter.label}
+                    <span className="text-slate-400">×</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {loadError ? (
+              <div className="rounded-2xl bg-white p-8 text-center ring-1 ring-slate-200">
+                <h2 className="font-semibold text-slate-900">
+                  Σφάλμα φόρτωσης
+                </h2>
+
+                <p className="mt-2 text-sm text-slate-600">{loadError}</p>
               </div>
             ) : filteredSorted.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center">
-                <div className="text-slate-800 font-semibold mb-2">
-                  Δεν βρέθηκαν άρθρα με αυτά τα κριτήρια.
-                </div>
-                <div className="text-slate-600 mb-5">
-                  Δοκιμάστε να αφαιρέσετε κάποια φίλτρα ή να αλλάξετε την αναζήτηση.
-                </div>
-                <LeafBurstButton
-                  text="Καθαρισμός φίλτρων"
-                  onClick={resetAll}
-                  disabled={false}
-                  buttonClassName="rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-white hover:opacity-95 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
-                />
+                <h2 className="font-semibold text-slate-800">
+                  Δεν βρέθηκαν άρθρα
+                </h2>
+
+                <p className="mt-2 text-sm text-slate-600">
+                  Δοκιμάστε να αλλάξετε ή να καθαρίσετε τα φίλτρα.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="mt-5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white"
+                >
+                  Καθαρισμός φίλτρων
+                </button>
               </div>
             ) : (
               <>
-                {/* Grid */}
-                <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
-                  {shownArticles.map((a, idx) => (
-                        <li key={a.id} className="group h-full">
-                          <Link
-                            href={`/articles/${encodeURIComponent(a.slug)}`}
-                            className={[
-                              "block h-full",
-                              "focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 rounded-2xl",
-                            ].join(" ")}
-                          >
-                            <article
-                              className={[
-                                "flex h-full flex-col overflow-hidden rounded-2xl bg-white",
-                                "ring-1 ring-slate-200",
-                                "shadow-sm",
-                                "transition",
-                                "group-hover:-translate-y-0.5 group-hover:shadow-lg",
-                              ].join(" ")}
-                            >
-                              {/* Image + scrim + category pill */}
-                              <div className="relative aspect-[16/10] overflow-hidden rounded-t-2xl">
-                                <Image
-                                  src={a.hero}
-                                  alt={a.title}
-                                  width={800}
-                                  height={500}
-                                  className="object-cover transition duration-300 group-hover:scale-[1.03] h-full w-full"
-                                  unoptimized
-                                />
-                                {/* Scrim για contrast */}
-                                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
+                <ul className="grid grid-cols-1 items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {pagedArticles.map((article, index) => (
+                    <li key={article.id} className="group h-full">
+                      <Link
+                        href={`/articles/${encodeURIComponent(article.slug)}`}
+                        className="block h-full rounded-2xl focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+                      >
+                        <article className="flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 transition group-hover:-translate-y-0.5 group-hover:shadow-lg">
+                          <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
+                            {article.hero ? (
+                              <Image
+                                src={article.hero}
+                                alt={article.title}
+                                fill
+                                unoptimized
+                                className="object-cover transition duration-300 group-hover:scale-[1.03]"
+                              />
+                            ) : (
+                              <div className="absolute inset-0 grid place-items-center bg-gradient-to-br from-primary/15 via-accent/10 to-warm/15">
+                                <div className="flex flex-col items-center gap-2 text-slate-600">
+                                  <ImagePlaceholderIcon />
 
-                                {/* Category pill (consistent style) */}
-                                <span
-                                  className={[
-                                    "absolute left-3 top-3",
-                                    "inline-flex items-center rounded-full",
-                                    "bg-white/90 text-slate-900",
-                                    "px-3 py-1 text-xs font-semibold",
-                                    "ring-1 ring-black/10",
-                                    "backdrop-blur",
-                                  ].join(" ")}
-                                >
-                                  {a.category}
-                                </span>
-                              </div>
-
-                              {/* Body */}
-                              <div className="p-5 flex flex-col gap-3 grow">
-                                <header className="space-y-2">
-                                  <div className="flex items-start gap-2">
-                                    <h3 className="text-lg font-semibold leading-relaxed line-clamp-2 text-slate-900">
-                                      {a.title}
-                                    </h3>
-
-                                    {/* Προτεινόμενο: μικρό badge δίπλα στον τίτλο (όχι pill πάνω στην εικόνα) */}
-                                    {idx === 0 && (
-                                      <span
-                                        className={[
-                                          "mt-0.5 shrink-0",
-                                          "inline-flex items-center rounded-full",
-                                          "bg-warm/25 text-slate-800",
-                                          "ring-1 ring-warm/50",
-                                          "px-2 py-0.5 text-[11px] font-semibold",
-                                        ].join(" ")}
-                                      >
-                                        ⭐ Προτεινόμενο
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  <p className="text-sm text-slate-600 leading-relaxed line-clamp-3">
-                                    {a.excerpt}
-                                  </p>
-                                </header>
-
-                                {/* Footer */}
-                                <div className="mt-auto space-y-3">
-                                  {/* Meta (ήσυχα + ίδια baseline) */}
-                                  <div className="flex items-center justify-between text-xs text-slate-500 tabular-nums">
-                                    <span className="inline-flex items-center gap-1.5">
-                                      <span aria-hidden>📅</span>
-                                      {formatDateISOToEl(a.dateISO)}
-                                    </span>
-                                    <span className="inline-flex items-center gap-1.5">
-                                      <span aria-hidden>⏱</span>
-                                      {a.readMinutes}′ ανάγνωση
-                                    </span>
-                                  </div>
-
-                                  {/* Tags (max 2 + +N) */}
-                                  <div className="flex flex-wrap gap-2">
-                                    {a.tags.slice(0, 2).map((t) => (
-                                      <span
-                                        key={t}
-                                        className="rounded-full bg-primary/10 px-2.5 py-1 text-xs text-primary font-medium"
-                                      >
-                                        #{t}
-                                      </span>
-                                    ))}
-                                    {a.tags.length > 2 && (
-                                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700 font-medium">
-                                        +{a.tags.length - 2}
-                                      </span>
-                                    )}
-                                  </div>
+                                  <span className="text-xs font-medium">
+                                    Χωρίς εικόνα
+                                  </span>
                                 </div>
                               </div>
-                            </article>
-                          </Link>
-                        </li>
-                      ))}
+                            )}
+
+                            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
+
+                            <span className="absolute left-3 top-3 inline-flex items-center rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-900 ring-1 ring-black/10 backdrop-blur">
+                              {article.category}
+                            </span>
+                          </div>
+
+                          <div className="flex grow flex-col gap-3 p-5">
+                            <div className="flex items-start gap-2">
+                              <h2 className="line-clamp-2 text-lg font-semibold leading-snug text-slate-900">
+                                {article.title}
+                              </h2>
+
+                              {index === 0 && pageClamped === 1 && (
+                                <span className="mt-0.5 shrink-0 rounded-full bg-warm/25 px-2 py-0.5 text-[11px] font-semibold text-slate-800 ring-1 ring-warm/50">
+                                  ⭐ Προτεινόμενο
+                                </span>
+                              )}
+                            </div>
+
+                            {article.excerpt && (
+                              <p className="line-clamp-3 text-sm leading-relaxed text-slate-600">
+                                {article.excerpt}
+                              </p>
+                            )}
+
+                            <div className="mt-auto pt-2 text-xs text-slate-500">
+                              <span className="inline-flex items-center gap-1.5">
+                                <span aria-hidden>📅</span>
+
+                                {formatDateISOToEl(article.dateISO)}
+                              </span>
+                            </div>
+                          </div>
+                        </article>
+                      </Link>
+                    </li>
+                  ))}
                 </ul>
 
-                {/* Load more */}
-                {filteredSorted.length > 0 && (
-                  <div className="mt-8 flex justify-center">
-                    {canLoadMore ? (
-                      <LeafBurstButton
-                        text={isLoadingMore ? "Φόρτωση…" : "Φόρτωσε περισσότερα"}
-                        onClick={onLoadMore}
-                        disabled={isLoadingMore}
-                        buttonClassName={[
-                          "rounded-xl px-5 py-2.5 text-sm font-medium",
-                          "bg-primary text-white hover:opacity-95 transition",
-                          "disabled:opacity-60 disabled:cursor-not-allowed",
-                          "focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
-                        ].join(" ")}
-                      />
-                    ) : (
-                      <div className="text-sm text-slate-500">Τέλος αποτελεσμάτων.</div>
+                <div className="mt-10 flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPage((current) => Math.max(1, current - 1))
+                    }
+                    disabled={pageClamped === 1}
+                    className="rounded-xl bg-white px-3 py-2 text-sm ring-1 ring-slate-200 shadow-sm transition hover:shadow disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Προηγούμενη
+                  </button>
+
+                  <div className="hidden items-center gap-2 sm:flex">
+                    {paginateNumbers(totalPages, pageClamped).map(
+                      (pageNumber, index) =>
+                        pageNumber === "…" ? (
+                          <span
+                            key={`dots-${index}`}
+                            className="px-2 text-slate-500"
+                          >
+                            …
+                          </span>
+                        ) : (
+                          <button
+                            key={pageNumber}
+                            type="button"
+                            onClick={() => setPage(pageNumber)}
+                            className={classNames(
+                              "min-w-10 rounded-full px-3 py-2 text-sm ring-1 transition",
+                              pageNumber === pageClamped
+                                ? "bg-primary text-white ring-primary shadow-sm"
+                                : "bg-white text-slate-700 ring-slate-200 hover:bg-slate-50",
+                            )}
+                          >
+                            {pageNumber}
+                          </button>
+                        ),
                     )}
                   </div>
-                )}
+
+                  <div className="px-2 text-sm text-slate-700 sm:hidden">
+                    <span className="font-semibold">{pageClamped}</span> /{" "}
+                    {totalPages}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPage((current) => Math.min(totalPages, current + 1))
+                    }
+                    disabled={pageClamped === totalPages}
+                    className="rounded-xl bg-white px-3 py-2 text-sm ring-1 ring-slate-200 shadow-sm transition hover:shadow disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Επόμενη
+                  </button>
+                </div>
               </>
             )}
-          </div>
+          </main>
         </div>
       </section>
 
-      {/* Drawer (tablet/mobile) */}
       {filtersOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Φίλτρα άρθρων"
+        >
           <button
             type="button"
-            onClick={closeFilters}
-            className="absolute inset-0 bg-black/40"
+            onClick={() => setFiltersOpen(false)}
+            className="absolute inset-0 bg-slate-900/50"
             aria-label="Κλείσιμο φίλτρων"
           />
-          <div className="absolute right-0 top-0 h-full w-[92%] max-w-[420px] bg-slate-50 p-4 overflow-auto">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-sm font-semibold text-slate-900">Φίλτρα</div>
+
+          <div className="absolute right-0 top-0 h-full w-[min(92vw,380px)] overflow-y-auto bg-slate-50 p-4 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">Φίλτρα</h2>
+
               <button
                 type="button"
-                onClick={closeFilters}
-                className="rounded-xl bg-white ring-1 ring-slate-200 px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+                onClick={() => setFiltersOpen(false)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm"
               >
                 Κλείσιμο
               </button>
@@ -1012,22 +810,13 @@ export default function ArticlesIndex(props: Props) {
 
             {renderFilterSidebar(true)}
 
-            <div className="mt-4 flex gap-2">
-              <LeafBurstButton
-                text="Εφαρμογή"
-                onClick={() => {
-                  closeFilters();
-                }}
-                buttonClassName="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:opacity-95 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
-              />
-              <button
-                type="button"
-                onClick={resetAll}
-                className="w-full rounded-xl bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary hover:bg-primary/20 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
-              >
-                Reset
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(false)}
+              className="mt-4 w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white"
+            >
+              Εφαρμογή
+            </button>
           </div>
         </div>
       )}
@@ -1035,7 +824,6 @@ export default function ArticlesIndex(props: Props) {
   );
 }
 
-/* ---------------- Small UI bits ---------------- */
 function RadioRow({
   label,
   name,
@@ -1048,21 +836,50 @@ function RadioRow({
   onChange: () => void;
 }) {
   return (
-    <label
-      className={[
-        "flex items-center gap-2 rounded-xl px-2.5 py-2 cursor-pointer select-none",
-        "hover:bg-slate-50 transition",
-      ].join(" ")}
-    >
+    <label className="flex cursor-pointer select-none items-center gap-2 rounded-xl px-2.5 py-2 transition hover:bg-slate-50">
       <input
         type="radio"
         name={name}
-        className="h-4 w-4 border-slate-300 text-primary focus:ring-primary"
         checked={checked}
         onChange={onChange}
+        className="h-4 w-4 border-slate-300 text-primary focus:ring-primary"
       />
-      <span className="text-slate-800">{label}</span>
+
+      <span className="text-sm text-slate-800">{label}</span>
     </label>
   );
 }
 
+function ImagePlaceholderIcon() {
+  return (
+    <svg
+      width="28"
+      height="28"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M4 7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+      />
+
+      <path
+        d="M8 14.5 10.5 12l3 3 2-2.2 2.5 2.7"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+
+      <path
+        d="M9 9.2a1.2 1.2 0 1 0 0 .01"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}

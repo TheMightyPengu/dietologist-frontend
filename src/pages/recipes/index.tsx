@@ -114,6 +114,23 @@ function stripHtml(value: string | null | undefined) {
 
 const PER_PAGE = 12;
 
+type SortKey = "new" | "old" | "az" | "timeAsc" | "timeDesc";
+
+function parseSortKey(value: string | string[] | undefined): SortKey {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+
+  if (
+    rawValue === "old" ||
+    rawValue === "az" ||
+    rawValue === "timeAsc" ||
+    rawValue === "timeDesc"
+  ) {
+    return rawValue;
+  }
+
+  return "new";
+}
+
 // -------------------- Helpers --------------------
 function arrFromQuery(v: string | string[] | undefined): string[] {
   if (!v) return [];
@@ -139,13 +156,28 @@ function setQuery(pathname: string, q: Record<string, QueryInputValue>) {
   return { pathname, query } as const;
 }
 
+function resolveRecipeImage(image?: string | null): string {
+  const value = image?.trim();
+
+  if (!value) {
+    return "";
+  }
+
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return value;
+  }
+
+  return toMediaUrl(value);
+}
+
 function classNames(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
 }
 
 function paginateNumbers(totalPages: number, current: number) {
   const max = 7;
-  if (totalPages <= max) return Array.from({ length: totalPages }, (_, i) => i + 1);
+  if (totalPages <= max)
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
 
   const pages: Array<number | "…"> = [];
   const showLeft = Math.max(2, current - 1);
@@ -186,7 +218,6 @@ function SectionCard({
   );
 }
 
-
 export default function RecipesIndex() {
   const router = useRouter();
   const { query } = router;
@@ -198,7 +229,7 @@ export default function RecipesIndex() {
   const [cats, setCats] = useState<string[]>(arrFromQuery(query.cat));
   const [include, setInclude] = useState<string[]>(arrFromQuery(query.inc));
   const [time, setTime] = useState<string>((query.time as string) || "");
-  const [sort, setSort] = useState<string>((query.sort as string) || "new");
+  const [sort, setSort] = useState<SortKey>(() => parseSortKey(query.sort));
   const [page, setPage] = useState<number>(Number(query.page || 1));
 
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -245,13 +276,13 @@ export default function RecipesIndex() {
     setCats(arrFromQuery(query.cat));
     setInclude(arrFromQuery(query.inc));
     setTime((query.time as string) || "");
-    setSort((query.sort as string) || "new");
+    setSort(parseSortKey(query.sort));
     setPage(Number(query.page || 1));
   }, [query.q, query.cat, query.inc, query.time, query.sort, query.page]);
 
   const categories = useMemo(
     () => uniq(recipes.map((r) => r.category).filter(Boolean)),
-    [recipes]
+    [recipes],
   );
 
   const filtered = useMemo(() => {
@@ -262,8 +293,8 @@ export default function RecipesIndex() {
       list = list.filter(
         (r) =>
           r.title.toLowerCase().includes(s) ||
-          r.description.toLowerCase().includes(s) ||
-          r.ingredients.some((i) => i.toLowerCase().includes(s))
+          stripHtml(r.description).toLowerCase().includes(s) ||
+          r.ingredients.some((i) => i.toLowerCase().includes(s)),
       );
     }
 
@@ -275,9 +306,9 @@ export default function RecipesIndex() {
       list = list.filter((r) =>
         include.every((wanted) =>
           r.ingredients.some((ing) =>
-            ing.toLowerCase().includes(wanted.toLowerCase())
-          )
-        )
+            ing.toLowerCase().includes(wanted.toLowerCase()),
+          ),
+        ),
       );
     }
 
@@ -291,15 +322,61 @@ export default function RecipesIndex() {
       });
     }
 
-    if (sort === "az") {
-      list.sort((a, b) => a.title.localeCompare(b.title));
-    } else {
-      list.sort(
-        (a, b) =>
-          Date.parse(b.createdAt || "1970-01-01") -
-          Date.parse(a.createdAt || "1970-01-01")
-      );
-    }
+    list.sort((a, b) => {
+      const aCreatedAt = Date.parse(a.createdAt);
+      const bCreatedAt = Date.parse(b.createdAt);
+
+      const safeACreatedAt = Number.isNaN(aCreatedAt) ? 0 : aCreatedAt;
+
+      const safeBCreatedAt = Number.isNaN(bCreatedAt) ? 0 : bCreatedAt;
+
+      switch (sort) {
+        case "old": {
+          const difference = safeACreatedAt - safeBCreatedAt;
+
+          return difference !== 0 ? difference : a.id - b.id;
+        }
+
+        case "az": {
+          const difference = a.title.localeCompare(b.title, "el-GR", {
+            sensitivity: "base",
+          });
+
+          return difference !== 0 ? difference : a.id - b.id;
+        }
+
+        case "timeAsc": {
+          const difference = Number(a.minutes) - Number(b.minutes);
+
+          if (difference !== 0) {
+            return difference;
+          }
+
+          return a.title.localeCompare(b.title, "el-GR", {
+            sensitivity: "base",
+          });
+        }
+
+        case "timeDesc": {
+          const difference = Number(b.minutes) - Number(a.minutes);
+
+          if (difference !== 0) {
+            return difference;
+          }
+
+          return a.title.localeCompare(b.title, "el-GR", {
+            sensitivity: "base",
+          });
+        }
+
+        case "new":
+        default: {
+          const difference = safeBCreatedAt - safeACreatedAt;
+
+          return difference !== 0 ? difference : b.id - a.id;
+        }
+      }
+    });
 
     return list;
   }, [recipes, search, cats, include, time, sort]);
@@ -308,7 +385,7 @@ export default function RecipesIndex() {
   const pageClamped = Math.min(totalPages, Math.max(1, page));
   const paged = filtered.slice(
     (pageClamped - 1) * PER_PAGE,
-    pageClamped * PER_PAGE
+    pageClamped * PER_PAGE,
   );
 
   function pushToUrl(next: {
@@ -316,7 +393,7 @@ export default function RecipesIndex() {
     cat: string[];
     inc: string[];
     time: string;
-    sort: string;
+    sort: SortKey;
     page: number;
   }) {
     const dest = setQuery("/recipes", {
@@ -345,7 +422,16 @@ export default function RecipesIndex() {
       page: nextPage,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.isReady, search, cats.join(","), include.join(","), time, sort, page, totalPages]);
+  }, [
+    router.isReady,
+    search,
+    cats.join(","),
+    include.join(","),
+    time,
+    sort,
+    page,
+    totalPages,
+  ]);
 
   function clearAll() {
     setSearch("");
@@ -390,12 +476,12 @@ export default function RecipesIndex() {
         time === "t15"
           ? "≤ 15′"
           : time === "t30"
-          ? "15–30′"
-          : time === "t60"
-          ? "30–60′"
-          : time === "t61"
-          ? "> 60′"
-          : "";
+            ? "15–30′"
+            : time === "t60"
+              ? "30–60′"
+              : time === "t61"
+                ? "> 60′"
+                : "";
 
       if (t) parts.push({ key: "time", label: `Χρόνος: ${t}` });
     }
@@ -426,24 +512,25 @@ export default function RecipesIndex() {
       </Head>
 
       <main className="bg-bg text-slate-800">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-24">
-          <header className="py-6">
-            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
+        <section className="mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-10 lg:px-8">
+          <header className="mb-7">
+            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
               Συνταγές
             </h1>
+
             <p className="mt-2 text-slate-600">
               Αναζήτηση, φίλτρα, ταξινόμηση και σελιδοποίηση.
             </p>
           </header>
 
-          <div className="md:hidden mb-5 flex items-center justify-between gap-3">
+          <div className="mb-5 flex items-center justify-between gap-3 lg:hidden">
             <button
               onClick={openFilters}
               className={classNames(
                 "inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium",
                 "bg-white/90 ring-1 ring-black/10 shadow-[0_10px_24px_rgba(15,23,42,0.06)]",
                 "hover:shadow-[0_16px_34px_rgba(15,23,42,0.10)] transition",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               )}
             >
               <FilterIcon />
@@ -460,23 +547,26 @@ export default function RecipesIndex() {
               <select
                 value={sort}
                 onChange={(e) => {
-                  setSort(e.target.value);
+                  setSort(e.target.value as SortKey);
                   setPage(1);
                 }}
                 className={classNames(
                   "rounded-xl bg-white/90 px-3 py-2 text-sm text-slate-800",
                   "ring-1 ring-black/10 shadow-sm",
-                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 )}
               >
                 <option value="new">Νεότερα</option>
-                <option value="az">Αλφαβητικά (A–Z)</option>
+                <option value="old">Παλαιότερα</option>
+                <option value="az">Αλφαβητικά (Α–Ω)</option>
+                <option value="timeAsc">Χρόνος: μικρότερος</option>
+                <option value="timeDesc">Χρόνος: μεγαλύτερος</option>
               </select>
             </div>
           </div>
 
-          <section className="grid gap-8 md:grid-cols-12">
-            <aside className="hidden md:block md:col-span-4 lg:col-span-3 space-y-6">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_minmax(0,1fr)]">
+            <aside className="hidden h-fit self-start space-y-6 lg:sticky lg:top-24 lg:block">
               {isLoading ? (
                 <SidebarSkeleton />
               ) : (
@@ -488,10 +578,10 @@ export default function RecipesIndex() {
                       className={classNames(
                         "text-xs font-semibold text-primary",
                         "hover:text-primary/80 transition",
-                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg px-2 py-1"
+                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg px-2 py-1",
                       )}
                     >
-                      Καθαρισμός
+                      Καθαρισμός φίλτρων
                     </button>
                   }
                 >
@@ -506,7 +596,7 @@ export default function RecipesIndex() {
                           setSearch(v);
                           setPage(1);
                         }}
-                        placeholder="όνομα, περιγραφή ή υλικό…"
+                        placeholder="Αναζήτηση συνταγών…"
                       />
                     </div>
 
@@ -526,7 +616,7 @@ export default function RecipesIndex() {
                                 setCats((prev) =>
                                   prev.includes(c)
                                     ? prev.filter((x) => x !== c)
-                                    : [...prev, c]
+                                    : [...prev, c],
                                 );
                               }}
                               className={classNames(
@@ -534,7 +624,7 @@ export default function RecipesIndex() {
                                 active
                                   ? "bg-primary text-white ring-primary"
                                   : "bg-primary/10 text-primary ring-primary/30 hover:bg-primary/15",
-                                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                               )}
                             >
                               {CATEGORY_LABELS[c] ?? c}
@@ -557,7 +647,7 @@ export default function RecipesIndex() {
                         className={classNames(
                           "w-full rounded-xl bg-white px-3 py-2 text-sm text-slate-800",
                           "ring-1 ring-black/10 shadow-sm",
-                          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                         )}
                       >
                         <option value="">Όλοι</option>
@@ -586,84 +676,87 @@ export default function RecipesIndex() {
               )}
             </aside>
 
-            <div className="md:col-span-8 lg:col-span-9">
-              <div className="mb-4 flex items-end justify-between gap-4">
-                <div className="flex flex-col gap-2">
-                  <div className="text-sm text-slate-600">
-                    Βρέθηκαν{" "}
-                    <span className="font-semibold text-slate-900">
-                      {filtered.length}
-                    </span>{" "}
-                    συνταγές
-                  </div>
-
-                  {activeFilters.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-2">
-                      {activeFilters.map((f) => (
-                        <span
-                          key={f.key}
-                          className={classNames(
-                            "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs",
-                            "bg-white/90 ring-1 ring-black/10 shadow-sm"
-                          )}
-                        >
-                          <span className="text-slate-700">{f.label}</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (f.key === "cat") setCats([]);
-                              if (f.key === "time") setTime("");
-                              if (f.key === "inc") setInclude([]);
-                              if (f.key === "q") setSearch("");
-                              setPage(1);
-                            }}
-                            className={classNames(
-                              "inline-flex h-5 w-5 items-center justify-center rounded-full",
-                              "text-slate-600 hover:text-slate-900 hover:bg-black/5 transition",
-                              "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                            )}
-                            aria-label="Αφαίρεση φίλτρου"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={clearAll}
-                        className={classNames(
-                          "text-xs font-semibold text-primary",
-                          "hover:text-primary/80 transition",
-                          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg px-2 py-1"
-                        )}
-                      >
-                        Καθαρισμός
-                      </button>
-                    </div>
-                  )}
+            <div className="min-w-0">
+              <div className="mb-4 flex min-h-10 items-center justify-between gap-4">
+                <div className="text-sm text-slate-600">
+                  Βρέθηκαν{" "}
+                  <span className="font-semibold text-slate-900">
+                    {filtered.length}
+                  </span>{" "}
+                  συνταγές
                 </div>
 
-                <div className="hidden md:flex items-end gap-2">
-                  <span className="text-sm text-slate-600 pb-2">
-                    Ταξινόμηση:
-                  </span>
+                <div className="hidden items-center gap-2 lg:flex">
+                  <span className="text-sm text-slate-600">Ταξινόμηση:</span>
+
                   <select
                     value={sort}
-                    onChange={(e) => {
-                      setSort(e.target.value);
+                    onChange={(event) => {
+                      setSort(event.target.value as SortKey);
                       setPage(1);
                     }}
                     className={classNames(
                       "rounded-xl bg-white/90 px-3 py-2 text-sm text-slate-800",
                       "ring-1 ring-black/10 shadow-sm",
-                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                     )}
                   >
                     <option value="new">Νεότερα</option>
-                    <option value="az">Αλφαβητικά (A–Z)</option>
+                    <option value="old">Παλαιότερα</option>
+                    <option value="az">Αλφαβητικά (Α–Ω)</option>
+                    <option value="timeAsc">Χρόνος: μικρότερος</option>
+                    <option value="timeDesc">Χρόνος: μεγαλύτερος</option>
                   </select>
                 </div>
               </div>
+
+              {activeFilters.length > 0 && (
+                <div className="mb-5 flex flex-wrap items-center gap-2">
+                  {activeFilters.map((filter) => (
+                    <span
+                      key={filter.key}
+                      className={classNames(
+                        "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs",
+                        "bg-white/90 ring-1 ring-black/10 shadow-sm",
+                      )}
+                    >
+                      <span className="text-slate-700">{filter.label}</span>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (filter.key === "cat") setCats([]);
+                          if (filter.key === "time") setTime("");
+                          if (filter.key === "inc") setInclude([]);
+                          if (filter.key === "q") setSearch("");
+
+                          setPage(1);
+                        }}
+                        className={classNames(
+                          "inline-flex h-5 w-5 items-center justify-center rounded-full",
+                          "text-slate-600 transition hover:bg-black/5 hover:text-slate-900",
+                          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                        )}
+                        aria-label="Αφαίρεση φίλτρου"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={clearAll}
+                    className={classNames(
+                      "rounded-lg px-2 py-1 text-xs font-semibold text-primary",
+                      "transition hover:text-primary/80",
+                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                    )}
+                  >
+                    Καθαρισμός
+                  </button>
+                </div>
+              )}
 
               {fetchError ? (
                 <div className="rounded-2xl bg-white/90 ring-1 ring-black/5 shadow-[0_10px_24px_rgba(15,23,42,0.06)] p-8 text-center">
@@ -677,11 +770,11 @@ export default function RecipesIndex() {
               ) : filtered.length === 0 ? (
                 <EmptyState onClear={clearAll} />
               ) : (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-6">
+                <div className="grid grid-cols-1 items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {paged.map((r) => {
                     // const pretty = toGreekSlug(r.title);
-                    const hasImage = Boolean(r.image);
-
+                    const imageUrl = resolveRecipeImage(r.image);
+                    const hasImage = Boolean(imageUrl);
                     return (
                       <Link
                         key={r.id}
@@ -691,25 +784,26 @@ export default function RecipesIndex() {
                           "bg-white/90 ring-1 ring-black/5 shadow-[0_10px_24px_rgba(15,23,42,0.06)]",
                           "transition will-change-transform",
                           "hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(15,23,42,0.10)] hover:ring-black/10",
-                          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                         )}
                       >
                         <div className="relative aspect-[16/10] w-full overflow-hidden">
                           {hasImage ? (
                             <Image
-                              src={r.image.startsWith("http") ? r.image : (r.image ? toMediaUrl(r.image) : "")}
+                              src={imageUrl}
                               alt={r.title}
                               fill
-                              priority={false}
                               className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                              unoptimized={true}
+                              unoptimized
                             />
                           ) : (
                             <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-accent/10 to-warm/15">
                               <div className="absolute inset-0 grid place-items-center">
                                 <div className="flex flex-col items-center gap-2 text-slate-600">
                                   <ImagePlaceholderIcon />
-                                  <div className="text-xs font-medium">Χωρίς εικόνα</div>
+                                  <div className="text-xs font-medium">
+                                    Χωρίς εικόνα
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -736,23 +830,10 @@ export default function RecipesIndex() {
                             </div>
                           </div>
 
-                          {r.description && (
-                            <p className="text-sm text-slate-600 line-clamp-3">
-                              {r.description}
+                          {stripHtml(r.description) && (
+                            <p className="line-clamp-3 text-sm leading-relaxed text-slate-600">
+                              {stripHtml(r.description)}
                             </p>
-                          )}
-
-                          {r.ingredients.length > 0 && (
-                            <div className="mt-auto flex flex-wrap gap-2 pt-1">
-                              {r.ingredients.slice(0, 3).map((ingredient) => (
-                                <Chip key={ingredient} tone="soft">
-                                  {ingredient}
-                                </Chip>
-                              ))}
-                              {r.ingredients.length > 3 && (
-                                <Chip tone="muted">+{r.ingredients.length - 3}</Chip>
-                              )}
-                            </div>
                           )}
                         </div>
                       </Link>
@@ -768,7 +849,7 @@ export default function RecipesIndex() {
                       "px-3 py-2 text-sm rounded-xl bg-white/90 ring-1 ring-black/10 shadow-sm transition",
                       "disabled:opacity-40 disabled:cursor-not-allowed",
                       "hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]",
-                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                     )}
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={pageClamped === 1}
@@ -791,17 +872,18 @@ export default function RecipesIndex() {
                             p === pageClamped
                               ? "bg-primary text-white ring-primary shadow-[0_10px_24px_rgba(15,23,42,0.08)]"
                               : "bg-white/90 text-slate-700 ring-black/10 hover:bg-black/5",
-                            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                           )}
                         >
                           {p}
                         </button>
-                      )
+                      ),
                     )}
                   </div>
 
                   <div className="sm:hidden text-sm text-slate-700 px-2">
-                    <span className="font-semibold">{pageClamped}</span> / {totalPages}
+                    <span className="font-semibold">{pageClamped}</span> /{" "}
+                    {totalPages}
                   </div>
 
                   <button
@@ -809,7 +891,7 @@ export default function RecipesIndex() {
                       "px-3 py-2 text-sm rounded-xl bg-white/90 ring-1 ring-black/10 shadow-sm transition",
                       "disabled:opacity-40 disabled:cursor-not-allowed",
                       "hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]",
-                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                     )}
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={pageClamped === totalPages}
@@ -819,8 +901,8 @@ export default function RecipesIndex() {
                 </div>
               )}
             </div>
-          </section>
-        </div>
+          </div>
+        </section>
 
         {filtersOpen && (
           <div
@@ -845,7 +927,7 @@ export default function RecipesIndex() {
                     className={classNames(
                       "inline-flex h-9 w-9 items-center justify-center rounded-full",
                       "bg-black/5 text-slate-700 hover:bg-black/10 transition",
-                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                     )}
                     aria-label="Κλείσιμο"
                   >
@@ -863,7 +945,7 @@ export default function RecipesIndex() {
                           className={classNames(
                             "text-xs font-semibold text-primary",
                             "hover:text-primary/80 transition",
-                            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg px-2 py-1"
+                            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg px-2 py-1",
                           )}
                         >
                           Καθαρισμός
@@ -890,7 +972,7 @@ export default function RecipesIndex() {
                               setDraftCats((prev) =>
                                 prev.includes(c)
                                   ? prev.filter((x) => x !== c)
-                                  : [...prev, c]
+                                  : [...prev, c],
                               )
                             }
                             className={classNames(
@@ -898,7 +980,7 @@ export default function RecipesIndex() {
                               active
                                 ? "bg-primary text-white ring-primary"
                                 : "bg-primary/10 text-primary ring-primary/30 hover:bg-primary/15",
-                              "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                              "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                             )}
                           >
                             {CATEGORY_LABELS[c] ?? c}
@@ -915,7 +997,7 @@ export default function RecipesIndex() {
                       className={classNames(
                         "w-full rounded-xl bg-white px-3 py-2 text-sm text-slate-800",
                         "ring-1 ring-black/10 shadow-sm",
-                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                       )}
                     >
                       <option value="">Όλοι</option>
@@ -949,7 +1031,7 @@ export default function RecipesIndex() {
                       "flex-1 rounded-xl px-4 py-3 text-sm font-semibold",
                       "bg-white ring-1 ring-black/10 shadow-sm",
                       "hover:bg-black/5 transition",
-                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                     )}
                   >
                     Καθαρισμός
@@ -960,7 +1042,7 @@ export default function RecipesIndex() {
                       "flex-1 rounded-xl px-4 py-3 text-sm font-semibold text-white",
                       "bg-primary shadow-[0_16px_34px_rgba(15,23,42,0.10)]",
                       "hover:opacity-95 transition",
-                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                     )}
                   >
                     Εφαρμογή
@@ -999,7 +1081,7 @@ function GlassBadge({ children }: { children: React.ReactNode }) {
       className={classNames(
         "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium",
         "bg-white/70 text-slate-800 ring-1 ring-black/10 backdrop-blur",
-        "shadow-sm"
+        "shadow-sm",
       )}
     >
       {children}
@@ -1028,7 +1110,7 @@ function SearchInput({
         className={classNames(
           "w-full rounded-xl bg-white pl-9 pr-9 py-2 text-sm text-slate-800",
           "ring-1 ring-black/10 shadow-sm",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         )}
       />
       {value && (
@@ -1038,7 +1120,7 @@ function SearchInput({
           className={classNames(
             "absolute right-2 top-1/2 -translate-y-1/2",
             "h-7 w-7 rounded-full text-slate-500 hover:text-slate-900 hover:bg-black/5 transition",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           )}
           aria-label="Καθαρισμός αναζήτησης"
         >
@@ -1086,7 +1168,7 @@ function TagInput({
           className={classNames(
             "w-full rounded-xl bg-white px-3 py-2 text-sm text-slate-800",
             "ring-1 ring-black/10 shadow-sm",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           )}
         />
         <button
@@ -1095,7 +1177,7 @@ function TagInput({
             "rounded-xl px-3 text-sm font-semibold",
             "bg-primary/10 text-primary ring-1 ring-primary/30",
             "hover:bg-primary/15 transition",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           )}
         >
           Προσθήκη
@@ -1109,7 +1191,7 @@ function TagInput({
               key={t}
               className={classNames(
                 "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium",
-                "bg-primary/10 text-primary ring-1 ring-primary/30"
+                "bg-primary/10 text-primary ring-1 ring-primary/30",
               )}
             >
               {t}
@@ -1118,7 +1200,7 @@ function TagInput({
                 className={classNames(
                   "inline-flex h-5 w-5 items-center justify-center rounded-full",
                   "text-primary/70 hover:text-primary hover:bg-primary/10 transition",
-                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 )}
                 aria-label="Αφαίρεση"
               >
@@ -1141,7 +1223,10 @@ function SidebarSkeleton() {
         <div className="h-3 w-28 rounded bg-slate-200 animate-pulse" />
         <div className="flex flex-wrap gap-2">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-7 w-20 rounded-full bg-slate-200 animate-pulse" />
+            <div
+              key={i}
+              className="h-7 w-20 rounded-full bg-slate-200 animate-pulse"
+            />
           ))}
         </div>
         <div className="h-3 w-32 rounded bg-slate-200 animate-pulse" />
@@ -1153,7 +1238,7 @@ function SidebarSkeleton() {
 
 function GridSkeleton() {
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-6">
+    <div className="grid grid-cols-1 items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 9 }).map((_, i) => (
         <div
           key={i}
@@ -1194,7 +1279,7 @@ function EmptyState({ onClear }: { onClear: () => void }) {
           "mt-5 inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold",
           "bg-primary text-white shadow-[0_16px_34px_rgba(15,23,42,0.10)]",
           "hover:opacity-95 transition",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         )}
       >
         Καθαρισμός φίλτρων
