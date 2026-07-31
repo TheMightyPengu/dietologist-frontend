@@ -17,6 +17,7 @@ import {
   validateImageFile,
 } from "@/lib/form-validation";
 import type { ApiFieldErrors } from "@/api/_axios-client";
+import PageHeaderEditor from "@/components/admin/PageHeaderEditor";
 
 const cx = (...c: (string | false | null | undefined)[]) =>
   c.filter(Boolean).join(" ");
@@ -27,7 +28,7 @@ const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
 }) => (
   <div
     className={cx(
-      "rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-200/50",
+      "rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-[rgba(var(--border),0.8)]",
       className,
     )}
   >
@@ -278,6 +279,12 @@ export default function ManagementServicesPage() {
               Προβολή σελίδας
             </Link>
           </div>
+
+          <PageHeaderEditor
+            pageKey="services"
+            fallbackTitle="Υπηρεσίες Διατροφής"
+            fallbackDescription="Σε αυτή τη σελίδα θα βρείτε συγκεντρωμένες τις διαθέσιμες υπηρεσίες και τους βασικούς τρόπους επικοινωνίας."
+          />
 
           <Card className="p-4 md:p-5 mb-6">
             <div className="flex flex-wrap items-center justify-between gap-3">

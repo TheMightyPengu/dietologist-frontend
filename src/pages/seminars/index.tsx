@@ -4,6 +4,7 @@ import { getSeminars, type Seminar } from "@/api/SeminarsController";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 import LeafBurstButton from "@/components/decorative/LeafBurstButton";
 import { toMediaUrl } from "@/api/_axios-client";
+import { usePageHeader } from "@/lib/usePageHeader";
 
 type SortKey =
   | "dateNear"
@@ -19,6 +20,12 @@ type PricePreset = "all" | "free" | "paid";
 const PAGE_SIZE = 9;
 
 const IMAGE_FALLBACK = "/images/seminar-placeholder.webp";
+
+const DEFAULT_PAGE_HEADER = {
+  title: "Σεμινάρια",
+  description:
+    "Μικρές, στοχευμένες ενότητες με πρακτικό περιεχόμενο. Online και δια ζώσης, με έμφαση στην καθημερινή εφαρμογή.",
+};
 
 function stripHtml(value: string) {
   return value
@@ -218,6 +225,8 @@ function Pill({
 }
 
 export default function SeminarsPage() {
+  const pageHeader = usePageHeader("seminars", DEFAULT_PAGE_HEADER);
+
   const [items, setItems] = useState<Seminar[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -776,12 +785,11 @@ export default function SeminarsPage() {
         <div className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6 lg:px-8 md:pt-10">
           <header className="mb-8">
             <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
-              Σεμινάρια
+              {pageHeader.title}
             </h1>
 
             <p className="mt-3 max-w-2xl leading-relaxed text-slate-600">
-              Μικρές, στοχευμένες ενότητες με πρακτικό περιεχόμενο. Online και
-              δια ζώσης, με έμφαση στην καθημερινή εφαρμογή.
+              {pageHeader.description}
             </p>
           </header>
 

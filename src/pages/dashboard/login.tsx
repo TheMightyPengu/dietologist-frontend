@@ -2,13 +2,11 @@ import Head from "next/head";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/router";
 import { api, toApiError, type ApiFieldErrors } from "@/api/_axios-client";
-import { setAdminToken } from "@/lib/admin-auth";
 import FormFieldError from "@/components/admin/FormFieldError";
 import GeneralErrorDialog from "@/components/admin/GeneralErrorDialog";
 import { errorInputClass } from "@/lib/form-validation";
 
 type LoginResponseDto = {
-  token: string;
   expiresAtUtc: string;
 };
 
@@ -46,12 +44,10 @@ export default function DashboardLoginPage() {
     try {
       setLoading(true);
 
-      const response = await api.post<LoginResponseDto>("/Admin/login", {
+      await api.post<LoginResponseDto>("/Admin/login", {
         username: username.trim(),
         password,
       });
-
-      setAdminToken(response.data.token, response.data.expiresAtUtc);
 
       const next =
         typeof router.query.next === "string" &&

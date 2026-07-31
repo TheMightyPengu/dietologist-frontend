@@ -2,19 +2,15 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+
+  poweredByHeader: false,
+
   images: {
     remotePatterns: [
       {
-        protocol: "http",
-        hostname: "localhost",
-        port: "5000",
-        pathname: "/**",
-      },
-      {
-        protocol: "http",
-        hostname: "localhost",
-        port: "8088",
-        pathname: "/**",
+        protocol: "https",
+        hostname: "diet.ioakimidisnick.com",
+        pathname: "/media/**",
       },
       {
         protocol: "https",

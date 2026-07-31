@@ -7,6 +7,7 @@ import Image from "next/image";
 // Αν το path του controller σου είναι αλλού, άλλαξέ το εδώ.
 import { RecipesApi, type RecipesGetDto } from "@/api/RecipesController";
 import { toMediaUrl } from "@/api/_axios-client";
+import { usePageHeader } from "@/lib/usePageHeader";
 
 /*
   Σελίδα λίστας συνταγών συνδεδεμένη με backend.
@@ -111,6 +112,11 @@ function stripHtml(value: string | null | undefined) {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+const DEFAULT_PAGE_HEADER = {
+  title: "Συνταγές",
+  description: "Αναζήτηση, φίλτρα, ταξινόμηση και σελιδοποίηση.",
+};
 
 const PER_PAGE = 12;
 
@@ -219,6 +225,8 @@ function SectionCard({
 }
 
 export default function RecipesIndex() {
+  const pageHeader = usePageHeader("recipes", DEFAULT_PAGE_HEADER);
+
   const router = useRouter();
   const { query } = router;
 
@@ -515,12 +523,10 @@ export default function RecipesIndex() {
         <section className="mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-10 lg:px-8">
           <header className="mb-7">
             <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-              Συνταγές
+              {pageHeader.title}
             </h1>
 
-            <p className="mt-2 text-slate-600">
-              Αναζήτηση, φίλτρα, ταξινόμηση και σελιδοποίηση.
-            </p>
+            <p className="mt-2 text-slate-600">{pageHeader.description}</p>
           </header>
 
           <div className="mb-5 flex items-center justify-between gap-3 lg:hidden">

@@ -23,6 +23,7 @@ import {
   isRichTextBlank,
   validateImageFile,
 } from "@/lib/form-validation";
+import PageHeaderEditor from "@/components/admin/PageHeaderEditor";
 
 const cx = (...classes: (string | false | null | undefined)[]) =>
   classes.filter(Boolean).join(" ");
@@ -45,7 +46,7 @@ const Card: React.FC<{
 }> = ({ className, children }) => (
   <div
     className={cx(
-      "rounded-2xl border border-slate-200/50 bg-white/80 shadow-sm backdrop-blur-sm",
+      "rounded-2xl border border-[rgba(var(--border),0.8)] bg-white/80 shadow-sm backdrop-blur-sm",
       className,
     )}
   >
@@ -438,6 +439,22 @@ export default function ManagementBlogPage() {
               </button>
             </div>
           </Card>
+
+          {active === "articles" ? (
+            <PageHeaderEditor
+              key="articles"
+              pageKey="articles"
+              fallbackTitle="Άρθρα"
+              fallbackDescription="Επιμελημένο περιεχόμενο για υγιεινή, απολαυστική και ισορροπημένη καθημερινότητα. Αναζητήστε θέματα που σας ενδιαφέρουν ή περιηγηθείτε στις κατηγορίες."
+            />
+          ) : (
+            <PageHeaderEditor
+              key="recipes"
+              pageKey="recipes"
+              fallbackTitle="Συνταγές"
+              fallbackDescription="Αναζήτηση, φίλτρα, ταξινόμηση και σελιδοποίηση."
+            />
+          )}
 
           {active === "articles" ? <ArticlesManager /> : <RecipesManager />}
         </div>

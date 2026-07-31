@@ -1,5 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
+import { logoutAdmin } from "@/lib/admin-auth";
 
 /**
  * MANAGEMENT — Dashboard (landing)
@@ -18,6 +19,10 @@ const TABS = [
 ];
 
 export default function ManagementDashboard() {
+  async function handleLogout() {
+    await logoutAdmin();
+  }
+
   return (
     <>
       <Head>
@@ -29,15 +34,29 @@ export default function ManagementDashboard() {
         <div className="mx-auto max-w-6xl px-4 md:px-6 lg:px-8 py-8 md:py-12">
           <section className="mb-8">
             <div className="rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-slate-200/50 p-6 md:p-8">
-              <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-                Καλωσήρθες στο Πίνακα Διαχείρισης
-              </h1>
-              <p className="mt-2 max-w-3xl leading-relaxed text-slate-600">
-                Επίλεξε ενότητα για επεξεργασία περιεχομένου. Κάθε καρτέλα ανοίγει σε ξεχωριστή σελίδα.
-              </p>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+                    Καλωσήρθες στον Πίνακα Διαχείρισης
+                  </h1>
+
+                  <p className="mt-2 max-w-3xl leading-relaxed text-slate-600">
+                    Επίλεξε ενότητα για επεξεργασία περιεχομένου. Κάθε καρτέλα
+                    ανοίγει σε ξεχωριστή σελίδα.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-700 transition hover:border-rose-400 hover:bg-rose-50"
+                >
+                  Αποσύνδεση
+                </button>
+              </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                {TABS.map(t => (
+                {TABS.map((t) => (
                   <Link
                     key={t.key}
                     href={t.href}
@@ -49,7 +68,7 @@ export default function ManagementDashboard() {
                 ))}
               </div>
             </div>
-          </section>          
+          </section>
         </div>
       </div>
     </>

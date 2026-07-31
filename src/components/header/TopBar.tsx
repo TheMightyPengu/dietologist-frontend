@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { ContactInfoApi, type ContactInfoGetDto } from "@/api/ContactInfoController";
+import {
+  ContactInfoApi,
+  type ContactInfoGetDto,
+} from "@/api/ContactInfoController";
 
 type SocialLink = { label: string; href: string; icon: ReactNode };
 
@@ -64,7 +67,9 @@ const Icon = {
 };
 
 export default function TopBar() {
-  const [contactInfo, setContactInfo] = useState<ContactInfoGetDto | null>(null);
+  const [contactInfo, setContactInfo] = useState<ContactInfoGetDto | null>(
+    null,
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -91,10 +96,18 @@ export default function TopBar() {
 
   const socials: SocialLink[] = useMemo(
     () => [
-      { label: "Instagram", href: "https://www.instagram.com/diet.out.of.the.box?igsh=ZnRwZmE4YjB0ZG01", target: "_blank", icon: Icon.Instagram },
-      { label: "Spotify", href: "https://open.spotify.com/show/17B6Yqxjuwy5Sryffoa5oC", target: "_blank", icon: Icon.Spotify },
+      {
+        label: "Instagram",
+        href: "https://www.instagram.com/diet.out.of.the.box?igsh=ZnRwZmE4YjB0ZG01",
+        icon: Icon.Instagram,
+      },
+      {
+        label: "Spotify",
+        href: "https://open.spotify.com/show/17B6Yqxjuwy5Sryffoa5oC",
+        icon: Icon.Spotify,
+      },
     ],
-    []
+    [],
   );
 
   const phone = contactInfo?.telephone || "+30 210 0000000";
@@ -106,7 +119,7 @@ export default function TopBar() {
   return (
     <div
       className={[
-        "w-full sticky top-0 z-50 backdrop-blur",
+        "relative w-full z-10 backdrop-blur",
         "bg-bg supports-[backdrop-filter]:bg-bg/85",
         "border-b border-accent/15",
         "px-6",

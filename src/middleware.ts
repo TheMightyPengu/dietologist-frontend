@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ADMIN_TOKEN_COOKIE } from "@/lib/admin-auth";
+import { ADMIN_TOKEN_COOKIE } from "@/lib/auth-constants";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Optional: fix the common typo /dashbord -> /dashboard
   if (pathname.startsWith("/dashbord")) {
     const fixedUrl = request.nextUrl.clone();
     fixedUrl.pathname = pathname.replace("/dashbord", "/dashboard");
@@ -12,23 +11,26 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(fixedUrl);
   }
 
-  const isDashboardLoginPage = pathname === "/dashboard/login";
-  const token = request.cookies.get(ADMIN_TOKEN_COOKIE)?.value;
+  const isLoginPage = pathname === "/dashboard/login";
+  const hasAuthCookie = Boolean(
+    request.cookies.get(ADMIN_TOKEN_COOKIE)?.value
+  );
 
-  // Allow the login page when not logged in.
-  if (isDashboardLoginPage) {
-    // If already logged in, do not show login again.
-    if (token) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-
+  // Always allow the login page.
+  // Do not redirect merely because a cookie exists:
+  // it might be expired, invalid, or signed with an old JWT secret.
+  if (isLoginPage) {
     return NextResponse.next();
   }
 
-  // Protect every other dashboard page.
-  if (!token) {
+  // Basic early protection.
+  if (!hasAuthCookie) {
     const loginUrl = new URL("/dashboard/login", request.url);
-    loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
+
+    loginUrl.searchParams.set(
+      "next",
+      `${pathname}${request.nextUrl.search}`
+    );
 
     return NextResponse.redirect(loginUrl);
   }

@@ -1,13 +1,9 @@
-import axios from "axios";
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+import { api, toApiError } from "./_axios-client";
 
 export type NewsletterSubscriberGetDto = {
   id: number;
   email: string;
   fullName: string;
-  isSubscribed: boolean;
   subscribedAt: string;
 };
 
@@ -16,23 +12,57 @@ export type NewsletterSubscriberPostDto = {
   fullName: string;
 };
 
-export const NewsletterSubscribersApi = {
-  async list(): Promise<NewsletterSubscriberGetDto[]> {
-    const res = await axios.get<NewsletterSubscriberGetDto[]>(
-      `${API_BASE}/NewsletterSubscribers`
-    );
+export type NewsletterUnsubscribeResultDto = {
+  message: string;
+};
 
-    return res.data;
+const base = "/NewsletterSubscribers";
+
+export const NewsletterSubscribersApi = {
+  async list(): Promise<
+    NewsletterSubscriberGetDto[]
+  > {
+    try {
+      const { data } =
+        await api.get<
+          NewsletterSubscriberGetDto[]
+        >(base);
+
+      return data;
+    } catch (error) {
+      throw toApiError(error);
+    }
   },
 
   async subscribe(
-    payload: NewsletterSubscriberPostDto
+    payload: NewsletterSubscriberPostDto,
   ): Promise<NewsletterSubscriberGetDto> {
-    const res = await axios.post<NewsletterSubscriberGetDto>(
-      `${API_BASE}/NewsletterSubscribers`,
-      payload
-    );
+    try {
+      const { data } =
+        await api.post<
+          NewsletterSubscriberGetDto
+        >(base, payload);
 
-    return res.data;
+      return data;
+    } catch (error) {
+      throw toApiError(error);
+    }
+  },
+
+  async unsubscribe(
+    token: string,
+  ): Promise<NewsletterUnsubscribeResultDto> {
+    try {
+      const { data } =
+        await api.post<
+          NewsletterUnsubscribeResultDto
+        >(`${base}/unsubscribe`, {
+          token,
+        });
+
+      return data;
+    } catch (error) {
+      throw toApiError(error);
+    }
   },
 };

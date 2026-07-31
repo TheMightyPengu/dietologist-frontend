@@ -77,7 +77,7 @@ function stripHash(href: string) {
 function getServiceCategoryAnchor(category: string) {
   const normalized = category.trim().toLowerCase().replace(/\s+/g, "-");
   return `service-category-${encodeURIComponent(
-    normalized || "loipes-ypiresies"
+    normalized || "loipes-ypiresies",
   )}`;
 }
 
@@ -91,7 +91,7 @@ function formatServiceCategoryLabel(category: string) {
 }
 
 function getUniqueServiceCategories(
-  services: Awaited<ReturnType<typeof ProvidedServicesApi.list>>
+  services: Awaited<ReturnType<typeof ProvidedServicesApi.list>>,
 ) {
   const seen = new Set<string>();
 
@@ -110,6 +110,7 @@ export default function Navbar() {
   const router = useRouter();
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileMenuMounted, setMobileMenuMounted] = useState(false);
   const [navbar, setNavbar] = useState<NavbarGetDto>(DEFAULT_NAVBAR);
   const [serviceCategories, setServiceCategories] = useState<string[]>([]);
   const navRef = useRef<HTMLDivElement>(null);
@@ -155,6 +156,35 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    if (mobileOpen) {
+      setMobileMenuMounted(true);
+    } else {
+      timeoutId = setTimeout(() => {
+        setMobileMenuMounted(false);
+      }, 300);
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileOpen]);
+
+  useEffect(() => {
     let active = true;
 
     async function loadServiceCategories() {
@@ -164,7 +194,7 @@ export default function Navbar() {
         if (!active) return;
 
         setServiceCategories(
-          Array.isArray(data) ? getUniqueServiceCategories(data) : []
+          Array.isArray(data) ? getUniqueServiceCategories(data) : [],
         );
       } catch (error) {
         console.error(error);
@@ -213,7 +243,7 @@ export default function Navbar() {
   return (
     <div
       className={[
-        "w-full sticky top-[44px] sm:top-[44px] z-40 backdrop-blur",
+        "relative w-full z-20 backdrop-blur",
         "bg-bg supports-[backdrop-filter]:bg-bg/90",
         "border-b border-accent/20",
         "px-5",
@@ -256,7 +286,11 @@ export default function Navbar() {
             onClick={closeAll}
           >
             <Image
-              src={navbar.imageUrl.startsWith("/media") ? toMediaUrl(navbar.imageUrl) : navbar.imageUrl}
+              src={
+                navbar.imageUrl.startsWith("/media")
+                  ? toMediaUrl(navbar.imageUrl)
+                  : navbar.imageUrl
+              }
               alt={`${navbar.title} Logo`}
               width={44}
               height={44}
@@ -382,108 +416,222 @@ export default function Navbar() {
           </div>
         </div>
 
-        {mobileOpen && (
-          <div className="md:hidden pb-3">
-            <div className="mt-1 rounded-2xl border border-accent/15 bg-white/70 supports-[backdrop-filter]:bg-white/60 backdrop-blur">
-              {navItems.map((item, idx) => {
-                const hasChildren = !!item.children?.length;
-                const isOpen = openIdx === idx;
-                const active = isItemActive(item);
-                const isServicesMenu = item.label === "ΥΠΗΡΕΣΙΕΣ";
+        {mobileMenuMounted && (
+          <div
+            className={[
+              "fixed inset-0 z-[70] md:hidden",
+              mobileOpen ? "pointer-events-auto" : "pointer-events-none",
+            ].join(" ")}
+            aria-hidden={!mobileOpen}
+          >
+            {/* Dark background overlay */}
+            <button
+              type="button"
+              aria-label="Κλείσιμο μενού"
+              onClick={closeAll}
+              className={[
+                "absolute inset-0 bg-slate-950/35 backdrop-blur-[2px]",
+                "transition-opacity duration-300",
+                mobileOpen ? "opacity-100" : "opacity-0",
+              ].join(" ")}
+            />
 
-                return (
-                  <div
-                    key={item.label}
-                    className="border-t first:border-t-0 border-accent/10"
+            {/* Side drawer */}
+            <aside
+              role="dialog"
+              aria-modal="true"
+              aria-label="Μενού πλοήγησης"
+              className={[
+                "absolute left-0 top-0 h-[100dvh] w-[min(88vw,360px)]",
+                "overflow-y-auto overscroll-contain",
+                "bg-bg shadow-2xl",
+                "border-r border-accent/20",
+                "transition-transform duration-300 ease-out",
+                mobileOpen ? "translate-x-0" : "-translate-x-full",
+              ].join(" ")}
+            >
+              <div className="flex min-h-full flex-col">
+                <div className="sticky top-0 z-10 flex items-center justify-between border-b border-accent/15 bg-bg/95 px-4 py-4 backdrop-blur">
+                  <Link
+                    href="/"
+                    onClick={closeAll}
+                    className="flex min-w-0 items-center gap-3"
                   >
-                    <div className="flex w-full items-stretch justify-between px-2 py-1">
-                      <Link
-                        href={item.href || "#"}
-                        className={[
-                          "flex-1 rounded-md px-2 py-2 text-sm font-semibold transition navbar-link",
-                          "tracking-[0.06em]",
-                          "text-primary hover:text-accent hover:bg-accent/10",
-                          active ? "bg-accent/10" : "",
-                          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
-                        ].join(" ")}
-                        onClick={closeAll}
-                      >
-                        {item.label}
-                      </Link>
+                    <Image
+                      src={
+                        navbar.imageUrl.startsWith("/media")
+                          ? toMediaUrl(navbar.imageUrl)
+                          : navbar.imageUrl
+                      }
+                      alt={`${navbar.title} Logo`}
+                      width={48}
+                      height={48}
+                      unoptimized
+                      className="h-12 w-12 shrink-0 rounded-full bg-white/90 object-cover ring-2 ring-accent/25"
+                    />
 
-                      {hasChildren && (
-                        <button
-                          type="button"
-                          aria-expanded={isOpen}
-                          aria-label={`${item.label} υπομενού`}
-                          className={[
-                            "ml-1 rounded-md px-3 py-2 transition",
-                            "text-slate-700 hover:text-accent hover:bg-accent/10",
-                            "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
-                          ].join(" ")}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenIdx(isOpen ? null : idx);
-                          }}
+                    <span className="truncate text-base font-semibold text-slate-800">
+                      {navbar.title}
+                    </span>
+                  </Link>
+
+                  <button
+                    type="button"
+                    aria-label="Κλείσιμο μενού"
+                    onClick={closeAll}
+                    className={[
+                      "ml-3 inline-flex h-11 w-11 shrink-0 items-center justify-center",
+                      "rounded-xl bg-surface-soft text-accent",
+                      "transition hover:bg-accent/15 hover:text-primary-dark",
+                      "focus-visible:outline-none focus-visible:ring-4",
+                      "focus-visible:ring-primary/25",
+                    ].join(" ")}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-6 w-6"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M6 6l12 12M6 18L18 6"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                <nav className="flex-1 px-4 py-4">
+                  <div className="overflow-hidden rounded-2xl border border-accent/15 bg-white/60">
+                    {navItems.map((item, idx) => {
+                      const hasChildren = !!item.children?.length;
+                      const isOpen = openIdx === idx;
+                      const active = isItemActive(item);
+                      const isServicesMenu = item.label === "ΥΠΗΡΕΣΙΕΣ";
+
+                      return (
+                        <div
+                          key={item.label}
+                          className="border-t border-accent/10 first:border-t-0"
                         >
-                          <ChevronDown
-                            className={`h-4 w-4 transition ${
-                              isOpen ? "rotate-180" : ""
-                            }`}
-                          />
-                        </button>
-                      )}
-                    </div>
-
-                    {hasChildren && isOpen && (
-                      <div
-                        className={[
-                          "px-2 pb-3",
-                          isServicesMenu
-                            ? "max-h-[19rem] overflow-y-auto [direction:rtl]"
-                            : "",
-                        ].join(" ")}
-                      >
-                        <div className="space-y-1 [direction:ltr]">
-                          {item.children!.map((child) => (
+                          <div className="flex min-h-16 items-stretch">
                             <Link
-                              key={child.href}
-                              href={child.href}
+                              href={item.href || "#"}
                               className={[
-                                "block rounded-lg px-3 py-2.5 text-xs transition",
-                                "text-slate-700 hover:text-accent hover:bg-accent/10",
-                                "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+                                "flex flex-1 items-center px-4 py-4",
+                                "text-base font-semibold tracking-[0.04em]",
+                                "transition",
+                                active
+                                  ? "bg-accent/10 text-primary-dark"
+                                  : "text-slate-800 hover:bg-accent/10 hover:text-accent",
+                                "focus-visible:outline-none focus-visible:ring-4",
+                                "focus-visible:ring-inset focus-visible:ring-primary/25",
                               ].join(" ")}
                               onClick={closeAll}
                             >
-                              {child.label}
+                              {item.label}
                             </Link>
-                          ))}
+
+                            {hasChildren && (
+                              <button
+                                type="button"
+                                aria-expanded={isOpen}
+                                aria-label={`${item.label} υπομενού`}
+                                className={[
+                                  "flex w-14 items-center justify-center",
+                                  "text-slate-700 transition",
+                                  "hover:bg-accent/10 hover:text-accent",
+                                  "focus-visible:outline-none focus-visible:ring-4",
+                                  "focus-visible:ring-inset focus-visible:ring-primary/25",
+                                ].join(" ")}
+                                onClick={() => {
+                                  setOpenIdx(isOpen ? null : idx);
+                                }}
+                              >
+                                <ChevronDown
+                                  className={[
+                                    "h-5 w-5 transition-transform duration-200",
+                                    isOpen ? "rotate-180" : "",
+                                  ].join(" ")}
+                                />
+                              </button>
+                            )}
+                          </div>
+
+                          {hasChildren && (
+                            <div
+                              className={[
+                                "grid transition-[grid-template-rows] duration-300 ease-out",
+                                isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+                              ].join(" ")}
+                            >
+                              <div className="overflow-hidden">
+                                <div
+                                  className={[
+                                    "border-t border-accent/10 bg-surface-soft/70",
+                                    "px-3 py-3",
+                                    isServicesMenu
+                                      ? "max-h-[17rem] overflow-y-auto"
+                                      : "",
+                                  ].join(" ")}
+                                >
+                                  <div className="space-y-1">
+                                    {item.children!.map((child) => (
+                                      <Link
+                                        key={child.href}
+                                        href={child.href}
+                                        onClick={closeAll}
+                                        className={[
+                                          "block rounded-xl px-4 py-3",
+                                          "text-sm font-medium text-slate-700",
+                                          "transition hover:bg-white hover:text-accent",
+                                          "focus-visible:outline-none focus-visible:ring-4",
+                                          "focus-visible:ring-primary/25",
+                                        ].join(" ")}
+                                      >
+                                        {child.label}
+                                      </Link>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    )}
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </nav>
 
-              <div className="border-t border-accent/10 px-3 py-3">
-                <div className="flex flex-col gap-2 text-sm text-slate-700">
-                  <a
-                    href="tel:+30-210-0000000"
-                    className="rounded-lg px-2 py-2 text-primary hover:text-accent hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-                  >
-                    +30 210 0000000
-                  </a>
+                <div className="border-t border-accent/15 px-4 py-5">
+                  <div className="space-y-2">
+                    <a
+                      href="tel:+30-210-0000000"
+                      className="flex min-h-12 items-center rounded-xl px-3 text-primary transition hover:bg-accent/10 hover:text-accent"
+                    >
+                      +30 210 0000000
+                    </a>
 
-                  <a
-                    href="mailto:hello@dietitian.gr"
-                    className="rounded-lg px-2 py-2 text-primary hover:text-accent hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-                  >
-                    hello@dietitian.gr
-                  </a>
+                    <a
+                      href="mailto:hello@dietitian.gr"
+                      className="flex min-h-12 items-center rounded-xl px-3 text-primary transition hover:bg-accent/10 hover:text-accent"
+                    >
+                      hello@dietitian.gr
+                    </a>
+                  </div>
+
+                  <div className="mt-4">
+                    <LeafBurstButton
+                      text="ΚΛΕΙΣΤΕ ΡΑΝΤΕΒΟΥ"
+                      href="/contact/book"
+                      onClick={closeAll}
+                      size="sm"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            </aside>
           </div>
         )}
       </div>

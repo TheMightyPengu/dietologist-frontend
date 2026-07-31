@@ -1,5 +1,4 @@
 import axios, { AxiosError } from "axios";
-import { clearAdminToken, getAdminToken } from "@/lib/admin-auth";
 
 // To test if it is connected, visit:
 // http://localhost:3000/dev/api-smoke
@@ -20,16 +19,7 @@ const baseURL = (() => {
 
 export const api = axios.create({
   baseURL,
-});
-
-api.interceptors.request.use((config) => {
-  const token = getAdminToken();
-
-  if (token) {
-    config.headers.set("Authorization", `Bearer ${token}`);
-  }
-
-  return config;
+  withCredentials: true,
 });
 
 api.interceptors.response.use(
@@ -42,8 +32,6 @@ api.interceptors.response.use(
       window.location.pathname.startsWith("/dashboard") &&
       window.location.pathname !== "/dashboard/login"
     ) {
-      clearAdminToken();
-
       const next =
         `${window.location.pathname}${window.location.search}`;
 
@@ -365,12 +353,7 @@ export function toMediaUrl(
     return path;
   }
 
-  const mediaBaseUrl =
-    process.env.NEXT_PUBLIC_MEDIA_URL ||
-    "http://localhost:8088";
-
-  return `${mediaBaseUrl.replace(/\/$/, "")}/${path.replace(
-    /^\//,
-    ""
-  )}`;
+  return path.startsWith("/")
+    ? path
+    : `/${path}`;
 }

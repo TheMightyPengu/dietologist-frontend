@@ -39,6 +39,7 @@ import {
   isValidEmail,
   isValidPhone,
 } from "@/lib/form-validation";
+import PageHeaderEditor from "@/components/admin/PageHeaderEditor";
 
 const cx = (...c: (string | false | null | undefined)[]) =>
   c.filter(Boolean).join(" ");
@@ -49,7 +50,7 @@ const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
 }) => (
   <div
     className={cx(
-      "rounded-2xl bg-white backdrop-blur-sm shadow-sm border border-slate-200/50",
+      "rounded-2xl bg-white backdrop-blur-sm shadow-sm border border-[rgba(var(--border),0.8)]",
       className,
     )}
   >
@@ -58,7 +59,11 @@ const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
 );
 
 type Tab =
-  "bookings" | "messages" | "newsletter" | "usefulInfo" | "officeHours";
+  | "bookings"
+  | "messages"
+  | "newsletter"
+  | "usefulInfo"
+  | "officeHours";
 
 type Slot = {
   id: string;
@@ -329,6 +334,24 @@ export default function ManagementContactPage() {
               ))}
             </div>
           </Card>
+
+          {active === "bookings" && (
+            <PageHeaderEditor
+              key="contact-book"
+              pageKey="contact-book"
+              fallbackTitle="Κλείστε Ραντεβού"
+              fallbackDescription="Επιλέξτε υπηρεσία και θα εμφανιστούν μόνο οι διαθέσιμες ημέρες και ώρες. Συμπληρώστε τη φόρμα και θα σας στείλουμε email για επιβεβαίωση."
+            />
+          )}
+
+          {active === "messages" && (
+            <PageHeaderEditor
+              key="contact-form"
+              pageKey="contact-form"
+              fallbackTitle="Φόρμα Επικοινωνίας"
+              fallbackDescription="Πείτε μας πώς μπορούμε να βοηθήσουμε. Απαντάμε συνήθως εντός 1–2 εργάσιμων."
+            />
+          )}
 
           {active === "bookings" && <BookingsManager />}
           {active === "messages" && <MessagesManager />}
@@ -1779,14 +1802,32 @@ function NewsletterManager() {
 
   const csvContent = useMemo(() => buildNewsletterCsv(filtered), [filtered]);
 
+  const emailList = useMemo(() => {
+    const uniqueEmails = Array.from(
+      new Set(
+        filtered
+          .map((subscriber) => subscriber.email.trim())
+          .filter(Boolean),
+      ),
+    );
+
+    return uniqueEmails.join("; ");
+  }, [filtered]);
+
   async function copyList() {
     try {
-      await navigator.clipboard.writeText(csvContent);
-      setToast("Η λίστα αντιγράφηκε.");
+      await navigator.clipboard.writeText(emailList);
+
+      setToast(
+        `${filtered.length} email αντιγράφηκαν. Επικολλήστε τα στο πεδίο BCC.`,
+      );
     } catch (error: unknown) {
       console.error(error);
 
-      errors.applyApiError(error, "Δεν ήταν δυνατή η αντιγραφή της λίστας.");
+      errors.applyApiError(
+        error,
+        "Δεν ήταν δυνατή η αντιγραφή των email.",
+      );
     }
   }
 
@@ -1838,7 +1879,7 @@ function NewsletterManager() {
             <button
               type="button"
               onClick={copyList}
-              disabled={!filtered.length}
+              disabled={!emailList}
               className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-[rgb(var(--primary))] disabled:cursor-not-allowed disabled:opacity-50"
             >
               Αντιγραφή λίστας
@@ -1929,8 +1970,8 @@ function NewsletterManager() {
         )}
 
         <div className="mt-3 text-xs text-slate-500">
-          Η αντιγραφή και το CSV χρησιμοποιούν τα πεδία: ID, EMAIL, FULLNAME,
-          SUBSCRIBED_AT.
+          Η αντιγραφή αντιγράφει μόνο τα email, έτοιμα για επικόλληση στο πεδίο
+          BCC. Το CSV περιλαμβάνει τα πεδία: ID, EMAIL, FULLNAME, SUBSCRIBED_AT.
         </div>
       </Card>
 

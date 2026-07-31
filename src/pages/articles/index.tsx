@@ -3,10 +3,9 @@ import Link from "next/link";
 import Image from "next/image";
 import type { GetServerSideProps } from "next";
 import { useCallback, useEffect, useMemo, useState } from "react";
-
 import { ArticlesApi, type ArticlesGetDto } from "@/api/ArticlesController";
-
 import { toMediaUrl } from "@/api/_axios-client";
+import { usePageHeader } from "@/lib/usePageHeader";
 
 export type Article = {
   id: number;
@@ -25,6 +24,12 @@ type Props = {
 
 type SortKey = "newest" | "oldest" | "az";
 type DatePreset = "all" | "30d" | "6m" | "12m" | "custom";
+
+const DEFAULT_PAGE_HEADER = {
+  title: "Άρθρα",
+  description:
+    "Επιμελημένο περιεχόμενο για υγιεινή, απολαυστική και ισορροπημένη καθημερινότητα. Αναζητήστε θέματα που σας ενδιαφέρουν ή περιηγηθείτε στις κατηγορίες.",
+};
 
 const PER_PAGE = 9;
 
@@ -166,6 +171,8 @@ export const getServerSideProps: GetServerSideProps<Props> = async () => {
 };
 
 export default function ArticlesIndex({ articles, loadError }: Props) {
+  const pageHeader = usePageHeader("articles", DEFAULT_PAGE_HEADER);
+
   const [query, setQuery] = useState("");
   const [categorySet, setCategorySet] = useState<Set<string>>(new Set());
 
@@ -533,13 +540,11 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
       <section className="mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-10 lg:px-8">
         <header className="mb-8">
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
-            Άρθρα
+            {pageHeader.title}
           </h1>
 
           <p className="mt-3 max-w-2xl leading-relaxed text-slate-600">
-            Επιμελημένο περιεχόμενο για υγιεινή, απολαυστική και ισορροπημένη
-            καθημερινότητα. Αναζητήστε θέματα που σας ενδιαφέρουν ή περιηγηθείτε
-            στις κατηγορίες.
+            {pageHeader.description}
           </p>
         </header>
 

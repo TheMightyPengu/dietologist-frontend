@@ -7,6 +7,7 @@ import {
   type ContactInfoGetDto,
 } from "../../api/ContactInfoController";
 import LeafBurstButton from "@/components/decorative/LeafBurstButton";
+import { usePageHeader } from "@/lib/usePageHeader";
 
 type FieldErrors = Partial<{
   fullName: string;
@@ -14,6 +15,12 @@ type FieldErrors = Partial<{
   subject: string;
   message: string;
 }>;
+
+const DEFAULT_PAGE_HEADER = {
+  title: "Φόρμα Επικοινωνίας",
+  description:
+    "Πείτε μας πώς μπορούμε να βοηθήσουμε. Απαντάμε συνήθως εντός 1–2 εργάσιμων.",
+};
 
 const INPUT_BASE =
   "mt-1 w-full rounded-xl bg-white px-3 h-12 text-[15px] text-slate-900 ring-1 ring-accent/30 outline-none " +
@@ -76,6 +83,8 @@ function ClockIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export default function ContactFormPage() {
+  const pageHeader = usePageHeader("contact-form", DEFAULT_PAGE_HEADER);
+
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -240,11 +249,11 @@ export default function ContactFormPage() {
         <div className="mx-auto max-w-5xl px-4 py-10 md:py-14">
           <header className="mb-8">
             <h1 className="text-3xl md:text-4xl font-semibold text-slate-900">
-              Φόρμα Επικοινωνίας
+              {pageHeader.title}
             </h1>
+
             <p className="mt-2 max-w-2xl text-slate-700 leading-relaxed">
-              Πείτε μας πώς μπορούμε να βοηθήσουμε. Απαντάμε συνήθως εντός 1–2
-              εργάσιμων.
+              {pageHeader.description}
             </p>
           </header>
 

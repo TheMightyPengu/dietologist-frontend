@@ -22,6 +22,7 @@ import {
   validateImageFile,
 } from "@/lib/form-validation";
 import { toMediaUrl, type ApiFieldErrors } from "@/api/_axios-client";
+import PageHeaderEditor from "@/components/admin/PageHeaderEditor";
 
 const cx = (...c: (string | false | null | undefined)[]) =>
   c.filter(Boolean).join(" ");
@@ -332,6 +333,12 @@ export default function ManagementSeminarsPage() {
               Προβολή σελίδας
             </Link>
           </div>
+
+          <PageHeaderEditor
+            pageKey="seminars"
+            fallbackTitle="Σεμινάρια"
+            fallbackDescription="Μικρές, στοχευμένες ενότητες με πρακτικό περιεχόμενο. Online και δια ζώσης, με έμφαση στην καθημερινή εφαρμογή."
+          />
 
           <Card className="p-4 md:p-5 mb-6">
             <div className="flex flex-wrap items-center justify-between gap-3">

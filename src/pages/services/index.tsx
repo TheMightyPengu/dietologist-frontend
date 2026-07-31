@@ -12,6 +12,13 @@ import {
 } from "@/api/ProvidedServicesController";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 import { toMediaUrl } from "@/api/_axios-client";
+import { usePageHeader } from "@/lib/usePageHeader";
+
+const DEFAULT_PAGE_HEADER = {
+  title: "Υπηρεσίες Διατροφής",
+  description:
+    "Σε αυτή τη σελίδα θα βρείτε συγκεντρωμένες τις διαθέσιμες υπηρεσίες και τους βασικούς τρόπους επικοινωνίας.",
+};
 
 type PillProps = { children: React.ReactNode };
 
@@ -84,8 +91,8 @@ function TitleRow({
     size === "section"
       ? "text-xl sm:text-2xl font-semibold text-slate-900"
       : size === "cta"
-      ? "text-xl sm:text-2xl font-semibold text-slate-900"
-      : "text-lg sm:text-xl font-semibold tracking-tight text-slate-900";
+        ? "text-xl sm:text-2xl font-semibold text-slate-900"
+        : "text-lg sm:text-xl font-semibold tracking-tight text-slate-900";
 
   return (
     <div className="flex items-center gap-3">
@@ -122,10 +129,14 @@ const SectionCard: React.FC<
 );
 
 export default function ServicesPage() {
+  const pageHeader = usePageHeader("services", DEFAULT_PAGE_HEADER);
+
   const [copied, setCopied] = useState<null | "phone" | "email">(null);
 
   const [services, setServices] = useState<ProvidedServicesGetDto[]>([]);
-  const [contactInfo, setContactInfo] = useState<ContactInfoGetDto | null>(null);
+  const [contactInfo, setContactInfo] = useState<ContactInfoGetDto | null>(
+    null,
+  );
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -147,7 +158,7 @@ export default function ServicesPage() {
         setContactInfo(
           Array.isArray(contactData) && contactData.length > 0
             ? contactData[0]
-            : null
+            : null,
         );
       } catch (err) {
         console.error(err);
@@ -208,14 +219,13 @@ export default function ServicesPage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-10 pb-6">
           <header className="mb-6">
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
-              Υπηρεσίες Διατροφής
+              {pageHeader.title}
             </h1>
 
             <div className="mt-2 h-px w-24 bg-accent/35" />
 
             <p className="mt-3 text-[15px] leading-relaxed text-slate-700">
-              Σε αυτή τη σελίδα θα βρείτε συγκεντρωμένες τις διαθέσιμες υπηρεσίες
-              και τους βασικούς τρόπους επικοινωνίας.
+              {pageHeader.description}
             </p>
           </header>
 
@@ -274,7 +284,11 @@ export default function ServicesPage() {
                                     ? service.imageUrl
                                     : toMediaUrl(service.imageUrl)
                                 }
-                                alt={service.imageAltText || service.title || `Υπηρεσία #${service.id}`}
+                                alt={
+                                  service.imageAltText ||
+                                  service.title ||
+                                  `Υπηρεσία #${service.id}`
+                                }
                                 className="h-48 w-full rounded-2xl object-cover ring-1 ring-accent/20 md:h-full"
                                 loading="lazy"
                               />
@@ -317,7 +331,7 @@ export default function ServicesPage() {
           )}
         </div>
 
-         <SectionReveal
+        <SectionReveal
           className={[
             "rounded-3xl bg-white",
             "ring-1 ring-accent/25",
@@ -373,7 +387,7 @@ export default function ServicesPage() {
                       "shrink-0 inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm transition",
                       "bg-white ring-1 ring-primary/30",
                       "hover:ring-primary/55 hover:bg-primary/5",
-                      "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+                      "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
                     )}
                   >
                     {copied === "phone" ? "✅ Αντιγράφηκε" : "Αντιγραφή"}
@@ -424,7 +438,7 @@ export default function ServicesPage() {
                       "shrink-0 inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm transition",
                       "bg-white ring-1 ring-primary/30",
                       "hover:ring-primary/55 hover:bg-primary/5",
-                      "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
+                      "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20",
                     )}
                   >
                     {copied === "email" ? "✅ Αντιγράφηκε" : "Αντιγραφή"}
@@ -448,7 +462,6 @@ export default function ServicesPage() {
             </div>
           ) : null}
         </SectionReveal>
-
       </main>
     </>
   );
