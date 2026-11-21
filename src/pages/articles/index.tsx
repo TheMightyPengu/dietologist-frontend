@@ -6,6 +6,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArticlesApi, type ArticlesGetDto } from "@/api/ArticlesController";
 import { toMediaUrl } from "@/api/_axios-client";
 import { usePageHeader } from "@/lib/usePageHeader";
+import { useTranslations } from "@/components/hooks/useTranslations";
+import { useRouter } from "next/router";
+import { getTranslations } from "@/lib/i18n";
+import { localizedContent } from "@/lib/localized-content";
 
 export type Article = {
   id: number;
@@ -15,21 +19,16 @@ export type Article = {
   category: string;
   dateISO: string;
   hero: string;
+  imageAlt: string;
 };
 
 type Props = {
   articles: Article[];
-  loadError?: string;
+  loadError?: boolean;
 };
 
 type SortKey = "newest" | "oldest" | "az";
 type DatePreset = "all" | "30d" | "6m" | "12m" | "custom";
-
-const DEFAULT_PAGE_HEADER = {
-  title: "Άρθρα",
-  description:
-    "Επιμελημένο περιεχόμενο για υγιεινή, απολαυστική και ισορροπημένη καθημερινότητα. Αναζητήστε θέματα που σας ενδιαφέρουν ή περιηγηθείτε στις κατηγορίες.",
-};
 
 const PER_PAGE = 9;
 
@@ -76,25 +75,30 @@ function resolveArticleImage(image?: string | null): string {
   return toMediaUrl(value);
 }
 
-function mapArticleDtoToUi(dto: ArticlesGetDto): Article {
-  const content = dto.content ?? "";
+function mapArticleDtoToUi(dto: ArticlesGetDto, uncategorized: string, locale?: string): Article {
+  const content = localizedContent(locale, dto.content, dto.contentEn);
+  const title = localizedContent(locale, dto.title, dto.titleEn);
+  const subtitle = localizedContent(locale, dto.subtitle, dto.subtitleEn);
 
   return {
     id: dto.id,
     slug: slugifyArticle(dto.title ?? "", dto.id),
-    title: dto.title ?? "",
+    title,
 
-    excerpt: dto.subtitle?.trim() || stripHtml(content).slice(0, 160),
+    excerpt: subtitle.trim() || stripHtml(content).slice(0, 160),
 
     // Use the real category stored in the database.
-    category: dto.category?.trim() || "Χωρίς κατηγορία",
+    category: localizedContent(locale, dto.category, dto.categoryEn).trim() || uncategorized,
 
     dateISO: dto.publishedAt ?? "",
     hero: resolveArticleImage(dto.imageUrl),
+    imageAlt:
+      localizedContent(locale, dto.imageAltText, dto.imageAltTextEn).trim() ||
+      title,
   };
 }
 
-function formatDateISOToEl(iso: string) {
+function formatDate(iso: string, locale: string) {
   if (!iso) {
     return "—";
   }
@@ -105,7 +109,7 @@ function formatDateISOToEl(iso: string) {
     return "—";
   }
 
-  return date.toLocaleDateString("el-GR", {
+  return date.toLocaleDateString(locale, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -149,13 +153,22 @@ function paginateNumbers(
   return pages;
 }
 
-export const getServerSideProps: GetServerSideProps<Props> = async () => {
+export const getServerSideProps: GetServerSideProps<Props> = async (context) => {
   try {
     const data = await ArticlesApi.list();
+    const translations = getTranslations(context.locale);
 
     return {
       props: {
-        articles: Array.isArray(data) ? data.map(mapArticleDtoToUi) : [],
+        articles: Array.isArray(data)
+          ? data.map((item) =>
+              mapArticleDtoToUi(
+                item,
+                translations.articles.defaults.uncategorized,
+                context.locale,
+              ),
+            )
+          : [],
       },
     };
   } catch (error) {
@@ -164,14 +177,20 @@ export const getServerSideProps: GetServerSideProps<Props> = async () => {
     return {
       props: {
         articles: [],
-        loadError: "Δεν ήταν δυνατή η φόρτωση των άρθρων.",
+        loadError: true,
       },
     };
   }
 };
 
 export default function ArticlesIndex({ articles, loadError }: Props) {
-  const pageHeader = usePageHeader("articles", DEFAULT_PAGE_HEADER);
+  const t = useTranslations();
+  const router = useRouter();
+  const locale = router.locale === "en" ? "en-US" : "el-GR";
+  const pageHeader = usePageHeader("articles", {
+    title: t.articles.defaults.title,
+    description: t.articles.defaults.description,
+  });
 
   const [query, setQuery] = useState("");
   const [categorySet, setCategorySet] = useState<Set<string>>(new Set());
@@ -191,8 +210,8 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
       new Set(
         articles.map((article) => article.category.trim()).filter(Boolean),
       ),
-    ).sort((first, second) => first.localeCompare(second, "el-GR"));
-  }, [articles]);
+    ).sort((first, second) => first.localeCompare(second, locale));
+  }, [articles, locale]);
 
   const toggleCategory = useCallback((category: string) => {
     setCategorySet((current) => {
@@ -219,7 +238,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
   }
 
   const filteredSorted = useMemo(() => {
-    const search = query.trim().toLocaleLowerCase("el-GR");
+    const search = query.trim().toLocaleLowerCase(locale);
     const now = new Date();
 
     const dateCutoff = (() => {
@@ -260,7 +279,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
           article.category,
         ]
           .join(" ")
-          .toLocaleLowerCase("el-GR");
+          .toLocaleLowerCase(locale);
 
         if (!searchableText.includes(search)) {
           return false;
@@ -292,7 +311,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
 
     return filtered.sort((first, second) => {
       if (sortKey === "az") {
-        return first.title.localeCompare(second.title, "el-GR");
+        return first.title.localeCompare(second.title, locale);
       }
 
       const firstDate = new Date(first.dateISO).getTime();
@@ -308,7 +327,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
 
       return safeSecond - safeFirst || second.id - first.id;
     });
-  }, [articles, query, categorySet, datePreset, dateFrom, dateTo, sortKey]);
+  }, [articles, query, categorySet, datePreset, dateFrom, dateTo, sortKey, locale]);
 
   useEffect(() => {
     setPage(1);
@@ -335,7 +354,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
     if (search) {
       filters.push({
         key: "query",
-        label: `Αναζήτηση: ${search}`,
+        label: `${t.articles.chips.search}: ${search}`,
         onRemove: () => setQuery(""),
       });
     }
@@ -343,7 +362,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
     Array.from(categorySet).forEach((category) => {
       filters.push({
         key: `category-${category}`,
-        label: `Κατηγορία: ${category}`,
+        label: `${t.articles.chips.category}: ${category}`,
         onRemove: () => toggleCategory(category),
       });
     });
@@ -352,19 +371,19 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
       let label = "";
 
       if (datePreset === "30d") {
-        label = "Τελευταίος μήνας";
+        label = t.articles.filters.lastMonth;
       }
 
       if (datePreset === "6m") {
-        label = "Τελευταίο εξάμηνο";
+        label = t.articles.filters.lastSixMonths;
       }
 
       if (datePreset === "12m") {
-        label = "Τελευταίος χρόνος";
+        label = t.articles.filters.lastYear;
       }
 
       if (datePreset === "custom") {
-        label = `Ημερομηνία: ${dateFrom || "—"} έως ${dateTo || "—"}`;
+        label = `${t.articles.chips.date}: ${dateFrom || "—"} ${t.articles.chips.to} ${dateTo || "—"}`;
       }
 
       filters.push({
@@ -379,7 +398,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
     }
 
     return filters;
-  }, [query, categorySet, datePreset, dateFrom, dateTo, toggleCategory]);
+  }, [query, categorySet, datePreset, dateFrom, dateTo, toggleCategory, t.articles]);
 
   const renderFilterSidebar = (inDrawer = false) => (
     <aside
@@ -387,17 +406,17 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
         "rounded-2xl bg-white p-5 ring-1 ring-slate-200",
         !inDrawer && "h-fit self-start lg:sticky lg:top-24",
       )}
-      aria-label="Φίλτρα άρθρων"
+      aria-label={t.articles.filters.aria}
     >
       <div className="mb-5 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-slate-900">Φίλτρα</h2>
+        <h2 className="text-sm font-semibold text-slate-900">{t.articles.filters.title}</h2>
 
         <button
           type="button"
           onClick={clearFilters}
           className="text-xs font-semibold text-primary transition hover:text-primary/80"
         >
-          Καθαρισμός φίλτρων
+          {t.articles.filters.clear}
         </button>
       </div>
 
@@ -406,26 +425,26 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
           htmlFor={inDrawer ? "article-query-drawer" : "article-query"}
           className="mb-2 block text-sm font-medium text-slate-700"
         >
-          Αναζήτηση
+          {t.articles.filters.search}
         </label>
 
         <input
           id={inDrawer ? "article-query-drawer" : "article-query"}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Αναζήτηση άρθρων..."
+          placeholder={t.articles.filters.searchPlaceholder}
           className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/20"
         />
       </div>
 
       <fieldset className="mb-5">
         <legend className="mb-2 text-sm font-medium text-slate-700">
-          Κατηγορίες
+          {t.articles.filters.categories}
         </legend>
 
         <div className="flex flex-col gap-1.5">
           {categories.length === 0 ? (
-            <p className="text-sm text-slate-500">Δεν υπάρχουν κατηγορίες.</p>
+            <p className="text-sm text-slate-500">{t.articles.filters.noCategories}</p>
           ) : (
             categories.map((category) => {
               const checked = categorySet.has(category);
@@ -455,40 +474,40 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
 
       <fieldset>
         <legend className="mb-2 text-sm font-medium text-slate-700">
-          Ημερομηνία
+          {t.articles.filters.date}
         </legend>
 
         <div className="flex flex-col gap-1.5">
           <RadioRow
-            label="Όλο το εύρος"
+            label={t.articles.filters.allDates}
             name={inDrawer ? "article-date-drawer" : "article-date"}
             checked={datePreset === "all"}
             onChange={() => setDatePreset("all")}
           />
 
           <RadioRow
-            label="Τελευταίος μήνας"
+            label={t.articles.filters.lastMonth}
             name={inDrawer ? "article-date-drawer" : "article-date"}
             checked={datePreset === "30d"}
             onChange={() => setDatePreset("30d")}
           />
 
           <RadioRow
-            label="Τελευταίο εξάμηνο"
+            label={t.articles.filters.lastSixMonths}
             name={inDrawer ? "article-date-drawer" : "article-date"}
             checked={datePreset === "6m"}
             onChange={() => setDatePreset("6m")}
           />
 
           <RadioRow
-            label="Τελευταίος χρόνος"
+            label={t.articles.filters.lastYear}
             name={inDrawer ? "article-date-drawer" : "article-date"}
             checked={datePreset === "12m"}
             onChange={() => setDatePreset("12m")}
           />
 
           <RadioRow
-            label="Προσαρμοσμένο εύρος"
+            label={t.articles.filters.customRange}
             name={inDrawer ? "article-date-drawer" : "article-date"}
             checked={datePreset === "custom"}
             onChange={() => setDatePreset("custom")}
@@ -498,7 +517,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
         {datePreset === "custom" && (
           <div className="mt-3 grid grid-cols-1 gap-3">
             <div>
-              <label className="mb-1 block text-xs text-slate-600">Από</label>
+              <label className="mb-1 block text-xs text-slate-600">{t.articles.filters.from}</label>
 
               <input
                 type="date"
@@ -509,7 +528,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs text-slate-600">Έως</label>
+              <label className="mb-1 block text-xs text-slate-600">{t.articles.filters.to}</label>
 
               <input
                 type="date"
@@ -527,11 +546,11 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
   return (
     <>
       <Head>
-        <title>Άρθρα — Διατροφή & Ευεξία</title>
+        <title>{t.articles.meta.listTitle}</title>
 
         <meta
           name="description"
-          content="Άρθρα για τη διατροφή, την ευεξία και την καθημερινότητα."
+          content={t.articles.meta.listDescription}
         />
 
         <link rel="canonical" href="https://example.com/articles" />
@@ -554,7 +573,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
             onClick={() => setFiltersOpen(true)}
             className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-medium text-slate-800 ring-1 ring-slate-200 transition hover:bg-slate-50"
           >
-            Φίλτρα
+            {t.articles.filters.title}
             {activeFilters.length > 0 && (
               <span className="inline-flex min-w-6 justify-center rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
                 {activeFilters.length}
@@ -564,7 +583,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
 
           <div className="flex items-center gap-2">
             <span className="hidden text-sm text-slate-600 sm:inline">
-              Ταξινόμηση:
+              {t.articles.sort.label}
             </span>
 
             <select
@@ -572,9 +591,9 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
               onChange={(event) => setSortKey(event.target.value as SortKey)}
               className="rounded-xl bg-white px-3 py-2 text-sm text-slate-800 ring-1 ring-slate-200 shadow-sm outline-none focus:ring-2 focus:ring-primary"
             >
-              <option value="newest">Νεότερα</option>
-              <option value="oldest">Παλαιότερα</option>
-              <option value="az">Αλφαβητικά (Α–Ω)</option>
+              <option value="newest">{t.articles.sort.newest}</option>
+              <option value="oldest">{t.articles.sort.oldest}</option>
+              <option value="az">{t.articles.sort.az}</option>
             </select>
           </div>
         </div>
@@ -585,15 +604,15 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
           <main>
             <div className="mb-4 flex items-center justify-between gap-4">
               <div className="text-sm text-slate-600">
-                Βρέθηκαν{" "}
+                {t.articles.results.found}{" "}
                 <span className="font-semibold text-slate-900">
                   {filteredSorted.length}
                 </span>{" "}
-                άρθρα
+                {t.articles.results.articles}
               </div>
 
               <div className="hidden items-center gap-2 lg:flex">
-                <span className="text-sm text-slate-600">Ταξινόμηση:</span>
+                <span className="text-sm text-slate-600">{t.articles.sort.label}</span>
 
                 <select
                   value={sortKey}
@@ -602,11 +621,11 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
                   }
                   className="rounded-xl bg-white px-3 py-2 text-sm text-slate-800 ring-1 ring-slate-200 shadow-sm outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="newest">Νεότερα</option>
+                  <option value="newest">{t.articles.sort.newest}</option>
 
-                  <option value="oldest">Παλαιότερα</option>
+                  <option value="oldest">{t.articles.sort.oldest}</option>
 
-                  <option value="az">Αλφαβητικά (Α–Ω)</option>
+                  <option value="az">{t.articles.sort.az}</option>
                 </select>
               </div>
             </div>
@@ -630,19 +649,19 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
             {loadError ? (
               <div className="rounded-2xl bg-white p-8 text-center ring-1 ring-slate-200">
                 <h2 className="font-semibold text-slate-900">
-                  Σφάλμα φόρτωσης
+                  {t.articles.results.loadErrorTitle}
                 </h2>
 
-                <p className="mt-2 text-sm text-slate-600">{loadError}</p>
+                <p className="mt-2 text-sm text-slate-600">{t.articles.results.loadError}</p>
               </div>
             ) : filteredSorted.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center">
                 <h2 className="font-semibold text-slate-800">
-                  Δεν βρέθηκαν άρθρα
+                  {t.articles.results.none}
                 </h2>
 
                 <p className="mt-2 text-sm text-slate-600">
-                  Δοκιμάστε να αλλάξετε ή να καθαρίσετε τα φίλτρα.
+                  {t.articles.results.noneDescription}
                 </p>
 
                 <button
@@ -650,7 +669,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
                   onClick={clearFilters}
                   className="mt-5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white"
                 >
-                  Καθαρισμός φίλτρων
+                  {t.articles.filters.clear}
                 </button>
               </div>
             ) : (
@@ -667,7 +686,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
                             {article.hero ? (
                               <Image
                                 src={article.hero}
-                                alt={article.title}
+                                alt={article.imageAlt}
                                 fill
                                 unoptimized
                                 className="object-cover transition duration-300 group-hover:scale-[1.03]"
@@ -678,7 +697,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
                                   <ImagePlaceholderIcon />
 
                                   <span className="text-xs font-medium">
-                                    Χωρίς εικόνα
+                                    {t.articles.results.noImage}
                                   </span>
                                 </div>
                               </div>
@@ -699,7 +718,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
 
                               {index === 0 && pageClamped === 1 && (
                                 <span className="mt-0.5 shrink-0 rounded-full bg-warm/25 px-2 py-0.5 text-[11px] font-semibold text-slate-800 ring-1 ring-warm/50">
-                                  ⭐ Προτεινόμενο
+                                  {t.articles.results.featured}
                                 </span>
                               )}
                             </div>
@@ -714,7 +733,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
                               <span className="inline-flex items-center gap-1.5">
                                 <span aria-hidden>📅</span>
 
-                                {formatDateISOToEl(article.dateISO)}
+                                {formatDate(article.dateISO, locale)}
                               </span>
                             </div>
                           </div>
@@ -733,7 +752,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
                     disabled={pageClamped === 1}
                     className="rounded-xl bg-white px-3 py-2 text-sm ring-1 ring-slate-200 shadow-sm transition hover:shadow disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    Προηγούμενη
+                    {t.articles.results.previous}
                   </button>
 
                   <div className="hidden items-center gap-2 sm:flex">
@@ -777,7 +796,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
                     disabled={pageClamped === totalPages}
                     className="rounded-xl bg-white px-3 py-2 text-sm ring-1 ring-slate-200 shadow-sm transition hover:shadow disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    Επόμενη
+                    {t.articles.results.next}
                   </button>
                 </div>
               </>
@@ -791,25 +810,25 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
           className="fixed inset-0 z-50 lg:hidden"
           role="dialog"
           aria-modal="true"
-          aria-label="Φίλτρα άρθρων"
+          aria-label={t.articles.filters.aria}
         >
           <button
             type="button"
             onClick={() => setFiltersOpen(false)}
             className="absolute inset-0 bg-slate-900/50"
-            aria-label="Κλείσιμο φίλτρων"
+            aria-label={t.articles.filters.close}
           />
 
           <div className="absolute right-0 top-0 h-full w-[min(92vw,380px)] overflow-y-auto bg-slate-50 p-4 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900">Φίλτρα</h2>
+              <h2 className="text-lg font-semibold text-slate-900">{t.articles.filters.title}</h2>
 
               <button
                 type="button"
                 onClick={() => setFiltersOpen(false)}
                 className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm"
               >
-                Κλείσιμο
+                {t.articles.filters.close}
               </button>
             </div>
 
@@ -820,7 +839,7 @@ export default function ArticlesIndex({ articles, loadError }: Props) {
               onClick={() => setFiltersOpen(false)}
               className="mt-4 w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white"
             >
-              Εφαρμογή
+              {t.articles.filters.apply}
             </button>
           </div>
         </div>

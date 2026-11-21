@@ -4,6 +4,7 @@ import {
   ContactInfoApi,
   type ContactInfoGetDto,
 } from "@/api/ContactInfoController";
+import LanguageSwitcher from "@/components/header/LanguageSwitcher";
 
 type SocialLink = { label: string; href: string; icon: ReactNode };
 
@@ -119,14 +120,14 @@ export default function TopBar() {
   return (
     <div
       className={[
-        "relative w-full z-10 backdrop-blur",
+        "relative w-full z-30 backdrop-blur",
         "bg-bg supports-[backdrop-filter]:bg-bg/85",
         "border-b border-accent/15",
-        "px-6",
+        "px-2 sm:px-6",
       ].join(" ")}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between h-11 text-[12px]">
-        <div className="flex items-center gap-3 whitespace-nowrap text-slate-600">
+        <div className="flex min-w-0 items-center gap-1 whitespace-nowrap text-slate-600 sm:gap-3">
           <a
             href={`tel:${phone.replace(/\s+/g, "")}`}
             className={[
@@ -154,8 +155,12 @@ export default function TopBar() {
           </a>
         </div>
 
-        <div className="flex items-center gap-2">
-          {socials.map((s) => (
+<div className="flex shrink-0 items-center gap-1 sm:gap-2">
+  <LanguageSwitcher />
+
+  <span className="h-4 w-px bg-accent/25" />
+
+  {socials.map((s) => (
             <a
               key={s.label}
               href={s.href}

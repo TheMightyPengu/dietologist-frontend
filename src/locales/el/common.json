@@ -1,0 +1,26 @@
+{
+  "nav": {
+    "home": "ΑΡΧΙΚΗ",
+    "biography": "ΒΙΟΓΡΑΦΙΚΟ",
+    "philosophy": "ΦΙΛΟΣΟΦΙΑ",
+    "services": "ΥΠΗΡΕΣΙΕΣ",
+    "seminars": "ΣΕΜΙΝΑΡΙΑ",
+    "ebook": "EBOOK",
+    "blog": "BLOG",
+    "articles": "ΑΡΘΡΑ",
+    "recipes": "ΣΥΝΤΑΓΕΣ",
+    "contact": "ΕΠΙΚΟΙΝΩΝΙΑ",
+    "bookAppointment": "ΚΛΕΙΣΤΕ ΡΑΝΤΕΒΟΥ",
+    "contactForm": "ΦΟΡΜΑ ΕΠΙΚΟΙΝΩΝΙΑΣ",
+    "openMenu": "Άνοιγμα μενού",
+    "closeMenu": "Κλείσιμο μενού",
+    "navigationMenu": "Μενού πλοήγησης",
+    "submenu": "υπομενού"
+  },
+
+  "language": {
+    "change": "Αλλαγή γλώσσας",
+    "greek": "Ελληνικά",
+    "english": "English"
+  }
+}

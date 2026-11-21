@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { PageHeaderApi } from "@/api/PageHeaderController";
+import { useRouter } from "next/router";
+import { localizedContent } from "@/lib/localized-content";
 
 export type PageHeaderContent = {
   title: string;
@@ -10,6 +12,7 @@ export function usePageHeader(
   pageKey: string,
   fallback: PageHeaderContent,
 ): PageHeaderContent {
+  const router = useRouter();
   const [pageHeader, setPageHeader] =
     useState<PageHeaderContent>(fallback);
 
@@ -25,9 +28,15 @@ export function usePageHeader(
         }
 
         setPageHeader({
-          title: data.title?.trim() || fallback.title,
+          title:
+            localizedContent(router.locale, data.title, data.titleEn).trim() ||
+            fallback.title,
           description:
-            data.description?.trim() || fallback.description,
+            localizedContent(
+              router.locale,
+              data.description,
+              data.descriptionEn,
+            ).trim() || fallback.description,
         });
       } catch (error) {
         /*
@@ -52,7 +61,7 @@ export function usePageHeader(
     return () => {
       active = false;
     };
-  }, [pageKey, fallback.title, fallback.description]);
+  }, [pageKey, fallback.title, fallback.description, router.locale]);
 
   return pageHeader;
 }

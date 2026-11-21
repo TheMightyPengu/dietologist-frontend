@@ -16,6 +16,9 @@ import RichTextEditor from "@/components/admin/RichTextEditor";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 import FormFieldError from "@/components/admin/FormFieldError";
 import GeneralErrorDialog from "@/components/admin/GeneralErrorDialog";
+import BilingualSaveWarning from "@/components/admin/BilingualSaveWarning";
+import ContentLanguageSwitch, { type ContentLanguage } from "@/components/admin/ContentLanguageSwitch";
+import { useBilingualSaveGuard } from "@/components/admin/useBilingualSaveGuard";
 import { useFormErrors } from "@/components/hooks/useFormErrors";
 import {
   addValidationError,
@@ -235,11 +238,16 @@ function dateInputToIso(value: string): string {
 function createEmptyArticle(): ArticlesPostDto {
   return {
     title: "",
+    titleEn: "",
     subtitle: "",
+    subtitleEn: "",
     heading: "",
+    headingEn: "",
     content: "",
+    contentEn: "",
     publishedAt: new Date().toISOString(),
     category: "",
+    categoryEn: "",
     imageFile: null,
   };
 }
@@ -247,11 +255,16 @@ function createEmptyArticle(): ArticlesPostDto {
 function createEmptyRecipe(): RecipesPostDto {
   return {
     title: "",
+    titleEn: "",
     ingredients: "",
+    ingredientsEn: "",
     category: "",
+    categoryEn: "",
     instructions: "",
+    instructionsEn: "",
     timeToPrepare: 0,
     description: "",
+    descriptionEn: "",
     createdAt: new Date().toISOString(),
     imageFile: null,
   };
@@ -260,11 +273,16 @@ function createEmptyRecipe(): RecipesPostDto {
 function articleToDraft(row: ArticlesGetDto): ArticlesPostDto {
   return {
     title: row.title ?? "",
+    titleEn: row.titleEn ?? "",
     subtitle: row.subtitle ?? "",
+    subtitleEn: row.subtitleEn ?? "",
     heading: row.heading ?? "",
+    headingEn: row.headingEn ?? "",
     content: row.content ?? "",
+    contentEn: row.contentEn ?? "",
     publishedAt: row.publishedAt ?? new Date().toISOString(),
     category: row.category ?? "",
+    categoryEn: row.categoryEn ?? "",
     imageFile: null,
   };
 }
@@ -272,11 +290,16 @@ function articleToDraft(row: ArticlesGetDto): ArticlesPostDto {
 function recipeToDraft(row: RecipesGetDto): RecipesPostDto {
   return {
     title: row.title ?? "",
+    titleEn: row.titleEn ?? "",
     ingredients: row.ingredients ?? "",
+    ingredientsEn: row.ingredientsEn ?? "",
     category: row.category ?? "",
+    categoryEn: row.categoryEn ?? "",
     instructions: row.instructions ?? "",
+    instructionsEn: row.instructionsEn ?? "",
     timeToPrepare: row.timeToPrepare ?? 0,
     description: row.description ?? "",
+    descriptionEn: row.descriptionEn ?? "",
     createdAt: row.createdAt ?? new Date().toISOString(),
     imageFile: null,
   };
@@ -549,10 +572,15 @@ function ArticlesManager() {
       const created = await ArticlesApi.create({
         ...createDraft,
         title: createDraft.title.trim(),
+        titleEn: createDraft.titleEn?.trim() ?? "",
         subtitle: createDraft.subtitle.trim(),
+        subtitleEn: createDraft.subtitleEn?.trim() ?? "",
         heading: createDraft.heading.trim(),
+        headingEn: createDraft.headingEn?.trim() ?? "",
         content: createDraft.content.trim(),
+        contentEn: createDraft.contentEn?.trim() ?? "",
         category: createDraft.category.trim(),
+        categoryEn: createDraft.categoryEn?.trim() ?? "",
       });
 
       setAll((current) => [created, ...current]);
@@ -575,10 +603,15 @@ function ArticlesManager() {
       await ArticlesApi.update(id, {
         ...payload,
         title: payload.title.trim(),
+        titleEn: payload.titleEn?.trim() ?? "",
         subtitle: payload.subtitle.trim(),
+        subtitleEn: payload.subtitleEn?.trim() ?? "",
         heading: payload.heading.trim(),
+        headingEn: payload.headingEn?.trim() ?? "",
         content: payload.content.trim(),
+        contentEn: payload.contentEn?.trim() ?? "",
         category: payload.category.trim(),
+        categoryEn: payload.categoryEn?.trim() ?? "",
       });
 
       const fresh = await ArticlesApi.get(id);
@@ -718,7 +751,10 @@ function CreateArticleModal({
     closeGeneralError,
   } = useFormErrors();
 
-  async function submitArticle() {
+  const [language, setLanguage] = useState<ContentLanguage>("el");
+  const saveGuard = useBilingualSaveGuard(setLanguage);
+
+  async function performSubmitArticle() {
     const errors = validateArticle(draft);
 
     if (!applyFrontendErrors(errors)) {
@@ -730,6 +766,14 @@ function CreateArticleModal({
     } catch (error: unknown) {
       applyApiError(error, "Δεν ήταν δυνατή η δημιουργία του άρθρου.");
     }
+  }
+
+  function submitArticle() {
+    saveGuard.requestSave(
+      [draft.title, draft.subtitle, draft.heading, draft.category, draft.content],
+      [draft.titleEn, draft.subtitleEn, draft.headingEn, draft.categoryEn, draft.contentEn],
+      performSubmitArticle,
+    );
   }
 
   const imageHasError = Boolean(
@@ -752,7 +796,8 @@ function CreateArticleModal({
           </button>
         </div>
 
-        <div className="max-h-[80vh] space-y-4 overflow-y-auto p-5">
+        <div className="max-h-[80vh] space-y-4 overflow-y-auto p-5" data-bilingual-form tabIndex={-1}>
+          <ContentLanguageSwitch value={language} onChange={setLanguage} />
           <div>
             <label className="block text-sm font-medium text-slate-700">
               Τίτλος{" "}
@@ -762,11 +807,11 @@ function CreateArticleModal({
             </label>
 
             <input
-              value={draft.title}
+              value={language === "el" ? draft.title : draft.titleEn ?? ""}
               onChange={(event) => {
                 setDraft((current) => ({
                   ...current,
-                  title: event.target.value,
+                  [language === "el" ? "title" : "titleEn"]: event.target.value,
                 }));
 
                 clearFieldError("title");
@@ -786,11 +831,11 @@ function CreateArticleModal({
             </label>
 
             <input
-              value={draft.subtitle}
+              value={language === "el" ? draft.subtitle : draft.subtitleEn ?? ""}
               onChange={(event) => {
                 setDraft((current) => ({
                   ...current,
-                  subtitle: event.target.value,
+                  [language === "el" ? "subtitle" : "subtitleEn"]: event.target.value,
                 }));
 
                 clearFieldError("subtitle");
@@ -806,13 +851,13 @@ function CreateArticleModal({
 
           <CategoryField
             categories={categories}
-            value={draft.category}
+            value={language === "el" ? draft.category : draft.categoryEn ?? ""}
             required
             error={fieldErrors.category}
             onChange={(category) => {
               setDraft((current) => ({
                 ...current,
-                category,
+                [language === "el" ? "category" : "categoryEn"]: category,
               }));
 
               clearFieldError("category");
@@ -825,11 +870,11 @@ function CreateArticleModal({
             </label>
 
             <input
-              value={draft.heading}
+              value={language === "el" ? draft.heading : draft.headingEn ?? ""}
               onChange={(event) => {
                 setDraft((current) => ({
                   ...current,
-                  heading: event.target.value,
+                  [language === "el" ? "heading" : "headingEn"]: event.target.value,
                 }));
 
                 clearFieldError("heading");
@@ -924,11 +969,11 @@ function CreateArticleModal({
               }
             >
               <RichTextEditor
-                value={draft.content}
+                value={language === "el" ? draft.content : draft.contentEn ?? ""}
                 onChange={(html) => {
                   setDraft((current) => ({
                     ...current,
-                    content: html,
+                    [language === "el" ? "content" : "contentEn"]: html,
                   }));
 
                   clearFieldError("content");
@@ -940,6 +985,12 @@ function CreateArticleModal({
 
             <FormFieldError errors={fieldErrors.content} />
           </div>
+
+          {false && <EnglishArticleFields
+            draft={draft}
+            setDraft={setDraft}
+            clearFieldError={clearFieldError}
+          />}
 
           <FormFieldError errors={fieldErrors.form} />
         </div>
@@ -977,6 +1028,7 @@ function CreateArticleModal({
         onClose={closeGeneralError}
         onRetry={submitArticle}
       />
+      <BilingualSaveWarning {...saveGuard.warningProps} />
     </div>
   );
 }
@@ -999,6 +1051,9 @@ function ArticleEditorCard({
   );
 
   const [open, setOpen] = useState(false);
+  const [language, setLanguage] = useState<ContentLanguage>("el");
+  const [localizedDirty, setLocalizedDirty] = useState(false);
+  const saveGuard = useBilingualSaveGuard(setLanguage);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(
     row.imageUrl ? toMediaUrl(row.imageUrl) : null,
@@ -1016,6 +1071,7 @@ function ArticleEditorCard({
 
   useEffect(() => {
     setDraft(articleToDraft(row));
+    setLocalizedDirty(false);
     clearAllErrors();
   }, [row, clearAllErrors]);
 
@@ -1036,9 +1092,10 @@ function ArticleEditorCard({
   function resetChanges() {
     clearAllErrors();
     setDraft(articleToDraft(row));
+    setLocalizedDirty(false);
   }
 
-  async function saveArticle() {
+  async function performSaveArticle() {
     const errors = validateArticle(draft);
 
     if (!applyFrontendErrors(errors)) {
@@ -1051,6 +1108,15 @@ function ArticleEditorCard({
     } catch (error: unknown) {
       applyApiError(error, "Δεν ήταν δυνατή η αποθήκευση του άρθρου.");
     }
+  }
+
+  function saveArticle() {
+    saveGuard.requestSave(
+      [draft.title, draft.subtitle, draft.heading, draft.category, draft.content],
+      [draft.titleEn, draft.subtitleEn, draft.headingEn, draft.categoryEn, draft.contentEn],
+      performSaveArticle,
+      localizedDirty,
+    );
   }
 
   const imageHasError = Boolean(
@@ -1092,7 +1158,8 @@ function ArticleEditorCard({
 
       {open && (
         <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="space-y-4 lg:col-span-2">
+          <div className="space-y-4 lg:col-span-2" data-bilingual-form tabIndex={-1}>
+            <ContentLanguageSwitch value={language} onChange={setLanguage} />
             <div>
               <label className="block text-sm font-medium text-slate-700">
                 Τίτλος{" "}
@@ -1102,12 +1169,13 @@ function ArticleEditorCard({
               </label>
 
               <input
-                value={draft.title}
+                value={language === "el" ? draft.title : draft.titleEn ?? ""}
                 onChange={(event) => {
                   setDraft((current) => ({
                     ...current,
-                    title: event.target.value,
+                    [language === "el" ? "title" : "titleEn"]: event.target.value,
                   }));
+                  setLocalizedDirty(true);
 
                   clearFieldError("title");
                 }}
@@ -1126,12 +1194,13 @@ function ArticleEditorCard({
               </label>
 
               <input
-                value={draft.subtitle}
+                value={language === "el" ? draft.subtitle : draft.subtitleEn ?? ""}
                 onChange={(event) => {
                   setDraft((current) => ({
                     ...current,
-                    subtitle: event.target.value,
+                    [language === "el" ? "subtitle" : "subtitleEn"]: event.target.value,
                   }));
+                  setLocalizedDirty(true);
 
                   clearFieldError("subtitle");
                 }}
@@ -1146,14 +1215,15 @@ function ArticleEditorCard({
 
             <CategoryField
               categories={categories}
-              value={draft.category}
+              value={language === "el" ? draft.category : draft.categoryEn ?? ""}
               required
               error={fieldErrors.category}
               onChange={(category) => {
                 setDraft((current) => ({
                   ...current,
-                  category,
+                  [language === "el" ? "category" : "categoryEn"]: category,
                 }));
+                setLocalizedDirty(true);
 
                 clearFieldError("category");
               }}
@@ -1165,12 +1235,13 @@ function ArticleEditorCard({
               </label>
 
               <input
-                value={draft.heading}
+                value={language === "el" ? draft.heading : draft.headingEn ?? ""}
                 onChange={(event) => {
                   setDraft((current) => ({
                     ...current,
-                    heading: event.target.value,
+                    [language === "el" ? "heading" : "headingEn"]: event.target.value,
                   }));
+                  setLocalizedDirty(true);
 
                   clearFieldError("heading");
                 }}
@@ -1264,12 +1335,13 @@ function ArticleEditorCard({
                 }
               >
                 <RichTextEditor
-                  value={draft.content}
+                  value={language === "el" ? draft.content : draft.contentEn ?? ""}
                   onChange={(html) => {
                     setDraft((current) => ({
                       ...current,
-                      content: html,
+                      [language === "el" ? "content" : "contentEn"]: html,
                     }));
+                    setLocalizedDirty(true);
 
                     clearFieldError("content");
                   }}
@@ -1280,6 +1352,12 @@ function ArticleEditorCard({
 
               <FormFieldError errors={fieldErrors.content} />
             </div>
+
+            {false && <EnglishArticleFields
+              draft={draft}
+              setDraft={setDraft}
+              clearFieldError={clearFieldError}
+            />}
 
             <FormFieldError errors={fieldErrors.form} />
 
@@ -1359,6 +1437,7 @@ function ArticleEditorCard({
         onClose={closeGeneralError}
         onRetry={saveArticle}
       />
+      <BilingualSaveWarning {...saveGuard.warningProps} />
     </Card>
   );
 }
@@ -1449,10 +1528,15 @@ function RecipesManager() {
       const created = await RecipesApi.create({
         ...createDraft,
         title: createDraft.title.trim(),
+        titleEn: createDraft.titleEn?.trim() ?? "",
         ingredients: createDraft.ingredients.trim(),
+        ingredientsEn: createDraft.ingredientsEn?.trim() ?? "",
         category: createDraft.category.trim(),
+        categoryEn: createDraft.categoryEn?.trim() ?? "",
         instructions: createDraft.instructions.trim(),
+        instructionsEn: createDraft.instructionsEn?.trim() ?? "",
         description: createDraft.description.trim(),
+        descriptionEn: createDraft.descriptionEn?.trim() ?? "",
       });
 
       setAll((current) => [created, ...current]);
@@ -1475,10 +1559,15 @@ function RecipesManager() {
       await RecipesApi.update(id, {
         ...payload,
         title: payload.title.trim(),
+        titleEn: payload.titleEn?.trim() ?? "",
         ingredients: payload.ingredients.trim(),
+        ingredientsEn: payload.ingredientsEn?.trim() ?? "",
         category: payload.category.trim(),
+        categoryEn: payload.categoryEn?.trim() ?? "",
         instructions: payload.instructions.trim(),
+        instructionsEn: payload.instructionsEn?.trim() ?? "",
         description: payload.description.trim(),
+        descriptionEn: payload.descriptionEn?.trim() ?? "",
       });
 
       const fresh = await RecipesApi.get(id);
@@ -1618,7 +1707,10 @@ function CreateRecipeModal({
     closeGeneralError,
   } = useFormErrors();
 
-  async function submitRecipe() {
+  const [language, setLanguage] = useState<ContentLanguage>("el");
+  const saveGuard = useBilingualSaveGuard(setLanguage);
+
+  async function performSubmitRecipe() {
     const errors = validateRecipe(draft);
 
     if (!applyFrontendErrors(errors)) {
@@ -1630,6 +1722,14 @@ function CreateRecipeModal({
     } catch (error: unknown) {
       applyApiError(error, "Δεν ήταν δυνατή η δημιουργία της συνταγής.");
     }
+  }
+
+  function submitRecipe() {
+    saveGuard.requestSave(
+      [draft.title, draft.category, draft.description, draft.ingredients, draft.instructions],
+      [draft.titleEn, draft.categoryEn, draft.descriptionEn, draft.ingredientsEn, draft.instructionsEn],
+      performSubmitRecipe,
+    );
   }
 
   const imageHasError = Boolean(
@@ -1652,7 +1752,8 @@ function CreateRecipeModal({
           </button>
         </div>
 
-        <div className="max-h-[80vh] space-y-4 overflow-y-auto p-5">
+        <div className="max-h-[80vh] space-y-4 overflow-y-auto p-5" data-bilingual-form tabIndex={-1}>
+          <ContentLanguageSwitch value={language} onChange={setLanguage} />
           <div>
             <label className="block text-sm font-medium text-slate-700">
               Τίτλος{" "}
@@ -1662,11 +1763,11 @@ function CreateRecipeModal({
             </label>
 
             <input
-              value={draft.title}
+              value={language === "el" ? draft.title : draft.titleEn ?? ""}
               onChange={(event) => {
                 setDraft((current) => ({
                   ...current,
-                  title: event.target.value,
+                  [language === "el" ? "title" : "titleEn"]: event.target.value,
                 }));
 
                 clearFieldError("title");
@@ -1682,12 +1783,12 @@ function CreateRecipeModal({
 
           <CategoryField
             categories={categories}
-            value={draft.category}
+            value={language === "el" ? draft.category : draft.categoryEn ?? ""}
             error={fieldErrors.category}
             onChange={(category) => {
               setDraft((current) => ({
                 ...current,
-                category,
+                [language === "el" ? "category" : "categoryEn"]: category,
               }));
 
               clearFieldError("category");
@@ -1764,14 +1865,14 @@ function CreateRecipeModal({
 
           <RichEditorField
             label="Περιγραφή"
-            value={draft.description}
+            value={language === "el" ? draft.description : draft.descriptionEn ?? ""}
             error={fieldErrors.description}
             placeholder="Γράψε τη σύντομη περιγραφή της συνταγής..."
             minHeight={180}
             onChange={(html) => {
               setDraft((current) => ({
                 ...current,
-                description: html,
+                [language === "el" ? "description" : "descriptionEn"]: html,
               }));
 
               clearFieldError("description");
@@ -1780,14 +1881,14 @@ function CreateRecipeModal({
 
           <RichEditorField
             label="Υλικά"
-            value={draft.ingredients}
+            value={language === "el" ? draft.ingredients : draft.ingredientsEn ?? ""}
             error={fieldErrors.ingredients}
             placeholder="Γράψε τα υλικά της συνταγής..."
             minHeight={220}
             onChange={(html) => {
               setDraft((current) => ({
                 ...current,
-                ingredients: html,
+                [language === "el" ? "ingredients" : "ingredientsEn"]: html,
               }));
 
               clearFieldError("ingredients");
@@ -1796,19 +1897,25 @@ function CreateRecipeModal({
 
           <RichEditorField
             label="Οδηγίες"
-            value={draft.instructions}
+            value={language === "el" ? draft.instructions : draft.instructionsEn ?? ""}
             error={fieldErrors.instructions}
             placeholder="Γράψε τις οδηγίες εκτέλεσης..."
             minHeight={260}
             onChange={(html) => {
               setDraft((current) => ({
                 ...current,
-                instructions: html,
+                [language === "el" ? "instructions" : "instructionsEn"]: html,
               }));
 
               clearFieldError("instructions");
             }}
           />
+
+          {false && <EnglishRecipeFields
+            draft={draft}
+            setDraft={setDraft}
+            clearFieldError={clearFieldError}
+          />}
 
           <FormFieldError errors={fieldErrors.form} />
         </div>
@@ -1846,6 +1953,7 @@ function CreateRecipeModal({
         onClose={closeGeneralError}
         onRetry={submitRecipe}
       />
+      <BilingualSaveWarning {...saveGuard.warningProps} />
     </div>
   );
 }
@@ -1864,6 +1972,9 @@ function RecipeEditorCard({
   onDelete: (id: number) => void | Promise<void>;
 }) {
   const [draft, setDraft] = useState<RecipesPostDto>(() => recipeToDraft(row));
+  const [language, setLanguage] = useState<ContentLanguage>("el");
+  const [localizedDirty, setLocalizedDirty] = useState(false);
+  const saveGuard = useBilingualSaveGuard(setLanguage);
 
   const [open, setOpen] = useState(false);
 
@@ -1883,6 +1994,7 @@ function RecipeEditorCard({
 
   useEffect(() => {
     setDraft(recipeToDraft(row));
+    setLocalizedDirty(false);
     clearAllErrors();
   }, [row, clearAllErrors]);
 
@@ -1903,9 +2015,10 @@ function RecipeEditorCard({
   function resetChanges() {
     clearAllErrors();
     setDraft(recipeToDraft(row));
+    setLocalizedDirty(false);
   }
 
-  async function saveRecipe() {
+  async function performSaveRecipe() {
     const errors = validateRecipe(draft);
 
     if (!applyFrontendErrors(errors)) {
@@ -1918,6 +2031,15 @@ function RecipeEditorCard({
     } catch (error: unknown) {
       applyApiError(error, "Δεν ήταν δυνατή η αποθήκευση της συνταγής.");
     }
+  }
+
+  function saveRecipe() {
+    saveGuard.requestSave(
+      [draft.title, draft.category, draft.description, draft.ingredients, draft.instructions],
+      [draft.titleEn, draft.categoryEn, draft.descriptionEn, draft.ingredientsEn, draft.instructionsEn],
+      performSaveRecipe,
+      localizedDirty,
+    );
   }
 
   const imageHasError = Boolean(
@@ -1959,7 +2081,8 @@ function RecipeEditorCard({
 
       {open && (
         <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="space-y-4 lg:col-span-2">
+          <div className="space-y-4 lg:col-span-2" data-bilingual-form tabIndex={-1}>
+            <ContentLanguageSwitch value={language} onChange={setLanguage} />
             <div>
               <label className="block text-sm font-medium text-slate-700">
                 Τίτλος{" "}
@@ -1969,12 +2092,13 @@ function RecipeEditorCard({
               </label>
 
               <input
-                value={draft.title}
+                value={language === "el" ? draft.title : draft.titleEn ?? ""}
                 onChange={(event) => {
                   setDraft((current) => ({
                     ...current,
-                    title: event.target.value,
+                    [language === "el" ? "title" : "titleEn"]: event.target.value,
                   }));
+                  setLocalizedDirty(true);
 
                   clearFieldError("title");
                 }}
@@ -1989,13 +2113,14 @@ function RecipeEditorCard({
 
             <CategoryField
               categories={categories}
-              value={draft.category}
+              value={language === "el" ? draft.category : draft.categoryEn ?? ""}
               error={fieldErrors.category}
               onChange={(category) => {
                 setDraft((current) => ({
                   ...current,
-                  category,
+                  [language === "el" ? "category" : "categoryEn"]: category,
                 }));
+                setLocalizedDirty(true);
 
                 clearFieldError("category");
               }}
@@ -2032,15 +2157,16 @@ function RecipeEditorCard({
 
             <RichEditorField
               label="Περιγραφή"
-              value={draft.description}
+              value={language === "el" ? draft.description : draft.descriptionEn ?? ""}
               error={fieldErrors.description}
               placeholder="Γράψε τη σύντομη περιγραφή της συνταγής..."
               minHeight={180}
               onChange={(html) => {
                 setDraft((current) => ({
                   ...current,
-                  description: html,
+                  [language === "el" ? "description" : "descriptionEn"]: html,
                 }));
+                setLocalizedDirty(true);
 
                 clearFieldError("description");
               }}
@@ -2048,15 +2174,16 @@ function RecipeEditorCard({
 
             <RichEditorField
               label="Υλικά"
-              value={draft.ingredients}
+              value={language === "el" ? draft.ingredients : draft.ingredientsEn ?? ""}
               error={fieldErrors.ingredients}
               placeholder="Γράψε τα υλικά της συνταγής..."
               minHeight={220}
               onChange={(html) => {
                 setDraft((current) => ({
                   ...current,
-                  ingredients: html,
+                  [language === "el" ? "ingredients" : "ingredientsEn"]: html,
                 }));
+                setLocalizedDirty(true);
 
                 clearFieldError("ingredients");
               }}
@@ -2064,15 +2191,16 @@ function RecipeEditorCard({
 
             <RichEditorField
               label="Οδηγίες"
-              value={draft.instructions}
+              value={language === "el" ? draft.instructions : draft.instructionsEn ?? ""}
               error={fieldErrors.instructions}
               placeholder="Γράψε τις οδηγίες εκτέλεσης..."
               minHeight={280}
               onChange={(html) => {
                 setDraft((current) => ({
                   ...current,
-                  instructions: html,
+                  [language === "el" ? "instructions" : "instructionsEn"]: html,
                 }));
+                setLocalizedDirty(true);
 
                 clearFieldError("instructions");
               }}
@@ -2116,6 +2244,12 @@ function RecipeEditorCard({
                 ]}
               />
             </div>
+
+            {false && <EnglishRecipeFields
+              draft={draft}
+              setDraft={setDraft}
+              clearFieldError={clearFieldError}
+            />}
 
             <FormFieldError errors={fieldErrors.form} />
 
@@ -2191,6 +2325,7 @@ function RecipeEditorCard({
         onClose={closeGeneralError}
         onRetry={saveRecipe}
       />
+      <BilingualSaveWarning {...saveGuard.warningProps} />
     </Card>
   );
 }
@@ -2202,6 +2337,7 @@ function RichEditorField({
   placeholder,
   minHeight,
   onChange,
+  required = true,
 }: {
   label: string;
   value: string;
@@ -2209,14 +2345,17 @@ function RichEditorField({
   placeholder: string;
   minHeight: number;
   onChange: (html: string) => void;
+  required?: boolean;
 }) {
   return (
     <div>
       <label className="mb-2 block text-sm font-medium text-slate-700">
         {label}{" "}
-        <span className="text-rose-600" aria-hidden="true">
-          *
-        </span>
+        {required && (
+          <span className="text-rose-600" aria-hidden="true">
+            *
+          </span>
+        )}
       </label>
 
       <div className={error ? "rounded-xl ring-2 ring-rose-400" : ""}>
@@ -2229,6 +2368,111 @@ function RichEditorField({
       </div>
 
       <FormFieldError errors={error} />
+    </div>
+  );
+}
+
+function EnglishArticleFields({
+  draft,
+  setDraft,
+  clearFieldError,
+}: {
+  draft: ArticlesPostDto;
+  setDraft: React.Dispatch<React.SetStateAction<ArticlesPostDto>>;
+  clearFieldError: (field: string) => void;
+}) {
+  const textFields: Array<[keyof ArticlesPostDto, string]> = [
+    ["titleEn", "Title (EN)"],
+    ["subtitleEn", "Subtitle (EN)"],
+    ["headingEn", "Heading (EN)"],
+    ["categoryEn", "Category (EN)"],
+  ];
+
+  return (
+    <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-sm font-semibold text-slate-700">English</p>
+      {textFields.map(([key, label]) => (
+        <label key={String(key)} className="block text-sm font-medium text-slate-700">
+          {label}
+          <input
+            value={String(draft[key] ?? "")}
+            onChange={(event) => {
+              setDraft((current) => ({ ...current, [key]: event.target.value }));
+              clearFieldError(String(key));
+            }}
+            className={fieldClass}
+          />
+        </label>
+      ))}
+      <RichEditorField
+        label="Content (EN)"
+        value={draft.contentEn ?? ""}
+        placeholder="Write the article content in English..."
+        minHeight={300}
+        required={false}
+        onChange={(html) => {
+          setDraft((current) => ({ ...current, contentEn: html }));
+          clearFieldError("contentEn");
+        }}
+      />
+    </div>
+  );
+}
+
+function EnglishRecipeFields({
+  draft,
+  setDraft,
+  clearFieldError,
+}: {
+  draft: RecipesPostDto;
+  setDraft: React.Dispatch<React.SetStateAction<RecipesPostDto>>;
+  clearFieldError: (field: string) => void;
+}) {
+  return (
+    <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-sm font-semibold text-slate-700">English</p>
+      {([[
+        "titleEn",
+        "Title (EN)",
+      ], ["categoryEn", "Category (EN)"]] as Array<[keyof RecipesPostDto, string]>).map(
+        ([key, label]) => (
+          <label key={String(key)} className="block text-sm font-medium text-slate-700">
+            {label}
+            <input
+              value={String(draft[key] ?? "")}
+              onChange={(event) => {
+                setDraft((current) => ({ ...current, [key]: event.target.value }));
+                clearFieldError(String(key));
+              }}
+              className={fieldClass}
+            />
+          </label>
+        ),
+      )}
+      {([[
+        "descriptionEn",
+        "Description (EN)",
+        180,
+      ], ["ingredientsEn", "Ingredients (EN)", 220], [
+        "instructionsEn",
+        "Instructions (EN)",
+        260,
+      ]] as Array<[keyof RecipesPostDto, string, number]>).map(
+        ([key, label, minHeight]) => (
+          <RichEditorField
+            key={String(key)}
+            label={label}
+            value={String(draft[key] ?? "")}
+            placeholder={`Write ${label.toLowerCase()}...`}
+            minHeight={minHeight}
+            required={false}
+            onChange={(html) => {
+              setDraft((current) => ({ ...current, [key]: html }));
+              clearFieldError(String(key));
+            }}
+          />
+        ),
+      )}
     </div>
   );
 }

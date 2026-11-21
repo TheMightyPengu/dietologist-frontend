@@ -2,12 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
+import { localizedContent } from "@/lib/localized-content";
 import LeafBurstButton from "../decorative/LeafBurstButton";
 import { NavbarApi, type NavbarGetDto } from "@/api/NavbarController";
 import { ProvidedServicesApi } from "@/api/ProvidedServicesController";
 import { toMediaUrl } from "@/api/_axios-client";
+import { useTranslations } from "@components/hooks/useTranslations";
 
 type MenuItem = {
+  key: string;
   label: string;
   href?: string;
   children?: { label: string; href: string; desc?: string }[];
@@ -18,40 +21,6 @@ const DEFAULT_NAVBAR: NavbarGetDto = {
   title: "Dietitian",
   imageUrl: "/logo.svg",
 };
-
-const NAV: MenuItem[] = [
-  {
-    label: "ΑΡΧΙΚΗ",
-    href: "/",
-    children: [
-      { label: "ΒΙΟΓΡΑΦΙΚΟ", href: "/#bio" },
-      { label: "ΦΙΛΟΣΟΦΙΑ", href: "/#philosophy" },
-    ],
-  },
-  {
-    label: "ΥΠΗΡΕΣΙΕΣ",
-    href: "/services",
-    children: [],
-  },
-  { label: "ΣΕΜΙΝΑΡΙΑ", href: "/seminars" },
-  { label: "EBOOK", href: "/ebook" },
-  {
-    label: "BLOG",
-    href: "/articles",
-    children: [
-      { label: "ΑΡΘΡΑ", href: "/articles" },
-      { label: "ΣΥΝΤΑΓΕΣ", href: "/recipes" },
-    ],
-  },
-  {
-    label: "ΕΠΙΚΟΙΝΩΝΙΑ",
-    href: "/contact/book",
-    children: [
-      { label: "ΚΛΕΙΣΤΕ ΡΑΝΤΕΒΟΥ", href: "/contact/book" },
-      { label: "ΦΟΡΜΑ ΕΠΙΚΟΙΝΩΝΙΑΣ", href: "/contact/form" },
-    ],
-  },
-];
 
 function ChevronDown({ className = "h-4 w-4" }: { className?: string }) {
   return (
@@ -108,6 +77,7 @@ function getUniqueServiceCategories(
 
 export default function Navbar() {
   const router = useRouter();
+  const t = useTranslations();
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileMenuMounted, setMobileMenuMounted] = useState(false);
@@ -115,19 +85,80 @@ export default function Navbar() {
   const [serviceCategories, setServiceCategories] = useState<string[]>([]);
   const navRef = useRef<HTMLDivElement>(null);
 
-  const navItems = useMemo<MenuItem[]>(() => {
-    return NAV.map((item) => {
-      if (item.label !== "ΥΠΗΡΕΣΙΕΣ") return item;
+  const navItems = useMemo<MenuItem[]>(
+    () => [
+      {
+        key: "home",
+        label: t.common.nav.home,
+        href: "/",
+        children: [
+          {
+            label: t.common.nav.biography,
+            href: "/#bio",
+          },
+          {
+            label: t.common.nav.philosophy,
+            href: "/#philosophy",
+          },
+        ],
+      },
 
-      return {
-        ...item,
+      {
+        key: "services",
+        label: t.common.nav.services,
+        href: "/services",
         children: serviceCategories.map((category) => ({
           label: formatServiceCategoryLabel(category),
           href: `/services#${getServiceCategoryAnchor(category)}`,
         })),
-      };
-    });
-  }, [serviceCategories]);
+      },
+
+      {
+        key: "seminars",
+        label: t.common.nav.seminars,
+        href: "/seminars",
+      },
+
+      {
+        key: "ebook",
+        label: t.common.nav.ebook,
+        href: "/ebook",
+      },
+
+      {
+        key: "blog",
+        label: t.common.nav.blog,
+        href: "/articles",
+        children: [
+          {
+            label: t.common.nav.articles,
+            href: "/articles",
+          },
+          {
+            label: t.common.nav.recipes,
+            href: "/recipes",
+          },
+        ],
+      },
+
+      {
+        key: "contact",
+        label: t.common.nav.contact,
+        href: "/contact/book",
+        children: [
+          {
+            label: t.common.nav.bookAppointment,
+            href: "/contact/book",
+          },
+          {
+            label: t.common.nav.contactForm,
+            href: "/contact/form",
+          },
+        ],
+      },
+    ],
+    [serviceCategories, t],
+  );
 
   useEffect(() => {
     let active = true;
@@ -140,8 +171,16 @@ export default function Navbar() {
 
         setNavbar({
           id: data?.id ?? DEFAULT_NAVBAR.id,
-          title: data?.title?.trim() || DEFAULT_NAVBAR.title,
+          title:
+            localizedContent(router.locale, data?.title, data?.titleEn).trim() ||
+            DEFAULT_NAVBAR.title,
           imageUrl: data?.imageUrl?.trim() || DEFAULT_NAVBAR.imageUrl,
+          imageAltText: localizedContent(
+            router.locale,
+            data?.imageAltText,
+            data?.imageAltTextEn,
+          ),
+          imageAltTextEn: data?.imageAltTextEn,
         });
       } catch (error) {
         console.error(error);
@@ -153,7 +192,7 @@ export default function Navbar() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [router.locale]);
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -194,7 +233,18 @@ export default function Navbar() {
         if (!active) return;
 
         setServiceCategories(
-          Array.isArray(data) ? getUniqueServiceCategories(data) : [],
+          Array.isArray(data)
+            ? getUniqueServiceCategories(
+                data.map((service) => ({
+                  ...service,
+                  category: localizedContent(
+                    router.locale,
+                    service.category,
+                    service.categoryEn,
+                  ),
+                })),
+              )
+            : [],
         );
       } catch (error) {
         console.error(error);
@@ -207,7 +257,7 @@ export default function Navbar() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [router.locale]);
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
@@ -258,7 +308,7 @@ export default function Navbar() {
               "hover:bg-accent/10 hover:text-accent",
               "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
             ].join(" ")}
-            aria-label="Άνοιγμα μενού"
+            aria-label={t.common.nav.openMenu}
             onClick={() => setMobileOpen((s) => !s)}
           >
             <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
@@ -291,7 +341,7 @@ export default function Navbar() {
                   ? toMediaUrl(navbar.imageUrl)
                   : navbar.imageUrl
               }
-              alt={`${navbar.title} Logo`}
+              alt={navbar.imageAltText?.trim() || `${navbar.title} Logo`}
               width={44}
               height={44}
               unoptimized
@@ -308,11 +358,11 @@ export default function Navbar() {
               const hasChildren = !!item.children?.length;
               const isOpen = openIdx === idx;
               const active = isItemActive(item);
-              const isServicesMenu = item.label === "ΥΠΗΡΕΣΙΕΣ";
+              const isServicesMenu = item.key === "services";
 
               return (
                 <div
-                  key={item.label}
+                  key={item.key}
                   className="relative"
                   onMouseEnter={() => hasChildren && setOpenIdx(idx)}
                   onMouseLeave={() => hasChildren && setOpenIdx(null)}
@@ -342,7 +392,7 @@ export default function Navbar() {
                         type="button"
                         aria-haspopup="menu"
                         aria-expanded={isOpen}
-                        aria-label={`${item.label} υπομενού`}
+                        aria-label={`${item.label} ${t.common.nav.submenu}`}
                         className={[
                           "inline-flex items-center rounded-md px-1.5 py-2 transition",
                           "text-slate-600",
@@ -408,7 +458,7 @@ export default function Navbar() {
 
           <div className="flex items-center">
             <LeafBurstButton
-              text="ΚΛΕΙΣΤΕ ΡΑΝΤΕΒΟΥ"
+              text={t.common.nav.bookAppointment}
               href="/contact/book"
               onClick={closeAll}
               size="sm"
@@ -427,7 +477,7 @@ export default function Navbar() {
             {/* Dark background overlay */}
             <button
               type="button"
-              aria-label="Κλείσιμο μενού"
+              aria-label={t.common.nav.closeMenu}
               onClick={closeAll}
               className={[
                 "absolute inset-0 bg-slate-950/35 backdrop-blur-[2px]",
@@ -440,7 +490,7 @@ export default function Navbar() {
             <aside
               role="dialog"
               aria-modal="true"
-              aria-label="Μενού πλοήγησης"
+              aria-label={t.common.nav.navigationMenu}
               className={[
                 "absolute left-0 top-0 h-[100dvh] w-[min(88vw,360px)]",
                 "overflow-y-auto overscroll-contain",
@@ -463,7 +513,7 @@ export default function Navbar() {
                           ? toMediaUrl(navbar.imageUrl)
                           : navbar.imageUrl
                       }
-                      alt={`${navbar.title} Logo`}
+                      alt={navbar.imageAltText?.trim() || `${navbar.title} Logo`}
                       width={48}
                       height={48}
                       unoptimized
@@ -477,7 +527,7 @@ export default function Navbar() {
 
                   <button
                     type="button"
-                    aria-label="Κλείσιμο μενού"
+                    aria-label={t.common.nav.closeMenu}
                     onClick={closeAll}
                     className={[
                       "ml-3 inline-flex h-11 w-11 shrink-0 items-center justify-center",
@@ -508,11 +558,11 @@ export default function Navbar() {
                       const hasChildren = !!item.children?.length;
                       const isOpen = openIdx === idx;
                       const active = isItemActive(item);
-                      const isServicesMenu = item.label === "ΥΠΗΡΕΣΙΕΣ";
+                      const isServicesMenu = item.key === "services";
 
                       return (
                         <div
-                          key={item.label}
+                          key={item.key}
                           className="border-t border-accent/10 first:border-t-0"
                         >
                           <div className="flex min-h-16 items-stretch">
@@ -537,11 +587,10 @@ export default function Navbar() {
                               <button
                                 type="button"
                                 aria-expanded={isOpen}
-                                aria-label={`${item.label} υπομενού`}
+                                aria-label={`${item.label} ${t.common.nav.submenu}`}
                                 className={[
                                   "flex w-14 items-center justify-center",
-                                  "text-slate-700 transition",
-                                  "hover:bg-accent/10 hover:text-accent",
+                                  "transition hover:bg-accent/10",
                                   "focus-visible:outline-none focus-visible:ring-4",
                                   "focus-visible:ring-inset focus-visible:ring-primary/25",
                                 ].join(" ")}
@@ -549,12 +598,14 @@ export default function Navbar() {
                                   setOpenIdx(isOpen ? null : idx);
                                 }}
                               >
-                                <ChevronDown
-                                  className={[
-                                    "h-5 w-5 transition-transform duration-200",
-                                    isOpen ? "rotate-180" : "",
-                                  ].join(" ")}
-                                />
+                                <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white text-primary shadow-sm ring-1 ring-accent/20 transition hover:bg-white hover:text-primary">
+                                  <ChevronDown
+                                    className={[
+                                      "h-5 w-5 transition-transform duration-200",
+                                      isOpen ? "rotate-180" : "",
+                                    ].join(" ")}
+                                  />
+                                </span>
                               </button>
                             )}
                           </div>
@@ -623,7 +674,7 @@ export default function Navbar() {
 
                   <div className="mt-4">
                     <LeafBurstButton
-                      text="ΚΛΕΙΣΤΕ ΡΑΝΤΕΒΟΥ"
+                      text={t.common.nav.bookAppointment}
                       href="/contact/book"
                       onClick={closeAll}
                       size="sm"

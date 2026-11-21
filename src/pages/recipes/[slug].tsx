@@ -6,6 +6,9 @@ import Image from "next/image";
 import { RecipesApi, type RecipesGetDto } from "@/api/RecipesController";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 import { toMediaUrl } from "@/api/_axios-client";
+import { useTranslations } from "@/components/hooks/useTranslations";
+import { useRouter } from "next/router";
+import { localizedContent } from "@/lib/localized-content";
 
 type Recipe = {
   id: number;
@@ -17,16 +20,8 @@ type Recipe = {
   instructions: string;
   ingredients: string;
   image: string;
+  imageAlt: string;
   createdAt: string;
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  Breakfast: "Πρωινό",
-  Main: "Κυρίως",
-  Snack: "Σνακ",
-  Drink: "Ρόφημα",
-  Dessert: "Γλυκό",
-  Salad: "Σαλάτα",
 };
 
 function stripGreekAccents(s: string) {
@@ -57,8 +52,8 @@ function stripHtml(value: string) {
     .trim();
 }
 
-function formatMin(m: number) {
-  return m <= 60 ? `${m}′` : `${Math.floor(m / 60)} ώ ${m % 60}′`;
+function formatMin(m: number, hourShort: string) {
+  return m <= 60 ? `${m}′` : `${Math.floor(m / 60)} ${hourShort} ${m % 60}′`;
 }
 
 function resolveRecipeImage(image?: string | null): string {
@@ -75,19 +70,22 @@ function resolveRecipeImage(image?: string | null): string {
   return toMediaUrl(value);
 }
 
-function mapRecipe(dto: RecipesGetDto): Recipe {
-  const title = dto.title ?? "";
+function mapRecipe(dto: RecipesGetDto, locale?: string): Recipe {
+  const title = localizedContent(locale, dto.title, dto.titleEn);
 
   return {
     id: dto.id,
     slug: `${toGreekSlug(title) || "recipe"}-${dto.id}`,
     title,
-    category: dto.category ?? "",
+    category: localizedContent(locale, dto.category, dto.categoryEn),
     minutes: dto.timeToPrepare ?? 0,
-    description: dto.description ?? "",
-    instructions: dto.instructions ?? "",
-    ingredients: dto.ingredients ?? "",
+    description: localizedContent(locale, dto.description, dto.descriptionEn),
+    instructions: localizedContent(locale, dto.instructions, dto.instructionsEn),
+    ingredients: localizedContent(locale, dto.ingredients, dto.ingredientsEn),
     image: dto.imageUrl ?? "",
+    imageAlt:
+      localizedContent(locale, dto.imageAltText, dto.imageAltTextEn).trim() ||
+      title,
     createdAt: dto.createdAt ?? "",
   };
 }
@@ -108,7 +106,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
     }
 
     const data = await RecipesApi.get(id);
-    const recipe = mapRecipe(data);
+    const recipe = mapRecipe(data, ctx.locale);
 
     return {
       props: {
@@ -122,15 +120,18 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (
 };
 
 export default function RecipePage({ recipe }: PageProps) {
+  const t = useTranslations();
+  const router = useRouter();
+  const locale = router.locale === "en" ? "en-US" : "el-GR";
   const formattedDate = useMemo(() => {
     if (!recipe.createdAt) return "";
 
-    return new Date(recipe.createdAt).toLocaleDateString("el-GR", {
+    return new Date(recipe.createdAt).toLocaleDateString(locale, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
     });
-  }, [recipe.createdAt]);
+  }, [recipe.createdAt, locale]);
 
   const [progress, setProgress] = useState(0);
 
@@ -151,27 +152,29 @@ export default function RecipePage({ recipe }: PageProps) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const categoryLabel = CATEGORY_LABELS[recipe.category] ?? recipe.category;
+  const categoryLabel =
+    t.recipes.categories[recipe.category as keyof typeof t.recipes.categories] ??
+    recipe.category;
   const recipeImageUrl = resolveRecipeImage(recipe.image);
   const metaDescription =
-    stripHtml(recipe.description).slice(0, 160) || `Συνταγή: ${recipe.title}`;
+    stripHtml(recipe.description).slice(0, 160) || `${t.recipes.meta.detailSuffix}: ${recipe.title}`;
 
   return (
     <>
       <Head>
-        <title>{`${recipe.title} — Συνταγές`}</title>
+        <title>{`${recipe.title} — ${t.recipes.meta.detailSuffix}`}</title>
         <meta name="description" content={metaDescription} />
         <link
           rel="canonical"
           href={`https://example.gr/recipes/${encodeURIComponent(recipe.slug)}`}
         />
         <meta property="og:type" content="article" />
-        <meta property="og:title" content={`${recipe.title} — Συνταγές`} />
+        <meta property="og:title" content={`${recipe.title} — ${t.recipes.meta.detailSuffix}`} />
         <meta property="og:description" content={metaDescription} />
         {recipeImageUrl ? (
           <meta property="og:image" content={recipeImageUrl} />
         ) : null}{" "}
-        <meta property="og:locale" content="el_GR" />
+        <meta property="og:locale" content={router.locale === "en" ? "en_US" : "el_GR"} />
         <meta name="twitter:card" content="summary_large_image" />
       </Head>
 
@@ -190,7 +193,7 @@ export default function RecipePage({ recipe }: PageProps) {
             className="inline-flex items-center gap-2 rounded-xl bg-white/70 px-3 py-2 text-sm font-medium text-slate-800 ring-1 ring-slate-200 hover:bg-white transition focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
           >
             <span aria-hidden>←</span>
-            Πίσω στις συνταγές
+            {t.recipes.detail.back}
           </Link>
         </div>
 
@@ -206,7 +209,7 @@ export default function RecipePage({ recipe }: PageProps) {
               <>
                 <span className="inline-flex items-center gap-1.5 tabular-nums">
                   <span aria-hidden>📅</span>
-                  <span>Δημοσίευση: {formattedDate}</span>
+                  <span>{t.recipes.detail.published}: {formattedDate}</span>
                 </span>
 
                 <span className="text-slate-300" aria-hidden>
@@ -217,7 +220,7 @@ export default function RecipePage({ recipe }: PageProps) {
 
             <span className="inline-flex items-center gap-1.5 tabular-nums">
               <span aria-hidden>⏱</span>
-              <span>{formatMin(recipe.minutes)}</span>
+              <span>{formatMin(recipe.minutes, t.recipes.filters.hourShort)}</span>
             </span>
           </div>
 
@@ -240,7 +243,7 @@ export default function RecipePage({ recipe }: PageProps) {
             <div className="relative aspect-[16/9]">
               <Image
                 src={recipeImageUrl}
-                alt={recipe.title}
+                alt={recipe.imageAlt}
                 fill
                 priority
                 unoptimized
@@ -252,9 +255,9 @@ export default function RecipePage({ recipe }: PageProps) {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[320px_1fr]">
           <aside className="space-y-6">
-            <section className="rounded-3xl bg-white/85 ring-1 ring-accent/20 shadow-[0_12px_35px_rgba(164,199,126,0.12)] p-6">
+            <section className="min-w-0 rounded-3xl bg-white/85 p-4 ring-1 ring-accent/20 shadow-[0_12px_35px_rgba(164,199,126,0.12)] sm:p-6">
               <h2 className="text-xl font-semibold tracking-tight text-slate-900">
-                Υλικά
+                {t.recipes.detail.ingredients}
               </h2>
 
               {recipe.ingredients.trim() ? (
@@ -264,20 +267,20 @@ export default function RecipePage({ recipe }: PageProps) {
                 />
               ) : (
                 <p className="mt-4 text-sm text-slate-600">
-                  Δεν υπάρχουν καταχωρημένα υλικά.
+                  {t.recipes.detail.noIngredients}
                 </p>
               )}
             </section>
 
-            <section className="rounded-3xl bg-white/85 ring-1 ring-accent/20 shadow-[0_12px_35px_rgba(164,199,126,0.12)] p-6">
+            <section className="min-w-0 rounded-3xl bg-white/85 p-4 ring-1 ring-accent/20 shadow-[0_12px_35px_rgba(164,199,126,0.12)] sm:p-6">
               <h2 className="text-xl font-semibold tracking-tight text-slate-900">
-                Πληροφορίες
+                {t.recipes.detail.information}
               </h2>
 
               <dl className="mt-4 space-y-3 text-sm">
                 {categoryLabel ? (
                   <div className="flex items-center justify-between gap-4">
-                    <dt className="text-slate-500">Κατηγορία</dt>
+                    <dt className="text-slate-500">{t.recipes.detail.category}</dt>
                     <dd className="font-medium text-slate-800">
                       {categoryLabel}
                     </dd>
@@ -285,15 +288,15 @@ export default function RecipePage({ recipe }: PageProps) {
                 ) : null}
 
                 <div className="flex items-center justify-between gap-4">
-                  <dt className="text-slate-500">Χρόνος</dt>
+                  <dt className="text-slate-500">{t.recipes.detail.time}</dt>
                   <dd className="font-medium text-slate-800">
-                    {formatMin(recipe.minutes)}
+                    {formatMin(recipe.minutes, t.recipes.filters.hourShort)}
                   </dd>
                 </div>
 
                 {formattedDate ? (
                   <div className="flex items-center justify-between gap-4">
-                    <dt className="text-slate-500">Ημερομηνία</dt>
+                    <dt className="text-slate-500">{t.recipes.detail.date}</dt>
                     <dd className="font-medium text-slate-800">
                       {formattedDate}
                     </dd>
@@ -303,9 +306,9 @@ export default function RecipePage({ recipe }: PageProps) {
             </section>
           </aside>
 
-          <section className="rounded-3xl bg-white/85 ring-1 ring-accent/20 shadow-[0_12px_35px_rgba(164,199,126,0.12)] p-6 md:p-8">
+          <section className="min-w-0 rounded-3xl bg-white/85 p-4 ring-1 ring-accent/20 shadow-[0_12px_35px_rgba(164,199,126,0.12)] sm:p-6 md:p-8">
             <h2 className="mb-5 text-2xl md:text-3xl font-semibold tracking-tight text-slate-900">
-              Εκτέλεση
+              {t.recipes.detail.instructions}
             </h2>
 
             {recipe.instructions ? (
@@ -315,7 +318,7 @@ export default function RecipePage({ recipe }: PageProps) {
               />
             ) : (
               <p className="text-slate-600">
-                Δεν υπάρχουν καταχωρημένες οδηγίες εκτέλεσης.
+                {t.recipes.detail.noInstructions}
               </p>
             )}
           </section>

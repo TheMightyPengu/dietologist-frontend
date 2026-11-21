@@ -1,0 +1,27 @@
+{
+  "meta": { "title": "Ebook — Dietitian", "description": "A modern ebook with practical tools for everyday nutrition." },
+  "features": [
+    { "title": "Practical Guide", "description": "Clear structure and easy reading for immediate use in everyday life." },
+    { "title": "Ready to Use", "description": "Useful content you can apply without unnecessary theory." },
+    { "title": "Organized Content", "description": "The ebook is organized into clear sections with easy-to-use material." }
+  ],
+  "fallback": { "descriptionPrefix": "A practical guide by", "dietitian": "the dietitian", "materials": ["Practical material", "Implementation guide"], "author": "Unknown author" },
+  "errors": { "notFound": "No ebook was found.", "generic": "Something went wrong." },
+  "carousel": { "previous": "Previous ebook", "position": "Ebook {current} of {total}", "view": "View ebook {number}: {title}", "next": "Next ebook" },
+  "cover": "Cover: {title}",
+  "new": "New ebook",
+  "author": "Author",
+  "format": "Format",
+  "preview": "Preview",
+  "buy": "Buy — {price}€",
+  "download": "Download",
+  "interested": "I'm interested",
+  "interestedPrice": "I'm interested — {price}€",
+  "purchaseMessage": "To purchase the ebook, send us a message and we will contact you.",
+  "contents": "Contents",
+  "noContents": "No contents are available yet.",
+  "buyNow": "Buy now — {price}€ →",
+  "downloadNow": "Download now →",
+  "contactToBuy": "Send a message to purchase →",
+  "purchaseByContact": "The ebook purchase is completed after contacting us."
+}

@@ -8,6 +8,8 @@ import Image from "next/image";
 import { RecipesApi, type RecipesGetDto } from "@/api/RecipesController";
 import { toMediaUrl } from "@/api/_axios-client";
 import { usePageHeader } from "@/lib/usePageHeader";
+import { useTranslations } from "@/components/hooks/useTranslations";
+import { localizedContent } from "@/lib/localized-content";
 
 /*
   Σελίδα λίστας συνταγών συνδεδεμένη με backend.
@@ -39,22 +41,14 @@ export type Recipe = {
   instructions: string;
   ingredients: string[];
   image: string;
+  imageAlt: string;
   createdAt: string;
 };
 
 // -------------------- Labels (UI) --------------------
-const CATEGORY_LABELS: Record<string, string> = {
-  Breakfast: "Πρωινό",
-  Main: "Κυρίως",
-  Snack: "Σνακ",
-  Drink: "Ρόφημα",
-  Dessert: "Γλυκό",
-  Salad: "Σαλάτα",
-};
-
 // -------------------- Helpers --------------------
-function formatMin(m: number) {
-  return m <= 60 ? `${m}′` : `${Math.floor(m / 60)} ώ ${m % 60}′`;
+function formatMin(m: number, hourShort: string) {
+  return m <= 60 ? `${m}′` : `${Math.floor(m / 60)} ${hourShort} ${m % 60}′`;
 }
 
 function stripGreekAccents(s: string) {
@@ -88,19 +82,22 @@ function uniq<T>(arr: T[]) {
   return Array.from(new Set(arr));
 }
 
-function mapRecipe(dto: RecipesGetDto): Recipe {
-  const title = dto.title ?? "";
+function mapRecipe(dto: RecipesGetDto, locale?: string): Recipe {
+  const title = localizedContent(locale, dto.title, dto.titleEn);
 
   return {
     id: dto.id,
     slug: `${toGreekSlug(title) || "recipe"}-${dto.id}`,
     title,
-    category: dto.category ?? "",
+    category: localizedContent(locale, dto.category, dto.categoryEn),
     minutes: dto.timeToPrepare ?? 0,
-    description: dto.description ?? "",
-    instructions: dto.instructions ?? "",
-    ingredients: parseIngredients(dto.ingredients),
+    description: localizedContent(locale, dto.description, dto.descriptionEn),
+    instructions: localizedContent(locale, dto.instructions, dto.instructionsEn),
+    ingredients: parseIngredients(localizedContent(locale, dto.ingredients, dto.ingredientsEn)),
     image: dto.imageUrl ?? "",
+    imageAlt:
+      localizedContent(locale, dto.imageAltText, dto.imageAltTextEn).trim() ||
+      title,
     createdAt: dto.createdAt ?? "",
   };
 }
@@ -112,11 +109,6 @@ function stripHtml(value: string | null | undefined) {
     .replace(/\s+/g, " ")
     .trim();
 }
-
-const DEFAULT_PAGE_HEADER = {
-  title: "Συνταγές",
-  description: "Αναζήτηση, φίλτρα, ταξινόμηση και σελιδοποίηση.",
-};
 
 const PER_PAGE = 12;
 
@@ -225,10 +217,15 @@ function SectionCard({
 }
 
 export default function RecipesIndex() {
-  const pageHeader = usePageHeader("recipes", DEFAULT_PAGE_HEADER);
+  const t = useTranslations();
+  const pageHeader = usePageHeader("recipes", {
+    title: t.recipes.meta.detailSuffix,
+    description: t.recipes.meta.listDescription,
+  });
 
   const router = useRouter();
   const { query } = router;
+  const locale = router.locale === "en" ? "en-US" : "el-GR";
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [fetchError, setFetchError] = useState<string>("");
@@ -260,12 +257,14 @@ export default function RecipesIndex() {
 
         if (!mounted) return;
 
-        const mapped = Array.isArray(data) ? data.map(mapRecipe) : [];
+        const mapped = Array.isArray(data)
+          ? data.map((recipe) => mapRecipe(recipe, router.locale))
+          : [];
         setRecipes(mapped);
       } catch (error) {
         if (!mounted) return;
         setRecipes([]);
-        setFetchError("Δεν ήταν δυνατή η φόρτωση των συνταγών.");
+        setFetchError(t.recipes.results.loadError);
         console.error(error);
       } finally {
         if (mounted) setIsLoading(false);
@@ -277,7 +276,7 @@ export default function RecipesIndex() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [t.recipes.results.loadError, router.locale]);
 
   useEffect(() => {
     setSearch((query.q as string) || "");
@@ -346,7 +345,7 @@ export default function RecipesIndex() {
         }
 
         case "az": {
-          const difference = a.title.localeCompare(b.title, "el-GR", {
+          const difference = a.title.localeCompare(b.title, locale, {
             sensitivity: "base",
           });
 
@@ -360,7 +359,7 @@ export default function RecipesIndex() {
             return difference;
           }
 
-          return a.title.localeCompare(b.title, "el-GR", {
+          return a.title.localeCompare(b.title, locale, {
             sensitivity: "base",
           });
         }
@@ -372,7 +371,7 @@ export default function RecipesIndex() {
             return difference;
           }
 
-          return a.title.localeCompare(b.title, "el-GR", {
+          return a.title.localeCompare(b.title, locale, {
             sensitivity: "base",
           });
         }
@@ -387,7 +386,7 @@ export default function RecipesIndex() {
     });
 
     return list;
-  }, [recipes, search, cats, include, time, sort]);
+  }, [recipes, search, cats, include, time, sort, locale]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const pageClamped = Math.min(totalPages, Math.max(1, page));
@@ -473,14 +472,14 @@ export default function RecipesIndex() {
     if (cats.length) {
       parts.push({
         key: "cat",
-        label: `Κατηγορία: ${cats
-          .map((c) => CATEGORY_LABELS[c] ?? c)
+        label: `${t.recipes.filters.category}: ${cats
+          .map((c) => t.recipes.categories[c as keyof typeof t.recipes.categories] ?? c)
           .join(", ")}`,
       });
     }
 
     if (time) {
-      const t =
+      const timeLabel =
         time === "t15"
           ? "≤ 15′"
           : time === "t30"
@@ -491,19 +490,24 @@ export default function RecipesIndex() {
                 ? "> 60′"
                 : "";
 
-      if (t) parts.push({ key: "time", label: `Χρόνος: ${t}` });
+      if (timeLabel) {
+        parts.push({
+          key: "time",
+          label: `${t.recipes.detail.time}: ${timeLabel}`,
+        });
+      }
     }
 
     if (include.length) {
-      parts.push({ key: "inc", label: `Με: ${include.join(", ")}` });
+      parts.push({ key: "inc", label: `${t.recipes.filters.with}: ${include.join(", ")}` });
     }
 
     if (search.trim()) {
-      parts.push({ key: "q", label: `Αναζήτηση: ${search.trim()}` });
+      parts.push({ key: "q", label: `${t.recipes.filters.search}: ${search.trim()}` });
     }
 
     return parts;
-  }, [cats, time, include, search]);
+  }, [cats, time, include, search, t]);
 
   const mobileActiveCount =
     cats.length + include.length + (time ? 1 : 0) + (search.trim() ? 1 : 0);
@@ -511,10 +515,10 @@ export default function RecipesIndex() {
   return (
     <>
       <Head>
-        <title>Συνταγές — NutriClinic</title>
+        <title>{t.recipes.meta.listTitle}</title>
         <meta
           name="description"
-          content="Αναζήτηση και φιλτράρισμα συνταγών."
+          content={t.recipes.meta.listDescription}
         />
         <link rel="canonical" href="https://example.gr/recipes" />
       </Head>
@@ -540,7 +544,7 @@ export default function RecipesIndex() {
               )}
             >
               <FilterIcon />
-              Φίλτρα
+              {t.recipes.filters.title}
               {mobileActiveCount > 0 && (
                 <span className="ml-1 inline-flex items-center rounded-full bg-primary text-white px-2 py-0.5 text-xs ring-1 ring-primary">
                   {mobileActiveCount}
@@ -549,7 +553,7 @@ export default function RecipesIndex() {
             </button>
 
             <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-600">Ταξινόμηση:</span>
+              <span className="text-sm text-slate-600">{t.recipes.sort.label}</span>
               <select
                 value={sort}
                 onChange={(e) => {
@@ -562,11 +566,11 @@ export default function RecipesIndex() {
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 )}
               >
-                <option value="new">Νεότερα</option>
-                <option value="old">Παλαιότερα</option>
-                <option value="az">Αλφαβητικά (Α–Ω)</option>
-                <option value="timeAsc">Χρόνος: μικρότερος</option>
-                <option value="timeDesc">Χρόνος: μεγαλύτερος</option>
+                <option value="new">{t.recipes.sort.new}</option>
+                <option value="old">{t.recipes.sort.old}</option>
+                <option value="az">{t.recipes.sort.az}</option>
+                <option value="timeAsc">{t.recipes.sort.timeAsc}</option>
+                <option value="timeDesc">{t.recipes.sort.timeDesc}</option>
               </select>
             </div>
           </div>
@@ -577,7 +581,7 @@ export default function RecipesIndex() {
                 <SidebarSkeleton />
               ) : (
                 <SectionCard
-                  title="Φίλτρα"
+                  title={t.recipes.filters.title}
                   right={
                     <button
                       onClick={clearAll}
@@ -587,14 +591,14 @@ export default function RecipesIndex() {
                         "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg px-2 py-1",
                       )}
                     >
-                      Καθαρισμός φίλτρων
+                      {t.recipes.filters.clearFilters}
                     </button>
                   }
                 >
                   <div className="space-y-4">
                     <div>
                       <div className="text-xs font-semibold text-slate-700 mb-2">
-                        Αναζήτηση
+                        {t.recipes.filters.search}
                       </div>
                       <SearchInput
                         value={search}
@@ -602,13 +606,13 @@ export default function RecipesIndex() {
                           setSearch(v);
                           setPage(1);
                         }}
-                        placeholder="Αναζήτηση συνταγών…"
+                        placeholder={t.recipes.filters.searchPlaceholder}
                       />
                     </div>
 
                     <div>
                       <div className="text-xs font-semibold text-slate-700 mb-2">
-                        Κατηγορία
+                        {t.recipes.filters.category}
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {categories.map((c) => {
@@ -633,7 +637,7 @@ export default function RecipesIndex() {
                                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                               )}
                             >
-                              {CATEGORY_LABELS[c] ?? c}
+                              {t.recipes.categories[c as keyof typeof t.recipes.categories] ?? c}
                             </button>
                           );
                         })}
@@ -642,7 +646,7 @@ export default function RecipesIndex() {
 
                     <div>
                       <div className="text-xs font-semibold text-slate-700 mb-2">
-                        Χρόνος προετοιμασίας
+                        {t.recipes.filters.prepTime}
                       </div>
                       <select
                         value={time}
@@ -656,17 +660,17 @@ export default function RecipesIndex() {
                           "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                         )}
                       >
-                        <option value="">Όλοι</option>
-                        <option value="t15">≤ 15 λεπτά</option>
-                        <option value="t30">15–30 λεπτά</option>
-                        <option value="t60">30–60 λεπτά</option>
-                        <option value="t61">&gt; 60 λεπτά</option>
+                        <option value="">{t.recipes.filters.all}</option>
+                        <option value="t15">≤ 15 {t.recipes.filters.minutes}</option>
+                        <option value="t30">15–30 {t.recipes.filters.minutes}</option>
+                        <option value="t60">30–60 {t.recipes.filters.minutes}</option>
+                        <option value="t61">&gt; 60 {t.recipes.filters.minutes}</option>
                       </select>
                     </div>
 
                     <div>
                       <div className="text-xs font-semibold text-slate-700 mb-2">
-                        Με
+                        {t.recipes.filters.with}
                       </div>
                       <TagInput
                         value={include}
@@ -674,7 +678,7 @@ export default function RecipesIndex() {
                           setInclude(v);
                           setPage(1);
                         }}
-                        placeholder="π.χ. βρώμη, σοκολάτα"
+                        placeholder={t.recipes.filters.ingredientsPlaceholder}
                       />
                     </div>
                   </div>
@@ -685,15 +689,15 @@ export default function RecipesIndex() {
             <div className="min-w-0">
               <div className="mb-4 flex min-h-10 items-center justify-between gap-4">
                 <div className="text-sm text-slate-600">
-                  Βρέθηκαν{" "}
+                  {t.recipes.results.found}{" "}
                   <span className="font-semibold text-slate-900">
                     {filtered.length}
                   </span>{" "}
-                  συνταγές
+                  {t.recipes.results.recipes}
                 </div>
 
                 <div className="hidden items-center gap-2 lg:flex">
-                  <span className="text-sm text-slate-600">Ταξινόμηση:</span>
+                  <span className="text-sm text-slate-600">{t.recipes.sort.label}</span>
 
                   <select
                     value={sort}
@@ -707,11 +711,11 @@ export default function RecipesIndex() {
                       "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                     )}
                   >
-                    <option value="new">Νεότερα</option>
-                    <option value="old">Παλαιότερα</option>
-                    <option value="az">Αλφαβητικά (Α–Ω)</option>
-                    <option value="timeAsc">Χρόνος: μικρότερος</option>
-                    <option value="timeDesc">Χρόνος: μεγαλύτερος</option>
+                    <option value="new">{t.recipes.sort.new}</option>
+                    <option value="old">{t.recipes.sort.old}</option>
+                    <option value="az">{t.recipes.sort.az}</option>
+                    <option value="timeAsc">{t.recipes.sort.timeAsc}</option>
+                    <option value="timeDesc">{t.recipes.sort.timeDesc}</option>
                   </select>
                 </div>
               </div>
@@ -743,7 +747,7 @@ export default function RecipesIndex() {
                           "text-slate-600 transition hover:bg-black/5 hover:text-slate-900",
                           "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                         )}
-                        aria-label="Αφαίρεση φίλτρου"
+                        aria-label={t.recipes.filters.remove}
                       >
                         ×
                       </button>
@@ -759,7 +763,7 @@ export default function RecipesIndex() {
                       "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                     )}
                   >
-                    Καθαρισμός
+                    {t.recipes.filters.clear}
                   </button>
                 </div>
               )}
@@ -767,7 +771,7 @@ export default function RecipesIndex() {
               {fetchError ? (
                 <div className="rounded-2xl bg-white/90 ring-1 ring-black/5 shadow-[0_10px_24px_rgba(15,23,42,0.06)] p-8 text-center">
                   <h3 className="text-lg font-semibold text-slate-900">
-                    Σφάλμα φόρτωσης
+                    {t.recipes.results.loadErrorTitle}
                   </h3>
                   <p className="mt-2 text-sm text-slate-600">{fetchError}</p>
                 </div>
@@ -797,7 +801,7 @@ export default function RecipesIndex() {
                           {hasImage ? (
                             <Image
                               src={imageUrl}
-                              alt={r.title}
+                              alt={r.imageAlt}
                               fill
                               className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                               unoptimized
@@ -808,7 +812,7 @@ export default function RecipesIndex() {
                                 <div className="flex flex-col items-center gap-2 text-slate-600">
                                   <ImagePlaceholderIcon />
                                   <div className="text-xs font-medium">
-                                    Χωρίς εικόνα
+                                    {t.recipes.results.noImage}
                                   </div>
                                 </div>
                               </div>
@@ -818,7 +822,7 @@ export default function RecipesIndex() {
                           <div className="absolute left-3 top-3">
                             <GlassBadge>
                               <ClockIcon />
-                              {formatMin(r.minutes)}
+                                      {formatMin(r.minutes, t.recipes.filters.hourShort)}
                             </GlassBadge>
                           </div>
                         </div>
@@ -826,7 +830,7 @@ export default function RecipesIndex() {
                         <div className="flex flex-col p-4 gap-3 flex-1">
                           <div className="flex items-center justify-between gap-3">
                             <Chip tone="muted">
-                              {CATEGORY_LABELS[r.category] ?? r.category}
+                              {t.recipes.categories[r.category as keyof typeof t.recipes.categories] ?? r.category}
                             </Chip>
                           </div>
 
@@ -860,7 +864,7 @@ export default function RecipesIndex() {
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={pageClamped === 1}
                   >
-                    Προηγούμενη
+                    {t.recipes.results.previous}
                   </button>
 
                   <div className="hidden sm:flex items-center gap-2">
@@ -902,7 +906,7 @@ export default function RecipesIndex() {
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={pageClamped === totalPages}
                   >
-                    Επόμενη
+                    {t.recipes.results.next}
                   </button>
                 </div>
               )}
@@ -915,18 +919,18 @@ export default function RecipesIndex() {
             className="fixed inset-0 z-50"
             role="dialog"
             aria-modal="true"
-            aria-label="Φίλτρα"
+            aria-label={t.recipes.filters.title}
           >
             <button
               className="absolute inset-0 bg-black/30"
               onClick={() => setFiltersOpen(false)}
-              aria-label="Κλείσιμο"
+              aria-label={t.recipes.filters.close}
             />
             <div className="absolute inset-x-0 bottom-0 max-h-[85vh] rounded-t-3xl bg-white shadow-[0_-20px_60px_rgba(0,0,0,0.18)]">
               <div className="mx-auto max-w-6xl px-4 pt-4 pb-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-base font-semibold text-slate-900">
-                    Φίλτρα
+                    {t.recipes.filters.title}
                   </div>
                   <button
                     onClick={() => setFiltersOpen(false)}
@@ -935,7 +939,7 @@ export default function RecipesIndex() {
                       "bg-black/5 text-slate-700 hover:bg-black/10 transition",
                       "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                     )}
-                    aria-label="Κλείσιμο"
+                    aria-label={t.recipes.filters.close}
                   >
                     ×
                   </button>
@@ -943,7 +947,7 @@ export default function RecipesIndex() {
 
                 <div className="mt-4 space-y-4 overflow-auto pb-24 max-h-[70vh]">
                   <SectionCard
-                    title="Αναζήτηση"
+                    title={t.recipes.filters.search}
                     right={
                       draftSearch ? (
                         <button
@@ -954,7 +958,7 @@ export default function RecipesIndex() {
                             "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg px-2 py-1",
                           )}
                         >
-                          Καθαρισμός
+                          {t.recipes.filters.clear}
                         </button>
                       ) : null
                     }
@@ -962,11 +966,11 @@ export default function RecipesIndex() {
                     <SearchInput
                       value={draftSearch}
                       onChange={setDraftSearch}
-                      placeholder="όνομα, περιγραφή ή υλικό…"
+                      placeholder={t.recipes.filters.searchAnyPlaceholder}
                     />
                   </SectionCard>
 
-                  <SectionCard title="Κατηγορία">
+                  <SectionCard title={t.recipes.filters.category}>
                     <div className="flex flex-wrap gap-2">
                       {categories.map((c) => {
                         const active = draftCats.includes(c);
@@ -989,14 +993,14 @@ export default function RecipesIndex() {
                               "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                             )}
                           >
-                            {CATEGORY_LABELS[c] ?? c}
+                            {t.recipes.categories[c as keyof typeof t.recipes.categories] ?? c}
                           </button>
                         );
                       })}
                     </div>
                   </SectionCard>
 
-                  <SectionCard title="Χρόνος προετοιμασίας">
+                  <SectionCard title={t.recipes.filters.prepTime}>
                     <select
                       value={draftTime}
                       onChange={(e) => setDraftTime(e.target.value)}
@@ -1006,19 +1010,19 @@ export default function RecipesIndex() {
                         "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                       )}
                     >
-                      <option value="">Όλοι</option>
-                      <option value="t15">≤ 15 λεπτά</option>
-                      <option value="t30">15–30 λεπτά</option>
-                      <option value="t60">30–60 λεπτά</option>
-                      <option value="t61">&gt; 60 λεπτά</option>
+                      <option value="">{t.recipes.filters.all}</option>
+                      <option value="t15">≤ 15 {t.recipes.filters.minutes}</option>
+                      <option value="t30">15–30 {t.recipes.filters.minutes}</option>
+                      <option value="t60">30–60 {t.recipes.filters.minutes}</option>
+                      <option value="t61">&gt; 60 {t.recipes.filters.minutes}</option>
                     </select>
                   </SectionCard>
 
-                  <SectionCard title="Με">
+                  <SectionCard title={t.recipes.filters.with}>
                     <TagInput
                       value={draftInclude}
                       setValue={setDraftInclude}
-                      placeholder="π.χ. βρώμη, σοκολάτα"
+                      placeholder={t.recipes.filters.ingredientsPlaceholder}
                     />
                   </SectionCard>
                 </div>
@@ -1040,7 +1044,7 @@ export default function RecipesIndex() {
                       "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                     )}
                   >
-                    Καθαρισμός
+                    {t.recipes.filters.clear}
                   </button>
                   <button
                     onClick={applyDrawerFilters}
@@ -1051,7 +1055,7 @@ export default function RecipesIndex() {
                       "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                     )}
                   >
-                    Εφαρμογή
+                    {t.recipes.filters.apply}
                   </button>
                 </div>
               </div>
@@ -1104,6 +1108,7 @@ function SearchInput({
   onChange: (v: string) => void;
   placeholder?: string;
 }) {
+  const t = useTranslations();
   return (
     <div className="relative">
       <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
@@ -1128,7 +1133,7 @@ function SearchInput({
             "h-7 w-7 rounded-full text-slate-500 hover:text-slate-900 hover:bg-black/5 transition",
             "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           )}
-          aria-label="Καθαρισμός αναζήτησης"
+          aria-label={t.recipes.filters.removeSearch}
         >
           ×
         </button>
@@ -1146,6 +1151,7 @@ function TagInput({
   setValue: (v: string[]) => void;
   placeholder?: string;
 }) {
+  const t = useTranslations();
   const [text, setText] = useState("");
 
   function addTagFromText() {
@@ -1186,29 +1192,29 @@ function TagInput({
             "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           )}
         >
-          Προσθήκη
+          {t.recipes.filters.add}
         </button>
       </div>
 
       {value.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
-          {value.map((t) => (
+          {value.map((tag) => (
             <span
-              key={t}
+              key={tag}
               className={classNames(
                 "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium",
                 "bg-primary/10 text-primary ring-1 ring-primary/30",
               )}
             >
-              {t}
+              {tag}
               <button
-                onClick={() => setValue(value.filter((x) => x !== t))}
+                onClick={() => setValue(value.filter((x) => x !== tag))}
                 className={classNames(
                   "inline-flex h-5 w-5 items-center justify-center rounded-full",
                   "text-primary/70 hover:text-primary hover:bg-primary/10 transition",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 )}
-                aria-label="Αφαίρεση"
+                aria-label={t.recipes.filters.remove}
               >
                 ×
               </button>
@@ -1268,16 +1274,17 @@ function GridSkeleton() {
 }
 
 function EmptyState({ onClear }: { onClear: () => void }) {
+  const t = useTranslations();
   return (
     <div className="rounded-2xl bg-white/90 ring-1 ring-black/5 shadow-[0_10px_24px_rgba(15,23,42,0.06)] p-8 text-center">
       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20">
         <SearchIcon />
       </div>
       <h3 className="mt-4 text-lg font-semibold text-slate-900">
-        Δεν βρέθηκαν συνταγές
+        {t.recipes.results.none}
       </h3>
       <p className="mt-2 text-sm text-slate-600">
-        Δοκίμασε να αλλάξεις φίλτρα ή να καθαρίσεις τα κριτήρια αναζήτησης.
+        {t.recipes.results.noneDescription}
       </p>
       <button
         onClick={onClear}
@@ -1288,7 +1295,7 @@ function EmptyState({ onClear }: { onClear: () => void }) {
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         )}
       >
-        Καθαρισμός φίλτρων
+        {t.recipes.filters.clearFilters}
       </button>
     </div>
   );

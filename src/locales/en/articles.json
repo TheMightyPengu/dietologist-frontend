@@ -1,0 +1,18 @@
+{
+  "meta": { "listTitle": "Articles — Nutrition & Wellness", "listDescription": "Articles about nutrition, wellness and everyday life.", "detailSuffix": "Articles" },
+  "defaults": { "title": "Articles", "description": "Curated content for a healthy, enjoyable and balanced everyday life.", "uncategorized": "Uncategorized" },
+  "detail": { "back": "Back to articles", "published": "Published" },
+  "filters": {
+    "aria": "Article filters", "title": "Filters", "clear": "Clear filters", "search": "Search",
+    "searchPlaceholder": "Search articles...", "categories": "Categories", "noCategories": "No categories available.",
+    "date": "Date", "allDates": "All dates", "lastMonth": "Last month", "lastSixMonths": "Last six months",
+    "lastYear": "Last year", "customRange": "Custom range", "from": "From", "to": "To", "close": "Close", "apply": "Apply"
+  },
+  "chips": { "search": "Search", "category": "Category", "date": "Date", "to": "to" },
+  "sort": { "label": "Sort:", "newest": "Newest", "oldest": "Oldest", "az": "Alphabetical (A–Z)" },
+  "results": {
+    "found": "Found", "articles": "articles", "loadErrorTitle": "Loading error", "loadError": "Articles could not be loaded.",
+    "none": "No articles found", "noneDescription": "Try changing or clearing the filters.", "noImage": "No image",
+    "featured": "⭐ Featured", "previous": "Previous", "next": "Next"
+  }
+}

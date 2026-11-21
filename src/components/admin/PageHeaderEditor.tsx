@@ -3,6 +3,9 @@ import { PageHeaderApi } from "@/api/PageHeaderController";
 import type { ApiFieldErrors } from "@/api/_axios-client";
 import FormFieldError from "@/components/admin/FormFieldError";
 import GeneralErrorDialog from "@/components/admin/GeneralErrorDialog";
+import BilingualSaveWarning from "@/components/admin/BilingualSaveWarning";
+import ContentLanguageSwitch, { type ContentLanguage } from "@/components/admin/ContentLanguageSwitch";
+import { useBilingualSaveGuard } from "@/components/admin/useBilingualSaveGuard";
 import { useFormErrors } from "@/components/hooks/useFormErrors";
 import {
   addValidationError,
@@ -67,8 +70,13 @@ export default function PageHeaderEditor({
   fallbackDescription,
 }: PageHeaderEditorProps) {
   const [title, setTitle] = useState(fallbackTitle);
+  const [titleEn, setTitleEn] = useState("");
   const [description, setDescription] =
     useState(fallbackDescription);
+  const [descriptionEn, setDescriptionEn] = useState("");
+  const [language, setLanguage] = useState<ContentLanguage>("el");
+  const [localizedDirty, setLocalizedDirty] = useState(false);
+  const saveGuard = useBilingualSaveGuard(setLanguage);
 
   const [open, setOpen] = useState(false);
 
@@ -102,16 +110,21 @@ export default function PageHeaderEditor({
         }
 
         setTitle(pageHeader.title || fallbackTitle);
+        setTitleEn(pageHeader.titleEn || "");
         setDescription(
           pageHeader.description || fallbackDescription,
         );
+        setDescriptionEn(pageHeader.descriptionEn || "");
+        setLocalizedDirty(false);
       } catch (error: unknown) {
         if (!mounted) {
           return;
         }
 
         setTitle(fallbackTitle);
+        setTitleEn("");
         setDescription(fallbackDescription);
+        setDescriptionEn("");
 
         const status = (error as { status?: number })?.status;
 
@@ -159,7 +172,7 @@ export default function PageHeaderEditor({
     };
   }, [saved]);
 
-  async function savePageHeader() {
+  async function performSavePageHeader() {
     const errors = validatePageHeader(title, description);
 
     if (!applyFrontendErrors(errors)) {
@@ -172,18 +185,25 @@ export default function PageHeaderEditor({
       setSaved(false);
 
       const cleanTitle = title.trim();
+      const cleanTitleEn = titleEn.trim();
       const cleanDescription = description.trim();
+      const cleanDescriptionEn = descriptionEn.trim();
 
       await PageHeaderApi.update(pageKey, {
         title: cleanTitle,
+        titleEn: cleanTitleEn,
         description: cleanDescription,
+        descriptionEn: cleanDescriptionEn,
       });
 
       setTitle(cleanTitle);
+      setTitleEn(cleanTitleEn);
       setDescription(cleanDescription);
+      setDescriptionEn(cleanDescriptionEn);
 
       clearAllErrors();
       setSaved(true);
+      setLocalizedDirty(false);
     } catch (error: unknown) {
       applyApiError(
         error,
@@ -194,13 +214,26 @@ export default function PageHeaderEditor({
     }
   }
 
+  function savePageHeader() {
+    saveGuard.requestSave(
+      [title, description],
+      [titleEn, descriptionEn],
+      performSavePageHeader,
+      localizedDirty,
+    );
+  }
+
   function resetValues() {
     clearAllErrors();
 
     setTitle(fallbackTitle);
+    setTitleEn("");
     setDescription(fallbackDescription);
+    setDescriptionEn("");
 
     setSaved(false);
+    setLanguage("el");
+    setLocalizedDirty(true);
   }
 
   return (
@@ -242,7 +275,9 @@ export default function PageHeaderEditor({
               </div>
             ) : (
               <div className="mt-5 space-y-4">
-                <div>
+                <ContentLanguageSwitch value={language} onChange={setLanguage} />
+                {language === "el" ? <>
+                <div data-bilingual-form tabIndex={-1}>
                   <label className="block text-sm font-medium text-slate-700">
                     Τίτλος σελίδας{" "}
                     <span
@@ -258,6 +293,7 @@ export default function PageHeaderEditor({
                     onChange={(event) => {
                       setTitle(event.target.value);
                       setSaved(false);
+                      setLocalizedDirty(true);
                       clearFieldError("title");
                     }}
                     className={errorInputClass(
@@ -287,6 +323,7 @@ export default function PageHeaderEditor({
                     onChange={(event) => {
                       setDescription(event.target.value);
                       setSaved(false);
+                      setLocalizedDirty(true);
                       clearFieldError("description");
                     }}
                     className={errorInputClass(
@@ -300,6 +337,48 @@ export default function PageHeaderEditor({
                     errors={fieldErrors.description}
                   />
                 </div>
+
+                </> : <div data-bilingual-form tabIndex={-1} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">
+                      Τίτλος σελίδας{" "}
+                      <span className="text-rose-600" aria-hidden="true">*</span>
+                    </label>
+                    <input
+                      value={titleEn}
+                      maxLength={1000}
+                      onChange={(event) => {
+                        setTitleEn(event.target.value);
+                        setSaved(false);
+                        setLocalizedDirty(true);
+                        clearFieldError("titleEn");
+                      }}
+                      className={errorInputClass(Boolean(fieldErrors.titleEn), fieldClass)}
+                      placeholder="Τίτλος δημόσιας σελίδας"
+                    />
+                    <FormFieldError errors={fieldErrors.titleEn} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">
+                      Περιγραφή σελίδας{" "}
+                      <span className="text-rose-600" aria-hidden="true">*</span>
+                    </label>
+                    <textarea
+                      value={descriptionEn}
+                      maxLength={10000}
+                      rows={4}
+                      onChange={(event) => {
+                        setDescriptionEn(event.target.value);
+                        setSaved(false);
+                        setLocalizedDirty(true);
+                        clearFieldError("descriptionEn");
+                      }}
+                      className={errorInputClass(Boolean(fieldErrors.descriptionEn), `${fieldClass} resize-y`)}
+                      placeholder="Σύντομη περιγραφή της δημόσιας σελίδας"
+                    />
+                    <FormFieldError errors={fieldErrors.descriptionEn} />
+                  </div>
+                </div>}
 
                 <FormFieldError errors={fieldErrors.form} />
 
@@ -348,6 +427,7 @@ export default function PageHeaderEditor({
         onClose={closeGeneralError}
         onRetry={savePageHeader}
       />
+      <BilingualSaveWarning {...saveGuard.warningProps} />
     </>
   );
 }

@@ -18,19 +18,21 @@ import {
   UsefulInfoApi,
   type UsefulInfoGetDto,
 } from "@/api/UsefulInfoController";
+import {
+  ContactInfoApi,
+  type ContactInfoGetDto,
+} from "@/api/ContactInfoController";
 import RichTextEditor from "@/components/admin/RichTextEditor";
 import {
   NewsletterSubscribersApi,
   type NewsletterSubscriberGetDto,
 } from "@/api/NewsletterSubscribersController";
-import {
-  OfficeHoursApi,
-  type OfficeHoursPostDto,
-  type WeeklyOfficeHours,
-} from "@/api/OfficeHoursController";
 import { type ApiFieldErrors } from "@/api/_axios-client";
 import FormFieldError from "@/components/admin/FormFieldError";
 import GeneralErrorDialog from "@/components/admin/GeneralErrorDialog";
+import BilingualSaveWarning from "@/components/admin/BilingualSaveWarning";
+import ContentLanguageSwitch, { type ContentLanguage } from "@/components/admin/ContentLanguageSwitch";
+import { useBilingualSaveGuard } from "@/components/admin/useBilingualSaveGuard";
 import { useFormErrors } from "@/components/hooks/useFormErrors";
 import {
   addValidationError,
@@ -40,6 +42,13 @@ import {
   isValidPhone,
 } from "@/lib/form-validation";
 import PageHeaderEditor from "@/components/admin/PageHeaderEditor";
+import MonthlyOfficeHoursManager from "@/components/admin/MonthlyOfficeHoursManager";
+import {
+  deleteSeminarRegistration,
+  getSeminarRegistrations,
+  updateSeminarRegistration,
+  type SeminarRegistration,
+} from "@/api/SeminarsController";
 
 const cx = (...c: (string | false | null | undefined)[]) =>
   c.filter(Boolean).join(" ");
@@ -62,6 +71,7 @@ type Tab =
   | "bookings"
   | "messages"
   | "newsletter"
+  | "contactInfo"
   | "usefulInfo"
   | "officeHours";
 
@@ -316,6 +326,7 @@ export default function ManagementContactPage() {
                 { key: "bookings", label: "Ραντεβού" },
                 { key: "messages", label: "Μηνύματα" },
                 { key: "newsletter", label: "Newsletter" },
+                { key: "contactInfo", label: "Contact details" },
                 { key: "usefulInfo", label: "Χρήσιμες Πληροφορίες" },
                 { key: "officeHours", label: "Ώρες Λειτουργίας" },
               ].map((t) => (
@@ -335,15 +346,6 @@ export default function ManagementContactPage() {
             </div>
           </Card>
 
-          {active === "bookings" && (
-            <PageHeaderEditor
-              key="contact-book"
-              pageKey="contact-book"
-              fallbackTitle="Κλείστε Ραντεβού"
-              fallbackDescription="Επιλέξτε υπηρεσία και θα εμφανιστούν μόνο οι διαθέσιμες ημέρες και ώρες. Συμπληρώστε τη φόρμα και θα σας στείλουμε email για επιβεβαίωση."
-            />
-          )}
-
           {active === "messages" && (
             <PageHeaderEditor
               key="contact-form"
@@ -356,8 +358,9 @@ export default function ManagementContactPage() {
           {active === "bookings" && <BookingsManager />}
           {active === "messages" && <MessagesManager />}
           {active === "newsletter" && <NewsletterManager />}
+          {active === "contactInfo" && <ContactInfoManager />}
           {active === "usefulInfo" && <UsefulInfoManager />}
-          {active === "officeHours" && <OfficeHoursManager />}
+          {active === "officeHours" && <MonthlyOfficeHoursManager />}
         </div>
       </div>
     </>
@@ -366,6 +369,43 @@ export default function ManagementContactPage() {
 
 /* =============== ΡΑΝΤΕΒΟΥ =============== */
 function BookingsManager() {
+  const [bookingType, setBookingType] = useState<"services" | "seminars">("services");
+
+  return (
+    <>
+      <Card className="mb-6 p-3">
+        <div className="flex w-fit rounded-full bg-slate-100 p-1">
+          {[
+            { key: "services", label: "Υπηρεσίες" },
+            { key: "seminars", label: "Σεμινάρια" },
+          ].map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => setBookingType(option.key as "services" | "seminars")}
+              className={cx(
+                "rounded-full px-4 py-2 text-sm font-semibold transition",
+                bookingType === option.key
+                  ? "bg-[rgb(var(--primary))] text-white shadow-sm"
+                  : "text-slate-600 hover:text-slate-900",
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      {bookingType === "services" ? (
+        <ServiceBookingsManager />
+      ) : (
+        <SeminarRegistrationsManager />
+      )}
+    </>
+  );
+}
+
+function ServiceBookingsManager() {
   const [all, setAll] = useState<AppointmentsGetDto[]>([]);
   const [services, setServices] = useState<ProvidedServicesGetDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -751,6 +791,13 @@ function BookingsManager() {
 
   return (
     <>
+      <PageHeaderEditor
+        key="contact-book"
+        pageKey="contact-book"
+        fallbackTitle="Κλείστε Ραντεβού"
+        fallbackDescription="Επιλέξτε υπηρεσία και θα εμφανιστούν μόνο οι διαθέσιμες ημέρες και ώρες. Συμπληρώστε τη φόρμα και θα σας στείλουμε email για επιβεβαίωση."
+      />
+
       <Card className="mb-6 p-4 md:p-5">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_220px_auto]">
           <input
@@ -1277,6 +1324,304 @@ function BookingsManager() {
         onRetry={handleCreateSubmit}
       />
     </>
+  );
+}
+
+function validateSeminarRegistration(value: { name: string; email: string }): ApiFieldErrors {
+  const errors: ApiFieldErrors = {};
+
+  if (!value.name.trim()) {
+    addValidationError(errors, "name", "Το ονοματεπώνυμο είναι υποχρεωτικό.");
+  }
+
+  if (!value.email.trim()) {
+    addValidationError(errors, "email", "Το email είναι υποχρεωτικό.");
+  } else if (!isValidEmail(value.email)) {
+    addValidationError(errors, "email", "Το email δεν είναι έγκυρο.");
+  }
+
+  return errors;
+}
+
+function SeminarRegistrationsManager() {
+  const [registrations, setRegistrations] = useState<SeminarRegistration[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const errors = useFormErrors();
+
+  useEffect(() => {
+    let mounted = true;
+
+    void (async () => {
+      try {
+        setLoading(true);
+        const data = await getSeminarRegistrations();
+        if (mounted) setRegistrations(data);
+      } catch (error: unknown) {
+        if (mounted) {
+          errors.applyApiError(
+            error,
+            "Δεν ήταν δυνατή η φόρτωση των αιτημάτων συμμετοχής.",
+          );
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [errors.applyApiError]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 1600);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  async function handleSave(
+    registration: SeminarRegistration,
+    payload: { name: string; email: string },
+  ) {
+    try {
+      setBusyId(registration.id);
+      await updateSeminarRegistration(registration.id, payload);
+      setRegistrations((current) =>
+        current.map((item) =>
+          item.id === registration.id ? { ...item, ...payload } : item,
+        ),
+      );
+      setToast("Το αίτημα ενημερώθηκε.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleDelete(id: number) {
+    if (!confirm("Θέλετε να διαγράψετε αυτό το αίτημα συμμετοχής;")) return;
+
+    try {
+      setBusyId(id);
+      await deleteSeminarRegistration(id);
+      setRegistrations((current) => current.filter((item) => item.id !== id));
+      setToast("Το αίτημα διαγράφηκε.");
+    } catch (error: unknown) {
+      errors.applyApiError(error, "Δεν ήταν δυνατή η διαγραφή του αιτήματος.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <>
+      <Card className="overflow-hidden">
+        {loading ? (
+          <div className="px-4 py-6 text-center text-sm text-slate-500">
+            Φόρτωση αιτημάτων συμμετοχής…
+          </div>
+        ) : registrations.length === 0 ? (
+          <div className="px-4 py-6 text-center text-sm text-slate-500">
+            Δεν υπάρχουν αιτήματα συμμετοχής σε σεμινάρια.
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {registrations.map((registration) => (
+              <SeminarRegistrationCard
+                key={registration.id}
+                row={registration}
+                busy={busyId === registration.id}
+                onSave={handleSave}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {toast && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-sm text-white shadow-lg">
+          {toast}
+        </div>
+      )}
+
+      <GeneralErrorDialog
+        open={Boolean(errors.generalError)}
+        title={errors.generalError?.title}
+        message={errors.generalError?.message ?? ""}
+        onClose={errors.closeGeneralError}
+      />
+    </>
+  );
+}
+
+function SeminarRegistrationCard({
+  row,
+  busy,
+  onSave,
+  onDelete,
+}: {
+  row: SeminarRegistration;
+  busy: boolean;
+  onSave: (
+    registration: SeminarRegistration,
+    payload: { name: string; email: string },
+  ) => Promise<void>;
+  onDelete: (id: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(row.name);
+  const [email, setEmail] = useState(row.email);
+  const errors = useFormErrors();
+
+  useEffect(() => {
+    setName(row.name);
+    setEmail(row.email);
+    setEditing(false);
+    errors.clearAllErrors();
+  }, [errors.clearAllErrors, row]);
+
+  function cancelEditing() {
+    setName(row.name);
+    setEmail(row.email);
+    setEditing(false);
+    errors.clearAllErrors();
+  }
+
+  async function save() {
+    const payload = { name: name.trim(), email: email.trim() };
+    if (!errors.applyFrontendErrors(validateSeminarRegistration(payload))) return;
+
+    try {
+      await onSave(row, payload);
+      setEditing(false);
+    } catch (error: unknown) {
+      errors.applyApiError(error, "Δεν ήταν δυνατή η αποθήκευση του αιτήματος.");
+    }
+  }
+
+  return (
+    <div className="p-4 md:p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-[rgba(var(--primary),0.1)] px-3 py-1 text-xs font-semibold text-[rgba(var(--primary),0.72)]">
+              #{row.id}
+            </span>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">
+              Αίτημα: {new Date(row.createdAt).toLocaleString("el-GR")}
+            </span>
+          </div>
+
+          <h3 className="mt-3 text-lg font-semibold text-slate-900">{row.name}</h3>
+          <p className="mt-1 text-sm font-medium text-slate-700">
+            Σεμινάριο: {row.seminarTitle || `#${row.seminarId}`}
+          </p>
+          {row.seminarDateTime && (
+            <p className="mt-1 text-sm text-slate-500">
+              {new Date(row.seminarDateTime).toLocaleString("el-GR")}
+              {row.seminarType ? ` · ${row.seminarType}` : ""}
+            </p>
+          )}
+          <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-sm">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">Email</div>
+            <div className="mt-0.5 break-all text-slate-800">{row.email}</div>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => (editing ? cancelEditing() : setEditing(true))}
+            disabled={busy}
+            className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[rgb(var(--primary))]"
+          >
+            {editing ? "Κλείσιμο επεξεργασίας" : "Επεξεργασία"}
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(row.id)}
+            disabled={busy}
+            className="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+          >
+            {busy ? "Διαγραφή…" : "Διαγραφή"}
+          </button>
+        </div>
+      </div>
+
+      {editing && (
+        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Ονοματεπώνυμο <span className="text-rose-600">*</span>
+              </label>
+              <input
+                value={name}
+                onChange={(event) => {
+                  setName(event.target.value);
+                  errors.clearFieldError("name");
+                }}
+                disabled={busy}
+                className={errorInputClass(
+                  Boolean(errors.fieldErrors.name),
+                  "h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))]",
+                )}
+              />
+              <FormFieldError errors={errors.fieldErrors.name} />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Email <span className="text-rose-600">*</span>
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  errors.clearFieldError("email");
+                }}
+                disabled={busy}
+                className={errorInputClass(
+                  Boolean(errors.fieldErrors.email),
+                  "h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))]",
+                )}
+              />
+              <FormFieldError errors={errors.fieldErrors.email} />
+            </div>
+          </div>
+
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={cancelEditing}
+              disabled={busy}
+              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700"
+            >
+              Άκυρο
+            </button>
+            <button
+              type="button"
+              onClick={save}
+              disabled={busy}
+              className="rounded-full bg-[rgb(var(--primary))] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {busy ? "Αποθήκευση…" : "Αποθήκευση"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <GeneralErrorDialog
+        open={Boolean(errors.generalError)}
+        title={errors.generalError?.title}
+        message={errors.generalError?.message ?? ""}
+        onClose={errors.closeGeneralError}
+        onRetry={save}
+      />
+    </div>
   );
 }
 
@@ -2154,14 +2499,138 @@ function MessagesManager() {
   );
 }
 
+function ContactInfoManager() {
+  const [item, setItem] = useState<ContactInfoGetDto | null>(null);
+  const [form, setForm] = useState({
+    email: "",
+    telephone: "",
+    location: "",
+    locationEn: "",
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [language, setLanguage] = useState<ContentLanguage>("el");
+  const [localizedDirty, setLocalizedDirty] = useState(false);
+  const saveGuard = useBilingualSaveGuard(setLanguage);
+  const errors = useFormErrors();
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        setLoading(true);
+        const records = await ContactInfoApi.list();
+        const current = records[0] ?? null;
+        setItem(current);
+        setForm({
+          email: current?.email ?? "",
+          telephone: current?.telephone ?? "",
+          location: current?.location ?? "",
+          locationEn: current?.locationEn ?? "",
+        });
+        setLocalizedDirty(false);
+      } catch (error: unknown) {
+        errors.applyApiError(error, "Unable to load contact details.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [errors.applyApiError]);
+
+  async function performSave() {
+    try {
+      setSaving(true);
+      const payload = {
+        email: form.email.trim(),
+        telephone: form.telephone.trim(),
+        location: form.location.trim(),
+        locationEn: form.locationEn.trim(),
+      };
+
+      if (item) {
+        await ContactInfoApi.update(item.id, payload);
+        const fresh = await ContactInfoApi.get(item.id);
+        setItem(fresh);
+      } else {
+        setItem(await ContactInfoApi.create(payload));
+      }
+      errors.clearAllErrors();
+      setLocalizedDirty(false);
+    } catch (error: unknown) {
+      errors.applyApiError(error, "Unable to save contact details.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function save() {
+    saveGuard.requestSave([form.location], [form.locationEn], performSave, localizedDirty);
+  }
+
+  return (
+    <Card className="p-4 md:p-5">
+      <h2 className="text-xl font-semibold text-slate-900">Contact details</h2>
+      {loading ? (
+        <p className="mt-4 text-sm text-slate-500">Loading…</p>
+      ) : (
+        <div className="mt-5 space-y-4">
+          <ContentLanguageSwitch value={language} onChange={setLanguage} />
+          {([[
+            "email",
+            "Email",
+          ], ["telephone", "Telephone"], ["location", "Location (ΕΛ)"], [
+            "locationEn",
+            "Τοποθεσία",
+          ]] as const).filter(([key]) =>
+            key === "email" || key === "telephone" || key === (language === "el" ? "location" : "locationEn")
+          ).map(([key, label]) => (
+            <label key={key} className="block text-sm font-medium text-slate-700">
+              {key === "location" || key === "locationEn" ? "Τοποθεσία" : label}
+              <input
+                value={form[key]}
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, [key]: event.target.value }));
+                  if (key === "location" || key === "locationEn") setLocalizedDirty(true);
+                }}
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+              />
+            </label>
+          ))}
+          <FormFieldError errors={errors.fieldErrors.form} />
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving}
+            className="rounded-full bg-[rgb(var(--primary))] px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+      )}
+      <GeneralErrorDialog
+        open={Boolean(errors.generalError)}
+        title={errors.generalError?.title}
+        message={errors.generalError?.message ?? ""}
+        onClose={errors.closeGeneralError}
+        onRetry={save}
+      />
+      <BilingualSaveWarning {...saveGuard.warningProps} />
+    </Card>
+  );
+}
+
 /* =============== ΧΡΗΣΙΜΕΣ ΠΛΗΡΟΦΟΡΙΕΣ =============== */
 function UsefulInfoManager() {
   const [item, setItem] = useState<UsefulInfoGetDto | null>(null);
 
   const [title, setTitle] = useState("");
+  const [titleEn, setTitleEn] = useState("");
   const [info, setInfo] = useState("");
+  const [infoEn, setInfoEn] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [language, setLanguage] = useState<ContentLanguage>("el");
+  const [localizedDirty, setLocalizedDirty] = useState(false);
+  const saveGuard = useBilingualSaveGuard(setLanguage);
   const [toast, setToast] = useState<string | null>(null);
 
   const formErrors = useFormErrors();
@@ -2175,7 +2644,10 @@ function UsefulInfoManager() {
 
       setItem(data);
       setTitle(data?.title ?? "");
+      setTitleEn(data?.titleEn ?? "");
       setInfo(data?.info ?? "");
+      setInfoEn(data?.infoEn ?? "");
+      setLocalizedDirty(false);
     } catch (error: unknown) {
       console.error(error);
 
@@ -2206,7 +2678,7 @@ function UsefulInfoManager() {
     };
   }, [toast]);
 
-  async function handleSave() {
+  async function performSave() {
     const validationErrors: ApiFieldErrors = {};
 
     if (isRichTextBlank(title)) {
@@ -2234,12 +2706,17 @@ function UsefulInfoManager() {
 
       const saved = await UsefulInfoApi.update(item?.id ?? 1, {
         title: title.trim(),
+        titleEn: titleEn.trim(),
         info: info.trim(),
+        infoEn: infoEn.trim(),
       });
 
       setItem(saved);
       setTitle(saved.title || "");
+      setTitleEn(saved.titleEn || "");
       setInfo(saved.info || "");
+      setInfoEn(saved.infoEn || "");
+      setLocalizedDirty(false);
       formErrors.clearAllErrors();
       setToast("Αποθηκεύτηκε.");
     } catch (error: unknown) {
@@ -2252,6 +2729,10 @@ function UsefulInfoManager() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleSave() {
+    saveGuard.requestSave([title, info], [titleEn, infoEn], performSave, localizedDirty);
   }
 
   return (
@@ -2274,6 +2755,8 @@ function UsefulInfoManager() {
           </div>
         ) : (
           <div className="space-y-5">
+            <ContentLanguageSwitch value={language} onChange={setLanguage} />
+            {language === "el" ? <div data-bilingual-form tabIndex={-1} className="space-y-5">
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-900">
                 Τίτλος{" "}
@@ -2293,6 +2776,7 @@ function UsefulInfoManager() {
                   value={title}
                   onChange={(value) => {
                     setTitle(value);
+                    setLocalizedDirty(true);
                     formErrors.clearFieldError("title");
                   }}
                   placeholder="π.χ. Χρήσιμες Πληροφορίες"
@@ -2322,6 +2806,7 @@ function UsefulInfoManager() {
                   value={info}
                   onChange={(value) => {
                     setInfo(value);
+                    setLocalizedDirty(true);
                     formErrors.clearFieldError("info");
                   }}
                   placeholder="Γράψτε εδώ τις πληροφορίες που θα βλέπει ο χρήστης στη φόρμα ραντεβού."
@@ -2331,6 +2816,33 @@ function UsefulInfoManager() {
 
               <FormFieldError errors={formErrors.fieldErrors.info} />
             </div>
+
+            </div> : <div data-bilingual-form tabIndex={-1} className="space-y-5">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-900">
+                  Τίτλος{" "}
+                  <span className="text-rose-600" aria-hidden="true">*</span>
+                </label>
+                <RichTextEditor
+                  value={titleEn}
+                  onChange={(value) => { setTitleEn(value); setLocalizedDirty(true); }}
+                  placeholder="π.χ. Χρήσιμες Πληροφορίες"
+                  minHeight={120}
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-900">
+                  Πληροφορίες{" "}
+                  <span className="text-rose-600" aria-hidden="true">*</span>
+                </label>
+                <RichTextEditor
+                  value={infoEn}
+                  onChange={(value) => { setInfoEn(value); setLocalizedDirty(true); }}
+                  placeholder="Γράψτε εδώ τις πληροφορίες που θα βλέπει ο χρήστης στη φόρμα ραντεβού."
+                  minHeight={260}
+                />
+              </div>
+            </div>}
 
             <FormFieldError errors={formErrors.fieldErrors.form} />
 
@@ -2366,470 +2878,8 @@ function UsefulInfoManager() {
         onClose={formErrors.closeGeneralError}
         onRetry={handleSave}
       />
+      <BilingualSaveWarning {...saveGuard.warningProps} />
     </>
   );
 }
 
-/* =============== ΩΡΕΣ ΓΡΑΦΕΙΟΥ =============== */
-type OfficeHoursFormRow = {
-  dayOfWeek: number;
-  label: string;
-  startTime: string;
-  endTime: string;
-  isActive: boolean;
-};
-
-const officeDays: Array<{
-  dayOfWeek: number;
-  key: keyof WeeklyOfficeHours;
-  label: string;
-}> = [
-  {
-    dayOfWeek: 0,
-    key: "monday",
-    label: "Δευτέρα",
-  },
-  {
-    dayOfWeek: 1,
-    key: "tuesday",
-    label: "Τρίτη",
-  },
-  {
-    dayOfWeek: 2,
-    key: "wednesday",
-    label: "Τετάρτη",
-  },
-  {
-    dayOfWeek: 3,
-    key: "thursday",
-    label: "Πέμπτη",
-  },
-  {
-    dayOfWeek: 4,
-    key: "friday",
-    label: "Παρασκευή",
-  },
-  {
-    dayOfWeek: 5,
-    key: "saturday",
-    label: "Σάββατο",
-  },
-  {
-    dayOfWeek: 6,
-    key: "sunday",
-    label: "Κυριακή",
-  },
-];
-
-function normalizeTime(value?: string | null) {
-  if (!value) {
-    return "09:00";
-  }
-
-  return value.slice(0, 5);
-}
-
-function weeklyResponseToRows(weekly: WeeklyOfficeHours): OfficeHoursFormRow[] {
-  return officeDays.map((day) => {
-    const existing = weekly[day.key]?.[0];
-
-    return {
-      dayOfWeek: day.dayOfWeek,
-      label: day.label,
-      startTime: existing?.startTime
-        ? normalizeTime(existing.startTime)
-        : "09:00",
-      endTime: existing?.endTime ? normalizeTime(existing.endTime) : "17:00",
-      isActive: existing?.isActive ?? false,
-    };
-  });
-}
-
-function OfficeHoursManager() {
-  const [rows, setRows] = useState<OfficeHoursFormRow[]>([]);
-
-  const [originalRows, setOriginalRows] = useState<OfficeHoursFormRow[]>([]);
-
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-
-  const formErrors = useFormErrors();
-
-  const loadOfficeHours = useCallback(async () => {
-    try {
-      setLoading(true);
-      formErrors.clearAllErrors();
-
-      const weekly = await OfficeHoursApi.getWeekly();
-
-      const mappedRows = weeklyResponseToRows(weekly);
-
-      setRows(mappedRows);
-      setOriginalRows(mappedRows.map((row) => ({ ...row })));
-    } catch (error: unknown) {
-      console.error(error);
-
-      formErrors.applyApiError(
-        error,
-        "Δεν ήταν δυνατή η φόρτωση των ωρών γραφείου.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [formErrors.applyApiError, formErrors.clearAllErrors]);
-
-  useEffect(() => {
-    void loadOfficeHours();
-  }, [loadOfficeHours]);
-
-  useEffect(() => {
-    if (!toast) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      setToast(null);
-    }, 1800);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [toast]);
-
-  function updateRow(dayOfWeek: number, updates: Partial<OfficeHoursFormRow>) {
-    setRows((previous) =>
-      previous.map((row) =>
-        row.dayOfWeek === dayOfWeek
-          ? {
-              ...row,
-              ...updates,
-            }
-          : row,
-      ),
-    );
-
-    formErrors.clearFieldError(`startTime_${dayOfWeek}`);
-
-    formErrors.clearFieldError(`endTime_${dayOfWeek}`);
-
-    formErrors.clearFieldError("form");
-  }
-
-  function validateRows(): ApiFieldErrors {
-    const validationErrors: ApiFieldErrors = {};
-
-    const timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
-
-    for (const row of rows) {
-      if (!row.isActive) {
-        continue;
-      }
-
-      const startKey = `startTime_${row.dayOfWeek}`;
-
-      const endKey = `endTime_${row.dayOfWeek}`;
-
-      if (!row.startTime) {
-        addValidationError(
-          validationErrors,
-          startKey,
-          `Συμπληρώστε ώρα έναρξης για ${row.label}.`,
-        );
-      } else if (!timePattern.test(row.startTime)) {
-        addValidationError(
-          validationErrors,
-          startKey,
-          "Η ώρα πρέπει να έχει μορφή ΩΩ:ΛΛ, π.χ. 09:00.",
-        );
-      }
-
-      if (!row.endTime) {
-        addValidationError(
-          validationErrors,
-          endKey,
-          `Συμπληρώστε ώρα λήξης για ${row.label}.`,
-        );
-      } else if (!timePattern.test(row.endTime)) {
-        addValidationError(
-          validationErrors,
-          endKey,
-          "Η ώρα πρέπει να έχει μορφή ΩΩ:ΛΛ, π.χ. 17:00.",
-        );
-      }
-
-      if (
-        timePattern.test(row.startTime) &&
-        timePattern.test(row.endTime) &&
-        row.startTime >= row.endTime
-      ) {
-        addValidationError(
-          validationErrors,
-          endKey,
-          "Η ώρα λήξης πρέπει να είναι μετά την ώρα έναρξης.",
-        );
-      }
-    }
-
-    return validationErrors;
-  }
-
-  async function handleSave() {
-    const validationErrors = validateRows();
-
-    if (!formErrors.applyFrontendErrors(validationErrors)) {
-      return;
-    }
-
-    const payload: OfficeHoursPostDto[] = rows.map((row) => ({
-      dayOfWeek: row.dayOfWeek,
-      startTime: row.startTime,
-      endTime: row.endTime,
-      isActive: row.isActive,
-    }));
-
-    try {
-      setSaving(true);
-
-      await OfficeHoursApi.replaceWeekly(payload);
-
-      const weekly = await OfficeHoursApi.getWeekly();
-
-      const freshRows = weeklyResponseToRows(weekly);
-
-      setRows(freshRows);
-      setOriginalRows(freshRows.map((row) => ({ ...row })));
-
-      formErrors.clearAllErrors();
-      setToast("Οι ώρες γραφείου αποθηκεύτηκαν.");
-    } catch (error: unknown) {
-      console.error(error);
-
-      formErrors.applyApiError(
-        error,
-        "Δεν ήταν δυνατή η αποθήκευση των ωρών γραφείου.",
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function handleReset() {
-    formErrors.clearAllErrors();
-
-    setRows(
-      originalRows.map((row) => ({
-        ...row,
-      })),
-    );
-  }
-
-  function normalizeTypedTime(value: string) {
-    const digits = value.replace(/\D/g, "").slice(0, 4);
-
-    if (digits.length <= 2) {
-      return digits;
-    }
-
-    return `${digits.slice(0, 2)}:${digits.slice(2)}`;
-  }
-
-  const hasChanges = JSON.stringify(rows) !== JSON.stringify(originalRows);
-
-  return (
-    <>
-      <Card className="p-4 md:p-5">
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-slate-900">
-            Ώρες Γραφείου
-          </h2>
-
-          <p className="mt-1 max-w-3xl text-sm text-slate-600">
-            Επιλέξτε τις ημέρες κατά τις οποίες δέχεστε ραντεβού και ορίστε το
-            ωράριο κάθε ημέρας.
-          </p>
-        </div>
-
-        {loading ? (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
-            Φόρτωση ωρών γραφείου…
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {rows.map((row) => {
-              const startErrorKey = `startTime_${row.dayOfWeek}`;
-
-              const endErrorKey = `endTime_${row.dayOfWeek}`;
-
-              return (
-                <div
-                  key={row.dayOfWeek}
-                  className={cx(
-                    "grid gap-4 rounded-2xl border p-4 transition md:grid-cols-[180px_1fr_1fr_auto] md:items-start",
-                    row.isActive
-                      ? "border-slate-200 bg-white"
-                      : "border-slate-200 bg-slate-50/70",
-                  )}
-                >
-                  <div className="md:pt-1">
-                    <div className="font-semibold text-slate-900">
-                      {row.label}
-                    </div>
-
-                    <div
-                      className={cx(
-                        "mt-1 text-xs font-medium",
-                        row.isActive ? "text-emerald-700" : "text-slate-500",
-                      )}
-                    >
-                      {row.isActive ? "Ανοιχτά" : "Κλειστά"}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Από{" "}
-                      {row.isActive && (
-                        <span className="text-rose-600" aria-hidden="true">
-                          *
-                        </span>
-                      )}
-                    </label>
-
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={row.startTime}
-                      disabled={!row.isActive || saving}
-                      placeholder="09:00 ή 0900"
-                      maxLength={5}
-                      onChange={(event) =>
-                        updateRow(row.dayOfWeek, {
-                          startTime: normalizeTypedTime(event.target.value),
-                        })
-                      }
-                      className={errorInputClass(
-                        Boolean(formErrors.fieldErrors[startErrorKey]),
-                        "h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400",
-                      )}
-                    />
-
-                    <FormFieldError
-                      errors={formErrors.fieldErrors[startErrorKey]}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Έως{" "}
-                      {row.isActive && (
-                        <span className="text-rose-600" aria-hidden="true">
-                          *
-                        </span>
-                      )}
-                    </label>
-
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={row.endTime}
-                      disabled={!row.isActive || saving}
-                      placeholder="17:00 ή 1700"
-                      maxLength={5}
-                      onChange={(event) =>
-                        updateRow(row.dayOfWeek, {
-                          endTime: normalizeTypedTime(event.target.value),
-                        })
-                      }
-                      className={errorInputClass(
-                        Boolean(formErrors.fieldErrors[endErrorKey]),
-                        "h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[rgb(var(--primary))] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400",
-                      )}
-                    />
-
-                    <FormFieldError
-                      errors={formErrors.fieldErrors[endErrorKey]}
-                    />
-                  </div>
-
-                  <label className="flex cursor-pointer items-center gap-3 md:justify-end md:pt-6">
-                    <input
-                      type="checkbox"
-                      checked={row.isActive}
-                      disabled={saving}
-                      onChange={(event) =>
-                        updateRow(row.dayOfWeek, {
-                          isActive: event.target.checked,
-                        })
-                      }
-                      className="h-5 w-5 accent-[rgb(var(--primary))]"
-                    />
-
-                    <span className="text-sm font-medium text-slate-700">
-                      Ενεργή ημέρα
-                    </span>
-                  </label>
-                </div>
-              );
-            })}
-
-            <FormFieldError
-              errors={[
-                ...(formErrors.fieldErrors.form ?? []),
-                ...(formErrors.fieldErrors.startTime ?? []),
-                ...(formErrors.fieldErrors.endTime ?? []),
-                ...(formErrors.fieldErrors.dayOfWeek ?? []),
-              ]}
-            />
-
-            <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-slate-500">
-                Οι μη ενεργές ημέρες δεν θα εμφανίζονται ως διαθέσιμες για
-                ραντεβού.
-              </p>
-
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  disabled={!hasChanges || saving}
-                  className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Ακύρωση αλλαγών
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={!hasChanges || saving}
-                  className={cx(
-                    "rounded-full px-5 py-2 text-sm font-semibold text-white transition",
-                    !hasChanges || saving
-                      ? "cursor-not-allowed bg-[rgba(var(--primary),0.6)]"
-                      : "bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary-dark))]",
-                  )}
-                >
-                  {saving ? "Αποθήκευση…" : "Αποθήκευση"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </Card>
-
-      {toast && (
-        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-sm text-white shadow-lg">
-          {toast}
-        </div>
-      )}
-
-      <GeneralErrorDialog
-        open={Boolean(formErrors.generalError)}
-        title={formErrors.generalError?.title}
-        message={formErrors.generalError?.message ?? ""}
-        onClose={formErrors.closeGeneralError}
-        onRetry={handleSave}
-      />
-    </>
-  );
-}

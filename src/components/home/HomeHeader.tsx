@@ -2,11 +2,13 @@ import Link from "next/link";
 import LeafBurstButton from "../decorative/LeafBurstButton";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 import { toMediaUrl } from "@/api/_axios-client";
+import { useTranslations } from "@/components/hooks/useTranslations";
 
 type HomeHeroProps = {
   title?: string | null;
   info?: string | null;
   mainPictureUrl?: string | null;
+  mainPictureAltText?: string | null;
   loading?: boolean;
 };
 
@@ -14,15 +16,16 @@ export default function HomeHero({
   title,
   info,
   mainPictureUrl,
+  mainPictureAltText,
   loading = false,
 }: HomeHeroProps) {
-  const heroTitle = title?.trim() || "Καλώς ήρθατε!";
+  const t = useTranslations();
+  const heroTitle = title?.trim() || t.home.hero.title;
   const heroInfo =
     info?.trim() ||
-    "Είμαι η Βασιλική Χύτα, Διαιτολόγος–Διατροφολόγος. Πιστεύω σε μια ήπια, ανθρωποκεντρική προσέγγιση που συνδέει τη γνώση με τη φροντίδα: εκπαίδευση, ευεξία και ισορροπία, πέρα από στερεότυπα και «γρήγορες λύσεις».";
-const heroImage =
-  mainPictureUrl?.trim() ||
-  "/images/fallback-main-picture.jpg";
+    t.home.hero.description;
+  const heroImage =
+    mainPictureUrl?.trim() || "/images/fallback-main-picture.jpg";
 
   return (
     <section className="relative bg-bg pt-10 md:pt-20">
@@ -32,8 +35,12 @@ const heroImage =
             <div className="relative mx-auto max-w-md">
               <div className="overflow-hidden rounded-sm bg-bg shadow-[0_10px_25px_rgba(0,0,0,0.10)] ring-1 ring-accent/20">
                 <img
-                  src={heroImage.startsWith("/media") ? toMediaUrl(heroImage) : heroImage}
-                  alt="Diet out of the Box — Διατροφή & Υγεία"
+                  src={
+                    heroImage.startsWith("/media")
+                      ? toMediaUrl(heroImage)
+                      : heroImage
+                  }
+                  alt={mainPictureAltText?.trim() || t.home.hero.imageAlt}
                   className="block h-auto w-full object-cover"
                 />
               </div>
@@ -48,13 +55,19 @@ const heroImage =
               <span className="hidden sm:inline-block h-px w-14 bg-accent saturate-150" />
             </div>
 
-            <h1 className="text-5xl sm:text-6xl font-semibold tracking-tight font-serif">
+            <h1
+              style={{
+                fontSize: "clamp(30px, 2.8vw, 40px)",
+                lineHeight: "1.08",
+              }}
+              className="font-semibold tracking-tight font-serif"
+            >
               {heroTitle}
             </h1>
 
             <div className="text-lg leading-relaxed text-slate-700 font-serif">
               {loading ? (
-                <p className="mb-0">Φόρτωση περιεχομένου…</p>
+                <p className="mb-0">{t.home.hero.loading}</p>
               ) : (
                 <RichHtmlRenderer
                   html={heroInfo}
@@ -65,7 +78,10 @@ const heroImage =
 
             <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center">
               <div className="relative group">
-                <LeafBurstButton text="ΠΡΟΓΡΑΜΜΑΤΙΣΜΟΣ ΣΥΝΕΔΡΙΑΣ" href="/contact/book" />
+                <LeafBurstButton
+                  text={t.home.hero.book}
+                  href="/contact/book"
+                />
                 <div
                   className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-lg pointer-events-none"
                   style={{ background: "rgba(255,230,150,0.2)" }}
@@ -76,7 +92,7 @@ const heroImage =
                 href="#bio"
                 className="text-base text-primary underline underline-offset-4 decoration-accent/50 hover:text-accent hover:decoration-accent transition-all relative group/link"
               >
-                Διαβάστε περισσότερα εδώ
+                {t.home.hero.readMore}
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-accent group-hover/link:w-full transition-all duration-300" />
               </Link>
             </div>
@@ -86,9 +102,9 @@ const heroImage =
         <section className="relative py-12 md:py-16">
           <div className="grid gap-6 md:grid-cols-3">
             {[
-              { title: "1:1 Ραντεβού", href: "/services#one-to-one" },
-              { title: "Ομαδικές Συναντήσεις", href: "/services#groups" },
-              { title: "Σεμινάρια", href: "/seminars" },
+              { title: t.home.hero.oneToOne, href: "/services#one-to-one" },
+              { title: t.home.hero.groups, href: "/services#groups" },
+              { title: t.home.hero.seminars, href: "/seminars" },
             ].map((s) => (
               <Link
                 key={s.title}
@@ -127,7 +143,7 @@ const heroImage =
                 </h3>
 
                 <p className="relative mt-3 text-sm leading-6 text-[#66745f]">
-                  Μάθετε περισσότερα για τον τρόπο που δουλεύουμε.
+                  {t.home.hero.cardDescription}
                 </p>
               </Link>
             ))}

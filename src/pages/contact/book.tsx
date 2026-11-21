@@ -10,6 +10,9 @@ import {
 } from "../../api/UsefulInfoController";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 import { usePageHeader } from "@/lib/usePageHeader";
+import { useTranslations } from "@/components/hooks/useTranslations";
+import { localizedContent } from "@/lib/localized-content";
+import { useRouter } from "next/router";
 
 /**
  * ΚΛΕΙΣΤΕ ΡΑΝΤΕΒΟΥ — Booking form
@@ -50,12 +53,6 @@ type FieldErrors = Partial<{
   message: string;
 }>;
 
-const DEFAULT_PAGE_HEADER = {
-  title: "Κλείστε Ραντεβού",
-  description:
-    "Επιλέξτε υπηρεσία και θα εμφανιστούν μόνο οι διαθέσιμες ημέρες και ώρες. Συμπληρώστε τη φόρμα και θα σας στείλουμε email για επιβεβαίωση.",
-};
-
 const INPUT_BASE =
   "mt-1 w-full rounded-xl bg-white px-3 h-12 text-[15px] text-slate-900 ring-1 ring-accent/30 outline-none " +
   "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 " +
@@ -65,8 +62,8 @@ const LABEL_BASE = "block text-[15px] font-semibold text-slate-900";
 const STEP_BASE = "mb-1 text-sm font-semibold tracking-wide text-slate-700";
 const ERROR_TEXT = "mt-1 text-sm text-rose-600";
 
-function toDateLabel(dateStr: string) {
-  return new Date(dateStr + "T00:00:00").toLocaleDateString("el-GR", {
+function toDateLabel(dateStr: string, locale: string) {
+  return new Date(dateStr + "T00:00:00").toLocaleDateString(locale, {
     weekday: "long",
     day: "2-digit",
     month: "long",
@@ -102,7 +99,15 @@ function htmlToPlainText(value?: string | null) {
 }
 
 export default function BookPage() {
-  const pageHeader = usePageHeader("contact-book", DEFAULT_PAGE_HEADER);
+  const t = useTranslations();
+  const copy = t.contact.booking;
+  const common = t.contact.common;
+  const router = useRouter();
+  const locale = router.locale === "en" ? "en-US" : "el-GR";
+  const pageHeader = usePageHeader("contact-book", {
+    title: copy.headerTitle,
+    description: copy.headerDescription,
+  });
 
   const [loading, setLoading] = useState(false);
 
@@ -146,7 +151,15 @@ export default function BookPage() {
 
         if (!mounted) return;
 
-        setUsefulInfo(data);
+        setUsefulInfo(
+          data
+            ? {
+                ...data,
+                title: localizedContent(router.locale, data.title, data.titleEn),
+                info: localizedContent(router.locale, data.info, data.infoEn),
+              }
+            : null,
+        );
       } catch {
         if (!mounted) return;
         setUsefulInfo(null);
@@ -158,7 +171,7 @@ export default function BookPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [router.locale]);
 
   useEffect(() => {
     let mounted = true;
@@ -173,13 +186,13 @@ export default function BookPage() {
         const mapped: Service[] = data.map((item) => ({
           id: item.id,
           label:
-            htmlToPlainText(item.title) ||
-            htmlToPlainText(item.category) ||
-            `Υπηρεσία ${item.id}`,
-          title: item.title,
-          category: item.category,
+            htmlToPlainText(localizedContent(router.locale, item.title, item.titleEn)) ||
+            htmlToPlainText(localizedContent(router.locale, item.category, item.categoryEn)) ||
+            `${copy.serviceFallback} ${item.id}`,
+          title: localizedContent(router.locale, item.title, item.titleEn),
+          category: localizedContent(router.locale, item.category, item.categoryEn),
           duration: item.duration,
-          description: item.description,
+          description: localizedContent(router.locale, item.description, item.descriptionEn),
           priceIncludingVAT: item.priceIncludingVAT,
         }));
 
@@ -195,7 +208,7 @@ export default function BookPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [copy.serviceFallback, router.locale]);
 
   useEffect(() => {
     if (!successPayload) return;
@@ -271,7 +284,7 @@ export default function BookPage() {
         const messageText =
           err instanceof Error
             ? err.message
-            : "Δεν ήταν δυνατή η φόρτωση διαθεσιμότητας.";
+            : copy.availabilityError;
         setSubmitError(messageText);
       } finally {
         if (mounted) setSlotsLoading(false);
@@ -281,7 +294,7 @@ export default function BookPage() {
     return () => {
       mounted = false;
     };
-  }, [selectedService]);
+  }, [copy.availabilityError, selectedService]);
 
   const availableDates = useMemo(() => {
     const uniq = new Set<string>();
@@ -315,35 +328,34 @@ export default function BookPage() {
   }) {
     const next: FieldErrors = {};
 
-    if (!selectedService) next.service = "Παρακαλούμε επιλέξτε υπηρεσία.";
+    if (!selectedService) next.service = copy.serviceRequired;
 
-    if (!payload.fullName?.trim()) next.fullName = "Συμπληρώστε ονοματεπώνυμο.";
+    if (!payload.fullName?.trim()) next.fullName = common.fullNameRequired;
 
     if (!payload.email?.trim()) {
-      next.email = "Συμπληρώστε email.";
+      next.email = common.emailRequired;
     } else {
       const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email.trim());
-      if (!ok) next.email = "Συμπληρώστε έγκυρο email.";
+      if (!ok) next.email = common.emailInvalid;
     }
 
     const phone = payload.phone?.trim() || "";
     if (phone && !/^\+?\d{10,15}$/.test(phone)) {
-      next.phone =
-        "Το τηλέφωνο πρέπει να περιέχει 10–15 ψηφία, προαιρετικά με +.";
+      next.phone = copy.phoneInvalid;
     }
 
     const message = payload.message?.trim() || "";
     if (message.length > 2000) {
-      next.message = "Το μήνυμα δεν μπορεί να ξεπερνά τους 2000 χαρακτήρες.";
+      next.message = copy.messageTooLong;
     }
 
     if (!selectedSlot)
-      next.slot = "Παρακαλούμε επιλέξτε διαθέσιμη ημέρα και ώρα.";
+      next.slot = copy.slotRequired;
 
     if (selectedSlot) {
       const when = combineToDate(selectedSlot.dateStr, selectedSlot.timeStr);
       if (when.getTime() <= Date.now()) {
-        next.slot = "Παρακαλούμε επιλέξτε μελλοντικό διαθέσιμο ραντεβού.";
+        next.slot = copy.futureSlotRequired;
       }
     }
 
@@ -428,7 +440,7 @@ export default function BookPage() {
     }
 
     if (!selectedSlot || !selectedServiceData) {
-      setSubmitError("Δεν ήταν δυνατή η δημιουργία του ραντεβού.");
+      setSubmitError(copy.createError);
       setLoading(false);
       return;
     }
@@ -469,7 +481,7 @@ export default function BookPage() {
       const messageText =
         err instanceof Error
           ? err.message
-          : "Κάτι πήγε στραβά. Δοκιμάστε ξανά.";
+          : common.genericError;
       setSubmitError(messageText);
       await loadAvailability();
     } finally {
@@ -485,10 +497,10 @@ export default function BookPage() {
   return (
     <>
       <Head>
-        <title>Κλείστε Ραντεβού — Επικοινωνία</title>
+        <title>{copy.metaTitle}</title>
         <meta
           name="description"
-          content="Κλείστε ραντεβού εύκολα. Επιλέξτε υπηρεσία, διαθέσιμη ημερομηνία και ώρα — θα σας στείλουμε email για επιβεβαίωση."
+          content={copy.metaDescription}
         />
         <link rel="canonical" href="https://example.gr/contact/book" />
       </Head>
@@ -508,40 +520,40 @@ export default function BookPage() {
           {successPayload && (
             <div
               ref={successRef}
-              className="mb-6 scroll-mt-6 rounded-2xl bg-white p-6 ring-1 ring-accent/25 shadow-[0_16px_34px_rgba(164,199,126,0.14)]"
+              className="mb-6 scroll-mt-6 rounded-2xl bg-white p-4 ring-1 ring-accent/25 shadow-[0_16px_34px_rgba(164,199,126,0.14)] sm:p-6"
             >
               <h2 className="text-xl font-semibold text-slate-900">
-                Το αίτημά σας υποβλήθηκε
+                {copy.successTitle}
               </h2>
               <p className="mt-1 text-base text-slate-700">
-                Θα σας στείλουμε email για επιβεβαίωση.
+                {copy.confirmation}
               </p>
 
               <div className="mt-4 grid grid-cols-1 gap-3 text-[15px] text-slate-800 md:grid-cols-2">
                 <div className="rounded-xl bg-white p-3 ring-1 ring-accent/20">
-                  <div className="text-sm text-slate-600">Υπηρεσία</div>
+                  <div className="text-sm text-slate-600">{copy.service}</div>
                   <div className="mt-0.5 font-medium">
                     {successPayload.serviceLabel}
                   </div>
                 </div>
 
                 <div className="rounded-xl bg-white p-3 ring-1 ring-accent/20">
-                  <div className="text-sm text-slate-600">Ραντεβού</div>
+                  <div className="text-sm text-slate-600">{copy.appointment}</div>
                   <div className="mt-0.5 font-medium">
-                    {toDateLabel(successPayload.dateStr)} στις{" "}
+                    {toDateLabel(successPayload.dateStr, locale)} {copy.at}{" "}
                     {successPayload.timeStr}
                   </div>
                 </div>
 
                 <div className="rounded-xl bg-white p-3 ring-1 ring-accent/20">
-                  <div className="text-sm text-slate-600">Ονοματεπώνυμο</div>
+                  <div className="text-sm text-slate-600">{common.fullName}</div>
                   <div className="mt-0.5 font-medium">
                     {successPayload.fullName}
                   </div>
                 </div>
 
                 <div className="rounded-xl bg-white p-3 ring-1 ring-accent/20">
-                  <div className="text-sm text-slate-600">Τηλέφωνο</div>
+                  <div className="text-sm text-slate-600">{common.phone}</div>
                   <div className="mt-0.5 font-medium">
                     {successPayload.phone}
                   </div>
@@ -558,7 +570,7 @@ export default function BookPage() {
 
                 {successPayload.message?.trim() && (
                   <div className="rounded-xl bg-white p-3 ring-1 ring-accent/20 md:col-span-2">
-                    <div className="text-sm text-slate-600">Μήνυμα</div>
+                    <div className="text-sm text-slate-600">{common.message}</div>
                     <div className="mt-0.5">{successPayload.message}</div>
                   </div>
                 )}
@@ -584,39 +596,39 @@ export default function BookPage() {
                       });
                     });
                   }}
-                  className="inline-flex h-12 items-center rounded-xl bg-primary px-4 text-[15px] font-semibold text-white transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
+                  className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-primary px-4 text-[15px] font-semibold text-white transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 sm:w-auto"
                 >
-                  Κλείστε νέο ραντεβού
+                  {copy.newAppointment}
                 </button>
               </div>
             </div>
           )}
 
-          <div className="grid gap-5 md:grid-cols-5 md:gap-6">
-            <div className="md:col-span-3">
+          <div className="grid gap-5 lg:grid-cols-5 lg:gap-6">
+            <div className="lg:col-span-3">
               <form
                 ref={formRef}
                 onSubmit={onSubmit}
-                className="rounded-2xl bg-white p-6 shadow-[0_16px_34px_rgba(255,230,150,0.10)] ring-2 ring-warm/40"
+                className="rounded-2xl bg-white p-4 shadow-[0_16px_34px_rgba(255,230,150,0.10)] ring-2 ring-warm/40 sm:p-6"
               >
                 <div>
                   <h2 className="text-lg font-semibold text-slate-900 md:text-xl">
-                    Αίτημα ραντεβού
+                    {copy.requestTitle}
                   </h2>
                   <p className="mt-1 text-[15px] text-slate-600">
                     <span className="font-semibold text-slate-800">
-                      Υποχρεωτικά πεδία
+                      {common.requiredFields}
                     </span>
-                    <span className="text-slate-600"> σημειώνονται με </span>
+                    <span className="text-slate-600"> {common.requiredMarker} </span>
                     <span className="font-semibold text-rose-600">*</span>
                   </p>
                 </div>
 
                 <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="md:col-span-2">
-                    <div className={STEP_BASE}>Βήμα 1: Επιλέξτε υπηρεσία</div>
+                    <div className={STEP_BASE}>{copy.stepService}</div>
                     <label className={LABEL_BASE}>
-                      Υπηρεσία <span className="text-rose-600">*</span>
+                      {copy.service} <span className="text-rose-600">*</span>
                     </label>
 
                     <select
@@ -642,8 +654,8 @@ export default function BookPage() {
                     >
                       <option value="" disabled>
                         {servicesLoading
-                          ? "Φόρτωση υπηρεσιών..."
-                          : "— Επιλέξτε υπηρεσία —"}
+                          ? copy.loadingServices
+                          : copy.selectService}
                       </option>
 
                       {services.map((s) => (
@@ -662,7 +674,7 @@ export default function BookPage() {
 
                   <div>
                     <label className={LABEL_BASE}>
-                      Ονοματεπώνυμο <span className="text-rose-600">*</span>
+                      {common.fullName} <span className="text-rose-600">*</span>
                     </label>
 
                     <input
@@ -677,7 +689,7 @@ export default function BookPage() {
                         show("fullName") ? "fullName-error" : undefined
                       }
                       className={INPUT_BASE}
-                      placeholder="π.χ. Μαρία Παπαδοπούλου"
+                      placeholder={common.fullNamePlaceholder}
                       disabled={loading}
                     />
 
@@ -689,7 +701,7 @@ export default function BookPage() {
                   </div>
 
                   <div>
-                    <label className={LABEL_BASE}>Τηλέφωνο</label>
+                    <label className={LABEL_BASE}>{common.phone}</label>
 
                     <input
                       name="phone"
@@ -704,7 +716,7 @@ export default function BookPage() {
                         show("phone") ? "phone-error" : undefined
                       }
                       className={INPUT_BASE}
-                      placeholder="π.χ. 69XXXXXXXX"
+                      placeholder={copy.phonePlaceholder}
                       disabled={loading}
                     />
 
@@ -734,7 +746,7 @@ export default function BookPage() {
                         show("email") ? "email-error" : undefined
                       }
                       className={INPUT_BASE}
-                      placeholder="π.χ. name@email.com"
+                      placeholder={common.emailPlaceholder}
                       disabled={loading}
                     />
 
@@ -747,10 +759,10 @@ export default function BookPage() {
 
                   <div className="md:col-span-2">
                     <div className={STEP_BASE}>
-                      Βήμα 2: Διαλέξτε ημέρα & ώρα
+                      {copy.stepSlot}
                     </div>
                     <label className={LABEL_BASE}>
-                      Διαθεσιμότητα <span className="text-rose-600">*</span>
+                      {copy.availability} <span className="text-rose-600">*</span>
                     </label>
 
                     <div
@@ -761,8 +773,8 @@ export default function BookPage() {
                     >
                       <div className="mb-2 text-sm text-slate-600">
                         {selectedService
-                          ? "Επιλέξτε ημέρα και ώρα. Εμφανίζονται μόνο διαθέσιμες επιλογές."
-                          : "Επιλέξτε πρώτα υπηρεσία για να εμφανιστούν διαθέσιμες ημέρες και ώρες."}
+                          ? copy.availabilityReady
+                          : copy.availabilityNeedsService}
                       </div>
 
                       {slotsLoading ? (
@@ -789,8 +801,7 @@ export default function BookPage() {
                         <div className="text-[15px] text-slate-600">—</div>
                       ) : availableDates.length === 0 ? (
                         <div className="text-[15px] text-rose-600">
-                          Δεν υπάρχουν διαθέσιμα ραντεβού για τις επόμενες
-                          ημέρες.
+                          {copy.noAppointments}
                         </div>
                       ) : (
                         <>
@@ -822,7 +833,7 @@ export default function BookPage() {
                                       ? "cursor-not-allowed opacity-70"
                                       : "",
                                   ].join(" ")}
-                                  title={toDateLabel(d)}
+                                  title={toDateLabel(d, locale)}
                                 >
                                   {new Date(d + "T00:00:00").toLocaleDateString(
                                     "el-GR",
@@ -839,13 +850,13 @@ export default function BookPage() {
 
                           <div className="mt-3">
                             <div className="mb-2 text-sm text-slate-600">
-                              Ώρες για την επιλεγμένη ημέρα:
+                              {copy.timesForDay}
                             </div>
 
                             {selectedDate ? (
                               slotsForSelectedDate.length === 0 ? (
                                 <div className="text-[15px] text-slate-600">
-                                  Δεν υπάρχουν ώρες για αυτήν την ημέρα.
+                                  {copy.noTimes}
                                 </div>
                               ) : (
                                 <div className="flex flex-wrap gap-2">
@@ -884,7 +895,7 @@ export default function BookPage() {
                               )
                             ) : (
                               <div className="text-[15px] text-slate-600">
-                                Επιλέξτε πρώτα ημέρα.
+                                {copy.selectDayFirst}
                               </div>
                             )}
                           </div>
@@ -906,8 +917,8 @@ export default function BookPage() {
 
                     <p className="mt-2 text-sm text-slate-600">
                       {selectedSlot
-                        ? `Επιλέξατε: ${toDateLabel(selectedSlot.dateStr)} στις ${selectedSlot.timeStr}`
-                        : "Δεν έχει επιλεγεί ραντεβού."}
+                        ? `${copy.selected}: ${toDateLabel(selectedSlot.dateStr, locale)} ${copy.at} ${selectedSlot.timeStr}`
+                        : copy.noneSelected}
                     </p>
 
                     {show("slot") && (
@@ -917,7 +928,7 @@ export default function BookPage() {
 
                   <div className="md:col-span-2">
                     <label className={LABEL_BASE}>
-                      Σύντομο μήνυμα προαιρετικό
+                      {copy.optionalMessage}
                     </label>
 
                     <textarea
@@ -941,7 +952,7 @@ export default function BookPage() {
                         "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35",
                         "disabled:opacity-60 disabled:cursor-not-allowed",
                       ].join(" ")}
-                      placeholder="Τυχόν απορίες ή προτιμήσεις."
+                      placeholder={copy.messagePlaceholder}
                     />
 
                     {show("message") && (
@@ -954,7 +965,7 @@ export default function BookPage() {
 
                 <div className="mt-6">
                   <LeafBurstButton
-                    text={loading ? "Αποστολή..." : "Αίτημα Ραντεβού"}
+                    text={loading ? common.sending : copy.submit}
                     disabled={
                       loading ||
                       servicesLoading ||
@@ -963,10 +974,10 @@ export default function BookPage() {
                       !selectedSlotId
                     }
                     type="submit"
-                    buttonClassName="inline-flex h-12 items-center rounded-xl bg-primary px-5 text-[15px] font-semibold text-white transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 disabled:opacity-50"
+                    buttonClassName="inline-flex h-12 w-full items-center justify-center rounded-xl bg-primary px-5 text-[15px] font-semibold text-white transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 disabled:opacity-50 sm:w-auto"
                   />
                   <p className="mt-2 text-sm text-slate-600">
-                    Θα σας στείλουμε email για επιβεβαίωση.
+                    {copy.confirmation}
                   </p>
 
                   <div className="mt-3">
@@ -974,7 +985,7 @@ export default function BookPage() {
                       href="/contact/form"
                       className="inline-flex items-center text-[15px] text-slate-600 underline decoration-slate-400/30 transition hover:text-primary hover:decoration-primary/40"
                     >
-                      Εναλλακτικά, Φόρμα Επικοινωνίας →
+                      {copy.contactInstead}
                     </Link>
                   </div>
 
@@ -985,8 +996,8 @@ export default function BookPage() {
               </form>
             </div>
 
-            <aside className="md:col-span-2">
-              <div className="rounded-2xl bg-white p-6 shadow-[0_16px_34px_rgba(164,199,126,0.14)] ring-1 ring-accent/30">
+            <aside className="lg:col-span-2">
+              <div className="rounded-2xl bg-white p-4 shadow-[0_16px_34px_rgba(164,199,126,0.14)] ring-1 ring-accent/30 sm:p-6">
                 {usefulInfoLoading ? (
                   <div className="space-y-3 animate-pulse">
                     <div className="h-7 w-2/3 rounded bg-[rgba(var(--primary),0.12)]" />
@@ -1009,12 +1020,11 @@ export default function BookPage() {
                 ) : (
                   <>
                     <h2 className="text-xl font-semibold text-slate-900">
-                      Χρήσιμες Πληροφορίες
+                      {copy.usefulInfo}
                     </h2>
 
                     <p className="mt-3 text-[15px] text-slate-700">
-                      Οι χρήσιμες πληροφορίες δεν είναι διαθέσιμες αυτήν τη
-                      στιγμή.
+                      {copy.usefulInfoUnavailable}
                     </p>
                   </>
                 )}
@@ -1022,12 +1032,12 @@ export default function BookPage() {
                 <div className="mt-5 h-px bg-accent/35" />
 
                 <p className="mt-4 text-[15px] text-slate-600">
-                  Για απορίες, δείτε και την{" "}
+                  {copy.questionsPrefix}{" "}
                   <Link
                     href="/contact/form"
                     className="text-primary underline decoration-primary/30 transition hover:text-accent hover:decoration-accent/50"
                   >
-                    φόρμα επικοινωνίας
+                    {copy.contactFormLink}
                   </Link>
                   .
                 </p>

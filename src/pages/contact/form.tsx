@@ -8,6 +8,7 @@ import {
 } from "../../api/ContactInfoController";
 import LeafBurstButton from "@/components/decorative/LeafBurstButton";
 import { usePageHeader } from "@/lib/usePageHeader";
+import { useTranslations } from "@/components/hooks/useTranslations";
 
 type FieldErrors = Partial<{
   fullName: string;
@@ -15,12 +16,6 @@ type FieldErrors = Partial<{
   subject: string;
   message: string;
 }>;
-
-const DEFAULT_PAGE_HEADER = {
-  title: "Φόρμα Επικοινωνίας",
-  description:
-    "Πείτε μας πώς μπορούμε να βοηθήσουμε. Απαντάμε συνήθως εντός 1–2 εργάσιμων.",
-};
 
 const INPUT_BASE =
   "mt-1 w-full rounded-xl bg-white px-3 h-12 text-[15px] text-slate-900 ring-1 ring-accent/30 outline-none " +
@@ -83,7 +78,13 @@ function ClockIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export default function ContactFormPage() {
-  const pageHeader = usePageHeader("contact-form", DEFAULT_PAGE_HEADER);
+  const t = useTranslations();
+  const copy = t.contact.form;
+  const common = t.contact.common;
+  const pageHeader = usePageHeader("contact-form", {
+    title: copy.headerTitle,
+    description: copy.headerDescription,
+  });
 
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -140,7 +141,7 @@ export default function ContactFormPage() {
     email: contactInfo?.email || fallbackContact.email,
     phoneDisplay: contactInfo?.telephone || fallbackContact.telephone,
     phoneTel: contactInfo?.telephone || fallbackContact.telephone,
-    hours: "Δευ–Παρ 10:00–18:00",
+    hours: copy.hours,
   };
 
   function markTouched(name: string) {
@@ -155,17 +156,17 @@ export default function ContactFormPage() {
   }) {
     const next: FieldErrors = {};
 
-    if (!payload.fullName.trim()) next.fullName = "Συμπληρώστε ονοματεπώνυμο.";
+    if (!payload.fullName.trim()) next.fullName = common.fullNameRequired;
 
     if (!payload.email.trim()) {
-      next.email = "Συμπληρώστε email.";
+      next.email = common.emailRequired;
     } else {
       const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email.trim());
-      if (!ok) next.email = "Συμπληρώστε έγκυρο email.";
+      if (!ok) next.email = common.emailInvalid;
     }
 
-    if (!payload.subject.trim()) next.subject = "Συμπληρώστε θέμα.";
-    if (!payload.message.trim()) next.message = "Συμπληρώστε μήνυμα.";
+    if (!payload.subject.trim()) next.subject = copy.subjectRequired;
+    if (!payload.message.trim()) next.message = copy.messageRequired;
 
     return next;
   }
@@ -222,7 +223,7 @@ export default function ContactFormPage() {
       const messageText =
         err instanceof Error
           ? err.message
-          : "Κάτι πήγε στραβά. Δοκιμάστε ξανά.";
+          : common.genericError;
       setSubmitError(messageText);
     } finally {
       setLoading(false);
@@ -237,10 +238,10 @@ export default function ContactFormPage() {
   return (
     <>
       <Head>
-        <title>Φόρμα Επικοινωνίας — Επικοινωνία</title>
+        <title>{copy.metaTitle}</title>
         <meta
           name="description"
-          content="Επικοινωνήστε μαζί μας για απορίες, διευκρινίσεις ή συνεργασία."
+          content={copy.metaDescription}
         />
         <link rel="canonical" href="https://example.gr/contact/form" />
       </Head>
@@ -260,15 +261,15 @@ export default function ContactFormPage() {
           {successPayload && (
             <div className="mb-6 rounded-2xl bg-white p-6 ring-1 ring-accent/25 shadow-[0_16px_34px_rgba(164,199,126,0.14)]">
               <h2 className="text-xl font-semibold text-slate-900">
-                Το μήνυμα στάλθηκε
+                {copy.successTitle}
               </h2>
               <p className="mt-1 text-base text-slate-700">
-                Θα επικοινωνήσουμε σύντομα.
+                {copy.successDescription}
               </p>
 
               <div className="mt-4 grid grid-cols-1 gap-3 text-[15px] text-slate-800 md:grid-cols-2">
                 <div className="rounded-xl bg-white p-3 ring-1 ring-accent/20">
-                  <div className="text-sm text-slate-600">Ονοματεπώνυμο</div>
+                  <div className="text-sm text-slate-600">{common.fullName}</div>
                   <div className="mt-0.5 font-medium">
                     {successPayload.fullName}
                   </div>
@@ -280,7 +281,7 @@ export default function ContactFormPage() {
                   </div>
                 </div>
                 <div className="rounded-xl bg-white p-3 ring-1 ring-accent/20 md:col-span-2">
-                  <div className="text-sm text-slate-600">Θέμα</div>
+                  <div className="text-sm text-slate-600">{copy.subject}</div>
                   <div className="mt-0.5 font-medium">
                     {successPayload.subject}
                   </div>
@@ -289,7 +290,7 @@ export default function ContactFormPage() {
 
               <div className="mt-5">
                 <LeafBurstButton
-                  text="Στείλτε νέο μήνυμα"
+                  text={copy.newMessage}
                   href="/contact/form"
                   buttonClassName="inline-flex h-12 items-center rounded-xl bg-primary px-5 text-[15px] font-semibold text-white transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
                 />
@@ -297,21 +298,21 @@ export default function ContactFormPage() {
             </div>
           )}
 
-          <div className="grid gap-5 md:grid-cols-5 md:gap-6">
-            <div className="md:col-span-3">
+          <div className="grid gap-5 lg:grid-cols-5 lg:gap-6">
+            <div className="lg:col-span-3">
               <form
                 onSubmit={onSubmit}
-                className="rounded-2xl bg-white p-6 shadow-[0_16px_34px_rgba(164,199,126,0.12)] ring-1 ring-accent/30"
+                className="rounded-2xl bg-white p-4 shadow-[0_16px_34px_rgba(164,199,126,0.12)] ring-1 ring-accent/30 sm:p-6"
               >
                 <div>
                   <h2 className="text-lg font-semibold text-slate-900 md:text-xl">
-                    Στείλτε μήνυμα
+                    {copy.title}
                   </h2>
                   <p className="mt-1 text-[15px] text-slate-600">
                     <span className="font-semibold text-slate-800">
-                      Υποχρεωτικά πεδία
+                      {common.requiredFields}
                     </span>
-                    <span className="text-slate-600"> με </span>
+                    <span className="text-slate-600"> {common.requiredMarker} </span>
                     <span className="font-semibold text-rose-600">*</span>
                   </p>
                 </div>
@@ -319,7 +320,7 @@ export default function ContactFormPage() {
                 <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
                     <label className={LABEL_BASE}>
-                      Ονοματεπώνυμο <span className="text-rose-600">*</span>
+                      {common.fullName} <span className="text-rose-600">*</span>
                     </label>
                     <input
                       name="fullName"
@@ -334,7 +335,7 @@ export default function ContactFormPage() {
                         show("fullName") ? "fullName-error" : undefined
                       }
                       className={INPUT_BASE}
-                      placeholder="π.χ. Νίκος Παπ."
+                      placeholder={copy.fullNamePlaceholder}
                     />
                     {show("fullName") && (
                       <p id="fullName-error" className={ERROR_TEXT}>
@@ -364,7 +365,7 @@ export default function ContactFormPage() {
                       placeholder="name@email.com"
                     />
                     <p id="email-help" className={HELP_TEXT}>
-                      Θα χρησιμοποιηθεί για να σας απαντήσουμε.
+                      {copy.emailHelp}
                     </p>
                     {show("email") && (
                       <p id="email-error" className={ERROR_TEXT}>
@@ -375,7 +376,7 @@ export default function ContactFormPage() {
 
                   <div className="md:col-span-2">
                     <label className={LABEL_BASE}>
-                      Θέμα <span className="text-rose-600">*</span>
+                      {copy.subject} <span className="text-rose-600">*</span>
                     </label>
                     <input
                       name="subject"
@@ -390,7 +391,7 @@ export default function ContactFormPage() {
                         show("subject") ? "subject-error" : undefined
                       }
                       className={INPUT_BASE}
-                      placeholder="Σύντομος τίτλος μηνύματος"
+                      placeholder={copy.subjectPlaceholder}
                     />
                     {show("subject") && (
                       <p id="subject-error" className={ERROR_TEXT}>
@@ -401,7 +402,7 @@ export default function ContactFormPage() {
 
                   <div className="md:col-span-2">
                     <label className={LABEL_BASE}>
-                      Μήνυμα <span className="text-rose-600">*</span>
+                      {common.message} <span className="text-rose-600">*</span>
                     </label>
                     <textarea
                       name="message"
@@ -421,7 +422,7 @@ export default function ContactFormPage() {
                         "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35",
                         "disabled:cursor-not-allowed disabled:opacity-60",
                       ].join(" ")}
-                      placeholder="Πείτε μας περισσότερα…"
+                      placeholder={copy.messagePlaceholder}
                     />
                     {show("message") && (
                       <p id="message-error" className={ERROR_TEXT}>
@@ -433,10 +434,10 @@ export default function ContactFormPage() {
 
                 <div className="mt-6">
                   <LeafBurstButton
-                    text={loading ? "Αποστολή..." : "Αποστολή Μηνύματος"}
+                    text={loading ? common.sending : copy.submit}
                     disabled={loading}
                     type="submit"
-                    buttonClassName="inline-flex h-12 items-center rounded-xl bg-primary px-5 text-[15px] font-semibold text-white transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 disabled:opacity-60"
+                    buttonClassName="inline-flex h-12 w-full items-center justify-center rounded-xl bg-primary px-5 text-[15px] font-semibold text-white transition hover:shadow-[0_18px_38px_rgba(164,199,126,0.18)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 disabled:opacity-60 sm:w-auto"
                   />
 
                   <div className="mt-3">
@@ -444,7 +445,7 @@ export default function ContactFormPage() {
                       href="/contact/book"
                       className="inline-flex items-center text-[15px] text-slate-600 underline decoration-slate-400/30 transition hover:text-primary hover:decoration-primary/40"
                     >
-                      Ή κλείστε ραντεβού →
+                      {copy.bookInstead}
                     </Link>
                   </div>
 
@@ -455,20 +456,20 @@ export default function ContactFormPage() {
               </form>
             </div>
 
-            <aside className="md:col-span-2">
+            <aside className="lg:col-span-2">
               <div className="rounded-2xl bg-white p-5 shadow-[0_16px_34px_rgba(164,199,126,0.12)] ring-1 ring-accent/30 md:p-6">
                 <h2 className="text-lg font-semibold text-slate-900 md:text-xl">
-                  Στοιχεία Επικοινωνίας
+                  {copy.contactDetails}
                 </h2>
 
                 <ul className="mt-4 space-y-3 text-[15px] text-slate-700">
                   <li className="flex items-start gap-3">
                     <EmailIcon className="mt-0.5 h-5 w-5 shrink-0" />
-                    <span>
+                    <span className="min-w-0 break-words">
                       Email:{" "}
                       <a
                         href={`mailto:${contact.email}`}
-                        className="font-semibold text-primary underline decoration-primary/30 transition hover:text-accent hover:decoration-accent/50"
+                        className="break-all font-semibold text-primary underline decoration-primary/30 transition hover:text-accent hover:decoration-accent/50"
                       >
                         {contact.email}
                       </a>
@@ -478,7 +479,7 @@ export default function ContactFormPage() {
                   <li className="flex items-start gap-3">
                     <PhoneIcon className="mt-0.5 h-5 w-5 shrink-0" />
                     <span>
-                      Τηλέφωνο:{" "}
+                      {copy.phoneLabel}{" "}
                       <a
                         href={`tel:${contact.phoneTel}`}
                         className="font-semibold text-primary underline decoration-primary/30 transition hover:text-accent hover:decoration-accent/50"

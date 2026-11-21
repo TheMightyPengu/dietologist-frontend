@@ -3,13 +3,17 @@ import { api, toApiError } from "./_axios-client";
 export type EbooksGetDto = {
   id: number;
   title: string;
+  titleEn?: string | null;
   author?: string | null;
   description?: string | null;
+  descriptionEn?: string | null;
   tableOfContents: string;
+  tableOfContentsEn?: string | null;
 
   coverImageAssetId?: number | null;
   coverImageUrl?: string | null;
   coverImageAltText?: string | null;
+  coverImageAltTextEn?: string | null;
 
   price: number;
 
@@ -24,9 +28,12 @@ export type EbooksGetDto = {
 
 export type EbooksPostDto = {
   title: string;
+  titleEn?: string | null;
   author?: string | null;
   description?: string | null;
+  descriptionEn?: string | null;
   tableOfContents: string;
+  tableOfContentsEn?: string | null;
   price: number;
   publishedAt: string;
 
@@ -43,9 +50,12 @@ function buildFormData(payload: EbooksPostDto): FormData {
   const fd = new FormData();
 
   fd.append("Title", payload.title);
+  fd.append("TitleEn", payload.titleEn ?? "");
   fd.append("Author", payload.author ?? "");
   fd.append("Description", payload.description ?? "");
+  fd.append("DescriptionEn", payload.descriptionEn ?? "");
   fd.append("TableOfContents", payload.tableOfContents);
+  fd.append("TableOfContentsEn", payload.tableOfContentsEn ?? "");
   fd.append("Price", String(payload.price));
   fd.append("PublishedAt", payload.publishedAt);
 

@@ -2,41 +2,29 @@ import { api } from "./_axios-client";
 
 export type OfficeHoursGetDto = {
   id: number;
-  dayOfWeek: number;
+  date: string;
   startTime: string;
   endTime: string;
-  isActive: boolean;
 };
 
 export type OfficeHoursPostDto = {
-  dayOfWeek: number;
   startTime: string;
   endTime: string;
-  isActive: boolean;
-};
-
-export type WeeklyOfficeHours = {
-  monday: OfficeHoursGetDto[];
-  tuesday: OfficeHoursGetDto[];
-  wednesday: OfficeHoursGetDto[];
-  thursday: OfficeHoursGetDto[];
-  friday: OfficeHoursGetDto[];
-  saturday: OfficeHoursGetDto[];
-  sunday: OfficeHoursGetDto[];
 };
 
 export const OfficeHoursApi = {
-  async getWeekly(): Promise<WeeklyOfficeHours> {
-    const response = await api.get<WeeklyOfficeHours>(
-      "/OfficeHours/weekly"
-    );
-
+  async getMonth(year: number, month: number): Promise<OfficeHoursGetDto[]> {
+    const response = await api.get<OfficeHoursGetDto[]>("/OfficeHours", {
+      params: { year, month },
+    });
     return response.data;
   },
 
-  async replaceWeekly(
-    payload: OfficeHoursPostDto[]
-  ): Promise<void> {
-    await api.put("/OfficeHours/weekly", payload);
+  async replaceDate(date: string, periods: OfficeHoursPostDto[]): Promise<void> {
+    await api.put(`/OfficeHours/date/${date}`, periods);
+  },
+
+  async deleteDate(date: string): Promise<void> {
+    await api.delete(`/OfficeHours/date/${date}`);
   },
 };

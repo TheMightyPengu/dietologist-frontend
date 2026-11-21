@@ -1,0 +1,66 @@
+{
+  "meta": {
+    "listTitle": "Recipes — NutriClinic",
+    "listDescription": "Search and filter recipes.",
+    "detailSuffix": "Recipes"
+  },
+  "categories": {
+    "Breakfast": "Breakfast",
+    "Main": "Main",
+    "Snack": "Snack",
+    "Drink": "Drink",
+    "Dessert": "Dessert",
+    "Salad": "Salad"
+  },
+  "filters": {
+    "title": "Filters",
+    "clear": "Clear",
+    "clearFilters": "Clear filters",
+    "search": "Search",
+    "searchPlaceholder": "Search recipes…",
+    "category": "Category",
+    "prepTime": "Preparation time",
+    "all": "All",
+    "minutes": "minutes",
+    "hourShort": "h",
+    "with": "With",
+    "ingredientsPlaceholder": "e.g. oats, chocolate",
+    "searchAnyPlaceholder": "name, description or ingredient…",
+    "remove": "Remove filter",
+    "removeSearch": "Clear search",
+    "add": "Add",
+    "close": "Close",
+    "apply": "Apply"
+  },
+  "sort": {
+    "label": "Sort:",
+    "new": "Newest",
+    "old": "Oldest",
+    "az": "Alphabetical (A–Z)",
+    "timeAsc": "Time: shortest",
+    "timeDesc": "Time: longest"
+  },
+  "results": {
+    "found": "Found",
+    "recipes": "recipes",
+    "loadErrorTitle": "Loading error",
+    "loadError": "Recipes could not be loaded.",
+    "noImage": "No image",
+    "none": "No recipes found",
+    "noneDescription": "Try changing the filters or clearing your search criteria.",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "detail": {
+    "back": "Back to recipes",
+    "published": "Published",
+    "ingredients": "Ingredients",
+    "noIngredients": "No ingredients have been added.",
+    "information": "Information",
+    "category": "Category",
+    "time": "Time",
+    "date": "Date",
+    "instructions": "Instructions",
+    "noInstructions": "No instructions have been added."
+  }
+}

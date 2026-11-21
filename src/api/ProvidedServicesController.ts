@@ -3,20 +3,27 @@ import { api, toApiError } from "./_axios-client";
 export type ProvidedServicesGetDto = {
   id: number;
   category: string;
+  categoryEn?: string | null;
   duration: number;
   title: string;
+  titleEn?: string | null;
   description: string;
+  descriptionEn?: string | null;
   priceIncludingVAT: number;
   imageAssetId?: number | null;
   imageUrl?: string | null;
   imageAltText?: string | null;
+  imageAltTextEn?: string | null;
 };
 
 export type ProvidedServicesPostDto = {
   category: string;
+  categoryEn?: string | null;
   duration: number;
   title: string;
+  titleEn?: string | null;
   description: string;
+  descriptionEn?: string | null;
   priceIncludingVAT: number;
   imageFile?: File | null;
   imageAssetId?: number | null;
@@ -28,9 +35,12 @@ function buildFormData(payload: ProvidedServicesPostDto): FormData {
   const fd = new FormData();
 
   fd.append("Category", payload.category);
+  fd.append("CategoryEn", payload.categoryEn ?? "");
   fd.append("Duration", String(payload.duration));
   fd.append("Title", payload.title);
+  fd.append("TitleEn", payload.titleEn ?? "");
   fd.append("Description", payload.description);
+  fd.append("DescriptionEn", payload.descriptionEn ?? "");
   fd.append("PriceIncludingVAT", String(payload.priceIncludingVAT));
 
   if (payload.imageFile) {

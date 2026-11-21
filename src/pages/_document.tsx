@@ -3,8 +3,8 @@ import Document, { Html, Head, Main, NextScript } from 'next/document';
 export default class MyDocument extends Document {
   render() {
     return (
-      <Html lang="el">
-        <Head>
+<Html lang={this.props.__NEXT_DATA__.locale || "el"}>
+          <Head>
           {/* Meta defaults */}
           <meta charSet="utf-8" />
           <meta name="theme-color" content="#8484d1" />

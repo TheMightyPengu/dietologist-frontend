@@ -1,0 +1,37 @@
+{
+  "meta": {
+    "title": "Services | Dietitian Center",
+    "description": "All available nutrition services and contact information."
+  },
+  "allServices": "All services",
+  "availableServices": "Available services",
+  "otherCategory": "Other services",
+  "serviceFallback": "Service #{id}",
+  "noDescription": "No description is available.",
+  "loading": {
+    "title": "Loading...",
+    "text": "Services are loading."
+  },
+  "errors": {
+    "load": "Services could not be loaded at this time."
+  },
+  "empty": {
+    "title": "No services",
+    "text": "No available services were found."
+  },
+  "service": {
+    "duration": "Duration",
+    "price": "Price",
+    "category": "Category"
+  },
+  "contact": {
+    "intro": "To book an appointment, you can contact us by phone or email.",
+    "phone": "Phone",
+    "phoneUnavailable": "No phone number is currently available.",
+    "emailUnavailable": "No email address is currently available.",
+    "copy": "Copy",
+    "copied": "✅ Copied",
+    "book": "BOOK APPOINTMENT",
+    "location": "Location"
+  }
+}

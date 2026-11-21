@@ -4,22 +4,26 @@ import Image from "next/image";
 import HomeHero from "@/components/home/HomeHeader";
 import { useEffect, useState } from "react";
 import { SectionReveal } from "@/components/SectionReveal";
-import {
-  MainPagesApi,
-  type MainPageGetDto,
-} from "@/api/MainPagesController";
+import { MainPagesApi, type MainPageGetDto } from "@/api/MainPagesController";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 import LeafBurstButton from "@/components/decorative/LeafBurstButton";
-
+import SpotifyPodcast from "@/components/home/SpotifyPodcast";
 import { NewsletterSubscribersApi } from "@/api/NewsletterSubscribersController";
+import { useTranslations } from "@/components/hooks/useTranslations";
+import { useRouter } from "next/router";
+import { localizedContent } from "@/lib/localized-content";
 
 export default function HomePage() {
-  const siteName = "Διαιτολογικό Κέντρο";
+  const t = useTranslations();
+  const router = useRouter();
+  const localize = (greek?: string | null, english?: string | null) =>
+    localizedContent(router.locale, greek, english);
 
+  const siteName = t.home.meta.siteName;
   const ld = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: "Αρχική — " + siteName,
+    name: t.home.meta.pageTitle,
     url: "https://your-domain.gr/",
     isPartOf: {
       "@type": "WebSite",
@@ -96,9 +100,11 @@ export default function HomePage() {
     const fullName = nlForm.name.trim();
     const email = nlForm.email.trim();
 
-    if (!fullName) return setNlError("Γράψε ονοματεπώνυμο.");
+    if (!fullName) {
+      return setNlError(t.home.newsletter.errors.nameRequired);
+    }
     if (!/^\S+@\S+\.\S+$/.test(email)) {
-      return setNlError("Γράψε έγκυρο email.");
+      return setNlError(t.home.newsletter.errors.invalidEmail);
     }
 
     setNlLoading(true);
@@ -111,7 +117,7 @@ export default function HomePage() {
 
       setNlStep("done");
     } catch {
-      setNlError("Δεν ήταν δυνατή η εγγραφή. Δοκίμασε ξανά.");
+      setNlError(t.home.newsletter.errors.subscribeFailed);
     } finally {
       setNlLoading(false);
     }
@@ -124,11 +130,8 @@ export default function HomePage() {
   return (
     <>
       <Head>
-        <title>{`Αρχική — ${siteName}`}</title>
-        <meta
-          name="description"
-          content="Καλωσήρθατε στο Διαιτολογικό Κέντρο — Επιστημονική υποστήριξη, εξατομικευμένα προγράμματα και ζεστή προσέγγιση στη διατροφή."
-        />
+        <title>{t.home.meta.pageTitle}</title>
+        <meta name="description" content={t.home.meta.description} />
         <link rel="canonical" href="https://your-domain.gr/" />
         <script
           type="application/ld+json"
@@ -137,9 +140,13 @@ export default function HomePage() {
       </Head>
 
       <HomeHero
-        title={mainPage?.title}
-        info={mainPage?.info}
+        title={localize(mainPage?.title, mainPage?.titleEn)}
+        info={localize(mainPage?.info, mainPage?.infoEn)}
         mainPictureUrl={mainPage?.mainPictureUrl}
+        mainPictureAltText={localize(
+          mainPage?.mainPictureAltText,
+          mainPage?.mainPictureAltTextEn,
+        )}
         loading={mainPageLoading}
       />
 
@@ -147,20 +154,26 @@ export default function HomePage() {
         className="scroll-mt-28 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-12 md:pt-16 pb-8"
         id="bio"
       >
-        <div className="grid gap-10 md:grid-cols-12 md:items-start">
+        <div className="grid gap-10 md:grid-cols-12 md:items-center">
           <div className="md:col-span-7">
             <div className="prose prose-slate max-w-none leading-8 space-y-6">
               <div className="flex items-center gap-3 mb-6">
-                <h2 className="m-0">ΒΙΟΓΡΑΦΙΚΟ</h2>
+                <h2 className="m-0">{t.home.sections.biography}</h2>{" "}
                 <span className="hidden sm:inline-block h-px w-12 bg-gradient-to-r from-warm/60 to-warm/0" />
               </div>
 
-              {mainPage?.biography ? (
+          {localize(mainPage?.biography, mainPage?.biographyEn) ? (
                 <RichHtmlRenderer
-                  html={mainPage.biography}
+                  html={localize(mainPage?.biography, mainPage?.biographyEn)}
                   className="home-rich-content"
                 />
               ) : (
+                <RichHtmlRenderer
+                  html={t.home.biography.fallbackHtml}
+                  className="home-rich-content"
+                />
+              )}
+              {/*
                 <>
                   <p className="lead">
                     Ονομάζομαι <strong>Βασιλική Χύτα</strong> και είμαι
@@ -211,19 +224,24 @@ export default function HomePage() {
                     ταξίδι τους στην διατροφική θεραπεία που αναζητούν.
                   </p>
                 </>
-              )}
+              */}
             </div>
           </div>
 
           <div className="md:col-span-5">
-            <div className="sticky top-28">
-              <div className="overflow-hidden rounded-3xl bg-white ring-1 ring-accent/25 shadow-sm">
+            <div>
+              <div className="ml-auto w-full max-w-[350px] overflow-hidden rounded-3xl bg-white ring-1 ring-accent/25 shadow-sm">
                 <Image
                   src={
                     mainPage?.bioPictureUrl?.trim() ||
                     "/images/fallback-bioPicture-picture.jpg"
                   }
-                  alt="Βασιλική Χύτα — Διαιτολόγος"
+                  alt={
+                    localize(
+                      mainPage?.bioPictureAltText,
+                      mainPage?.bioPictureAltTextEn,
+                    ).trim() || t.home.biography.imageAlt
+                  }
                   width={900}
                   height={1125}
                   className="h-auto w-full object-cover aspect-[4/5]"
@@ -245,16 +263,22 @@ export default function HomePage() {
       >
         <div className="prose prose-slate max-w-none leading-8 space-y-6">
           <div className="flex items-center gap-3 mb-6">
-            <h2 className="m-0">ΦΙΛΟΣΟΦΙΑ</h2>
+            <h2 className="m-0">{t.home.sections.philosophy}</h2>
             <span className="hidden sm:inline-block h-px w-12 bg-gradient-to-r from-warm/60 to-warm/0" />
           </div>
 
-          {mainPage?.phylosophy ? (
+          {localize(mainPage?.phylosophy, mainPage?.phylosophyEn) ? (
             <RichHtmlRenderer
-              html={mainPage.phylosophy}
+              html={localize(mainPage?.phylosophy, mainPage?.phylosophyEn)}
               className="home-rich-content"
             />
           ) : (
+            <RichHtmlRenderer
+              html={t.home.philosophy.fallbackHtml}
+              className="home-rich-content"
+            />
+          )}
+          {/*
             <>
               <p className="lead">
                 Η φιλοσοφία μου στηρίζεται στο <em>βιοψυχοκοινωνικό</em> μοντέλο
@@ -285,7 +309,9 @@ export default function HomePage() {
                 αυτογνωσίας.
               </p>
 
-              <p>Αναλαμβάνω ενήλικες και εφήβους. Συγκεκριμένα, εργάζομαι σε:</p>
+              <p>
+                Αναλαμβάνω ενήλικες και εφήβους. Συγκεκριμένα, εργάζομαι σε:
+              </p>
 
               <ul className="list-disc pl-6 md:columns-2 md:gap-10">
                 <li>
@@ -304,14 +330,15 @@ export default function HomePage() {
                 <li>Αποκατάσταση μεταβολισμού και θρέψης</li>
               </ul>
             </>
-          )}
+          */}
         </div>
       </SectionReveal>
 
+      <SpotifyPodcast />
+
       <SectionReveal className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12 md:pb-16 pt-8 md:pt-12">
         <h3 className="text-center text-xl md:text-2xl font-semibold text-slate-900">
-          {mainPage?.smallCardsSectionTitle?.trim() ||
-            "Στο τέλος της συνεργασίας θα έχεις καταφέρει"}
+          {localize(mainPage?.smallCardsSectionTitle, mainPage?.smallCardsSectionTitleEn).trim() || t.home.outcomes.title}
         </h3>
 
         <div className="mt-8 grid gap-6 md:grid-cols-3">
@@ -320,31 +347,31 @@ export default function HomePage() {
               img:
                 mainPage?.mainSmallPicture1Url?.trim() ||
                 "/images/mainSmallPicture1.jpg",
-              alt: mainPage?.smallCard1Title?.trim() || "Ηρεμία",
-              label: mainPage?.smallCard1Title?.trim() || "Ηρεμία",
+              alt: localize(mainPage?.mainSmallPicture1AltText, mainPage?.mainSmallPicture1AltTextEn).trim() || localize(mainPage?.smallCard1Title, mainPage?.smallCard1TitleEn).trim() || t.home.outcomes.cards[0].title,
+              label: localize(mainPage?.smallCard1Title, mainPage?.smallCard1TitleEn).trim() || t.home.outcomes.cards[0].title,
               text:
-                mainPage?.smallCard1Text?.trim() ||
-                "Να νιώθεις πιο ήρεμα γύρω από το φαγητό και το σώμα σου.",
+                localize(mainPage?.smallCard1Text, mainPage?.smallCard1TextEn).trim() ||
+                t.home.outcomes.cards[0].text,
             },
             {
               img:
                 mainPage?.mainSmallPicture2Url?.trim() ||
                 "/images/mainSmallPicture2.jpg",
-              alt: mainPage?.smallCard2Title?.trim() || "Ισορροπία",
-              label: mainPage?.smallCard2Title?.trim() || "Ισορροπία",
+              alt: localize(mainPage?.mainSmallPicture2AltText, mainPage?.mainSmallPicture2AltTextEn).trim() || localize(mainPage?.smallCard2Title, mainPage?.smallCard2TitleEn).trim() || t.home.outcomes.cards[1].title,
+              label: localize(mainPage?.smallCard2Title, mainPage?.smallCard2TitleEn).trim() || t.home.outcomes.cards[1].title,
               text:
-                mainPage?.smallCard2Text?.trim() ||
-                "Να τρέφεσαι ακούγοντας τις ανάγκες σου, χωρίς ενοχές και στέρηση.",
+                localize(mainPage?.smallCard2Text, mainPage?.smallCard2TextEn).trim() ||
+                t.home.outcomes.cards[1].text,
             },
             {
               img:
                 mainPage?.mainSmallPicture3Url?.trim() ||
                 "/images/mainSmallPicture3.jpg",
-              alt: mainPage?.smallCard3Title?.trim() || "Σταθερότητα",
-              label: mainPage?.smallCard3Title?.trim() || "Σταθερότητα",
+              alt: localize(mainPage?.mainSmallPicture3AltText, mainPage?.mainSmallPicture3AltTextEn).trim() || localize(mainPage?.smallCard3Title, mainPage?.smallCard3TitleEn).trim() || t.home.outcomes.cards[2].title,
+              label: localize(mainPage?.smallCard3Title, mainPage?.smallCard3TitleEn).trim() || t.home.outcomes.cards[2].title,
               text:
-                mainPage?.smallCard3Text?.trim() ||
-                "Να φροντίζεις το σώμα σου με πιο ουδέτερο και σταθερό τρόπο.",
+                localize(mainPage?.smallCard3Text, mainPage?.smallCard3TextEn).trim() ||
+                t.home.outcomes.cards[2].text,
             },
           ].map((c) => (
             <div
@@ -403,16 +430,12 @@ export default function HomePage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div className="max-w-2xl">
               <h2 className="text-2xl md:text-3xl font-semibold text-slate-900">
-                Newsletter
+                {localize(mainPage?.newsletterTitle, mainPage?.newsletterTitleEn)}
               </h2>
-              <p className="mt-2 text-slate-700 leading-7">
-                Μικρά, πρακτικά tips για διατροφή, σχέση με το φαγητό και
-                αυτοφροντίδα — απευθείας στο email σου.
-              </p>
-
-              <p className="mt-2 text-sm font-medium text-slate-600">
-                Χωρίς spam, διαγραφή όποτε θέλεις.
-              </p>
+              <RichHtmlRenderer
+                html={localize(mainPage?.newsletterDetails, mainPage?.newsletterDetailsEn)}
+                className="mt-2 text-slate-700 leading-7"
+              />
             </div>
 
             <form
@@ -439,7 +462,7 @@ export default function HomePage() {
                     FOCUS,
                   ].join(" ")}
                 >
-                  Εγγραφή
+                  {t.home.newsletter.subscribe}
                 </button>
 
                 <Link
@@ -454,7 +477,7 @@ export default function HomePage() {
                     FOCUS,
                   ].join(" ")}
                 >
-                  Επικοινωνία
+                  {t.home.newsletter.contact}
                 </Link>
               </div>
             </form>
@@ -464,37 +487,39 @@ export default function HomePage() {
 
       {openNewsletter && (
         <div
-          className="fixed inset-0 z-50"
+          className="fixed inset-0 z-50 overflow-y-auto"
           role="dialog"
           aria-modal="true"
-          aria-label="Newsletter"
+          aria-label={t.home.newsletter.modal.ariaLabel}
         >
           <button
-            aria-label="Κλείσιμο"
+            aria-label={t.home.newsletter.modal.closeAriaLabel}
             onClick={closeNewsletterModal}
             className="absolute inset-0 bg-black/40"
           />
 
-          <div className="relative mx-auto max-w-lg px-4 sm:px-6 top-24">
+          <div className="relative mx-auto flex min-h-full max-w-lg items-start px-3 py-4 sm:items-center sm:px-6">
             <div
               className={[
                 R_BIG,
                 "bg-white ring-1 ring-accent/25",
                 "shadow-[0_22px_70px_rgba(0,0,0,0.20)]",
-                "overflow-hidden",
+                "max-h-[calc(100dvh-2rem)] overflow-y-auto",
               ].join(" ")}
             >
-              <div className="p-6 sm:p-7">
+              <div className="p-5 sm:p-7">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h3 className="text-lg sm:text-xl font-semibold text-slate-900">
-                      {nlStep === "form" ? "Εγγραφή στο Newsletter" : "Η εγγραφή ολοκληρώθηκε"}
+                      {nlStep === "form"
+                        ? t.home.newsletter.modal.formTitle
+                        : t.home.newsletter.modal.successTitle}
                     </h3>
 
                     <p className="mt-1 text-sm text-slate-700">
                       {nlStep === "form"
-                        ? "Συμπλήρωσε τα στοιχεία σου για να λαμβάνεις ενημερώσεις."
-                        : "Ευχαριστούμε για την εγγραφή σου στο newsletter."}
+                        ? t.home.newsletter.modal.formDescription
+                        : t.home.newsletter.modal.successDescription}
                     </p>
                   </div>
 
@@ -506,7 +531,7 @@ export default function HomePage() {
                       FOCUS,
                     ].join(" ")}
                   >
-                    Κλείσιμο
+                    {t.home.newsletter.modal.close}
                   </button>
                 </div>
 
@@ -520,7 +545,7 @@ export default function HomePage() {
                   <form onSubmit={submitNewsletter} className="mt-5 space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700">
-                        Ονοματεπώνυμο
+                        {t.home.newsletter.modal.fullName}
                       </label>
 
                       <input
@@ -536,14 +561,16 @@ export default function HomePage() {
                           "text-slate-800",
                           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
                         ].join(" ")}
-                        placeholder="π.χ. Μαρία Παπαδοπούλου"
+                        placeholder={
+                          t.home.newsletter.modal.fullNamePlaceholder
+                        }
                         autoComplete="name"
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700">
-                        Email
+                        {t.home.newsletter.modal.email}
                       </label>
 
                       <input
@@ -560,7 +587,7 @@ export default function HomePage() {
                           "text-slate-800",
                           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
                         ].join(" ")}
-                        placeholder="π.χ. name@email.com"
+                        placeholder={t.home.newsletter.modal.emailPlaceholder}
                         autoComplete="email"
                       />
                     </div>
@@ -580,7 +607,9 @@ export default function HomePage() {
                           FOCUS,
                         ].join(" ")}
                       >
-                        {nlLoading ? "Εγγραφή…" : "Εγγραφή"}
+                        {nlLoading
+                          ? t.home.newsletter.modal.submitting
+                          : t.home.newsletter.modal.submit}
                       </button>
 
                       <button
@@ -595,7 +624,7 @@ export default function HomePage() {
                           FOCUS,
                         ].join(" ")}
                       >
-                        Άκυρο
+                        {t.home.newsletter.modal.cancel}
                       </button>
                     </div>
                   </form>
@@ -604,12 +633,12 @@ export default function HomePage() {
                 {nlStep === "done" && (
                   <div className="mt-5 space-y-4">
                     <div className="rounded-2xl bg-white ring-1 ring-accent/20 p-4 text-sm text-slate-700">
-                      Τέλεια! Θα λαμβάνεις ενημερώσεις στο{" "}
+                      {t.home.newsletter.modal.successPrefix}{" "}
                       <span className="font-semibold">{nlForm.email}</span>.
                     </div>
 
                     <LeafBurstButton
-                      text="Τέλος"
+                      text={t.home.newsletter.modal.finish}
                       onClick={closeNewsletterModal}
                       buttonClassName={[
                         "w-full inline-flex items-center justify-center",
@@ -622,8 +651,7 @@ export default function HomePage() {
                     />
 
                     <p className="text-xs text-slate-500">
-                      Με την εγγραφή συμφωνείτε να λαμβάνετε ενημερωτικά emails.
-                      Δεν μοιραζόμαστε τα στοιχεία σας.
+                      {t.home.newsletter.modal.privacy}
                     </p>
                   </div>
                 )}

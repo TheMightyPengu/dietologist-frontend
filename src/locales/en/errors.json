@@ -1,0 +1,7 @@
+{
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you are looking for may have moved or may no longer exist.",
+    "backHome": "Back to Home"
+  }
+}

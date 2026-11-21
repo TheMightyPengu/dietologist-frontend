@@ -3,12 +3,16 @@ import { api, toApiError } from "./_axios-client";
 export type UsefulInfoGetDto = {
   id: number;
   title: string;
+  titleEn?: string | null;
   info: string;
+  infoEn?: string | null;
 };
 
 export type UsefulInfoPostDto = {
   title: string;
+  titleEn?: string | null;
   info: string;
+  infoEn?: string | null;
 };
 
 const base = "/UsefulInfo";

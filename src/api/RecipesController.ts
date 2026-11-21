@@ -3,22 +3,34 @@ import { api, toApiError } from './_axios-client';
 export type RecipesGetDto = {
   id: number;
   title: string;
+  titleEn?: string | null;
   ingredients: string;
+  ingredientsEn?: string | null;
   category: string;
+  categoryEn?: string | null;
   instructions: string;
+  instructionsEn?: string | null;
   timeToPrepare: number;
   description: string;
+  descriptionEn?: string | null;
+  imageAltText?: string | null;
+  imageAltTextEn?: string | null;
   imageUrl?: string | null;
   createdAt: string; // ISO
 };
 
 export type RecipesPostDto = {
   title: string;
+  titleEn?: string | null;
   ingredients: string;
+  ingredientsEn?: string | null;
   category: string;
+  categoryEn?: string | null;
   instructions: string;
+  instructionsEn?: string | null;
   timeToPrepare: number;
   description: string;
+  descriptionEn?: string | null;
   createdAt: string; // ISO
   imageFile?: File | null;
 };
@@ -29,11 +41,16 @@ function buildFormData(p: RecipesPostDto): FormData {
   const fd = new FormData();
 
   fd.append('Title', p.title);
+  fd.append('TitleEn', p.titleEn ?? '');
   fd.append('Ingredients', p.ingredients);
+  fd.append('IngredientsEn', p.ingredientsEn ?? '');
   fd.append('Category', p.category);
+  fd.append('CategoryEn', p.categoryEn ?? '');
   fd.append('Instructions', p.instructions);
+  fd.append('InstructionsEn', p.instructionsEn ?? '');
   fd.append('TimeToPrepare', String(p.timeToPrepare));
   fd.append('Description', p.description);
+  fd.append('DescriptionEn', p.descriptionEn ?? '');
 
   fd.append('CreatedAt', p.createdAt);
 

@@ -6,6 +6,9 @@ import { NavbarApi, type NavbarGetDto } from "@/api/NavbarController";
 import { toMediaUrl, type ApiFieldErrors } from "@/api/_axios-client";
 import FormFieldError from "@/components/admin/FormFieldError";
 import GeneralErrorDialog from "@/components/admin/GeneralErrorDialog";
+import BilingualSaveWarning from "@/components/admin/BilingualSaveWarning";
+import ContentLanguageSwitch, { type ContentLanguage } from "@/components/admin/ContentLanguageSwitch";
+import { useBilingualSaveGuard } from "@/components/admin/useBilingualSaveGuard";
 import { useFormErrors } from "@/components/hooks/useFormErrors";
 import {
   addValidationError,
@@ -107,6 +110,10 @@ export default function DashboardNavbar() {
   const [navbar, setNavbar] = useState<NavbarGetDto | null>(null);
 
   const [title, setTitle] = useState("");
+  const [titleEn, setTitleEn] = useState("");
+  const [language, setLanguage] = useState<ContentLanguage>("el");
+  const [localizedDirty, setLocalizedDirty] = useState(false);
+  const saveGuard = useBilingualSaveGuard(setLanguage);
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   const [imagePreview, setImagePreview] = useState("");
@@ -143,6 +150,8 @@ export default function DashboardNavbar() {
 
       setNavbar(current);
       setTitle(current.title || "");
+      setTitleEn(current.titleEn || "");
+      setLocalizedDirty(false);
       setImagePreview(current.imageUrl || "");
     } catch (error: unknown) {
       console.error(error);
@@ -209,11 +218,7 @@ export default function DashboardNavbar() {
     return () => window.clearTimeout(timeout);
   }, [themeSaved]);
 
-  async function handleNavbarSave(
-    event: FormEvent<HTMLFormElement>,
-  ): Promise<void> {
-    event.preventDefault();
-
+  async function performNavbarSave(): Promise<void> {
     const errors: ApiFieldErrors = {};
 
     validateImageFile(imageFile, "imageFile", errors);
@@ -236,6 +241,7 @@ export default function DashboardNavbar() {
 
       await NavbarApi.update(navbar.id, {
         title: title.trim(),
+        titleEn: titleEn.trim(),
         imageFile: imageFile ?? undefined,
       });
 
@@ -244,18 +250,21 @@ export default function DashboardNavbar() {
       if (fresh) {
         setNavbar(fresh);
         setTitle(fresh.title || "");
+        setTitleEn(fresh.titleEn || "");
         setImageFile(null);
         setImagePreview(fresh.imageUrl || "");
       } else {
         setNavbar({
           id: navbar.id,
           title: title.trim(),
+          titleEn: titleEn.trim(),
           imageUrl: imagePreview,
         });
       }
 
       navbarForm.clearAllErrors();
       setSaved(true);
+      setLocalizedDirty(false);
     } catch (error: unknown) {
       console.error(error);
 
@@ -266,6 +275,11 @@ export default function DashboardNavbar() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleNavbarSave(event: FormEvent<HTMLFormElement>): void {
+    event.preventDefault();
+    saveGuard.requestSave([title], [titleEn], performNavbarSave, localizedDirty);
   }
 
   function handleMainColorChange(
@@ -401,7 +415,8 @@ export default function DashboardNavbar() {
               </div>
             ) : (
               <form onSubmit={handleNavbarSave} className="mt-8 space-y-6">
-                <div>
+                <ContentLanguageSwitch value={language} onChange={setLanguage} />
+                {language === "el" ? <div data-bilingual-form tabIndex={-1}>
                   <label
                     htmlFor="navbar-title"
                     className="mb-2 block text-sm font-medium text-[rgb(var(--ink))]"
@@ -414,6 +429,7 @@ export default function DashboardNavbar() {
                     value={title}
                     onChange={(event) => {
                       setTitle(event.target.value);
+                      setLocalizedDirty(true);
                       navbarForm.clearFieldError("title");
                     }}
                     className={errorInputClass(
@@ -424,7 +440,28 @@ export default function DashboardNavbar() {
                   />
 
                   <FormFieldError errors={navbarForm.fieldErrors.title} />
-                </div>
+                </div> : <div data-bilingual-form tabIndex={-1}>
+                  <label
+                    htmlFor="navbar-title-en"
+                    className="mb-2 block text-sm font-medium text-[rgb(var(--ink))]"
+                  >
+                    Τίτλος Navbar
+                  </label>
+                  <input
+                    id="navbar-title-en"
+                    value={titleEn}
+                    onChange={(event) => {
+                      setTitleEn(event.target.value);
+                      setLocalizedDirty(true);
+                      navbarForm.clearFieldError("titleEn");
+                    }}
+                    className={errorInputClass(
+                      Boolean(navbarForm.fieldErrors.titleEn),
+                      "w-full rounded-xl border border-[rgba(var(--border),1)] bg-[rgb(var(--surface))] px-4 py-3 text-sm outline-none focus:border-[rgb(var(--primary))] focus:ring-2 focus:ring-[rgba(var(--primary),0.18)]",
+                    )}
+                  />
+                  <FormFieldError errors={navbarForm.fieldErrors.titleEn} />
+                </div>}
 
                 <div>
                   <label
@@ -719,7 +756,7 @@ export default function DashboardNavbar() {
               </form>
             )}
           </section>
-          <GeneralErrorDialog
+        <GeneralErrorDialog
             open={Boolean(navbarForm.generalError || themeForm.generalError)}
             title={(navbarForm.generalError || themeForm.generalError)?.title}
             message={
@@ -729,7 +766,8 @@ export default function DashboardNavbar() {
               navbarForm.closeGeneralError();
               themeForm.closeGeneralError();
             }}
-          />
+        />
+        <BilingualSaveWarning {...saveGuard.warningProps} />
         </div>
       </div>
     </>

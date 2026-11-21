@@ -11,6 +11,9 @@ import RichTextEditor from "@/components/admin/RichTextEditor";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 import FormFieldError from "@/components/admin/FormFieldError";
 import GeneralErrorDialog from "@/components/admin/GeneralErrorDialog";
+import BilingualSaveWarning from "@/components/admin/BilingualSaveWarning";
+import ContentLanguageSwitch, { type ContentLanguage } from "@/components/admin/ContentLanguageSwitch";
+import { useBilingualSaveGuard } from "@/components/admin/useBilingualSaveGuard";
 import { useFormErrors } from "@/components/hooks/useFormErrors";
 import {
   addValidationError,
@@ -40,9 +43,13 @@ const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
 type HomeFormState = {
   id: number | null;
   title: string;
+  titleEn?: string | null;
   info: string;
+  infoEn?: string | null;
   biography: string;
+  biographyEn?: string | null;
   phylosophy: string;
+  phylosophyEn?: string | null;
   mainPictureId?: number | null;
   mainPictureUrl?: string | null;
   bioPictureId?: number | null;
@@ -54,20 +61,35 @@ type HomeFormState = {
   mainSmallPicture3Id?: number | null;
   mainSmallPicture3Url?: string | null;
   smallCardsSectionTitle?: string | null;
+  smallCardsSectionTitleEn?: string | null;
+  newsletterTitle?: string | null;
+  newsletterTitleEn?: string | null;
+  newsletterDetails?: string | null;
+  newsletterDetailsEn?: string | null;
   smallCard1Title?: string | null;
+  smallCard1TitleEn?: string | null;
   smallCard1Text?: string | null;
+  smallCard1TextEn?: string | null;
   smallCard2Title?: string | null;
+  smallCard2TitleEn?: string | null;
   smallCard2Text?: string | null;
+  smallCard2TextEn?: string | null;
   smallCard3Title?: string | null;
+  smallCard3TitleEn?: string | null;
   smallCard3Text?: string | null;
+  smallCard3TextEn?: string | null;
 };
 
 const EMPTY_HOME: HomeFormState = {
   id: null,
   title: "",
+  titleEn: "",
   info: "",
+  infoEn: "",
   biography: "",
+  biographyEn: "",
   phylosophy: "",
+  phylosophyEn: "",
   mainPictureId: null,
   mainPictureUrl: null,
   bioPictureId: null,
@@ -79,12 +101,23 @@ const EMPTY_HOME: HomeFormState = {
   mainSmallPicture3Id: null,
   mainSmallPicture3Url: null,
   smallCardsSectionTitle: "",
+  smallCardsSectionTitleEn: "",
+  newsletterTitle: "",
+  newsletterTitleEn: "",
+  newsletterDetails: "",
+  newsletterDetailsEn: "",
   smallCard1Title: "",
+  smallCard1TitleEn: "",
   smallCard1Text: "",
+  smallCard1TextEn: "",
   smallCard2Title: "",
+  smallCard2TitleEn: "",
   smallCard2Text: "",
+  smallCard2TextEn: "",
   smallCard3Title: "",
+  smallCard3TitleEn: "",
   smallCard3Text: "",
+  smallCard3TextEn: "",
 };
 
 type ImageFieldKey =
@@ -162,28 +195,38 @@ const IMAGE_FIELDS: {
 ];
 
 type SmallCardTitleKey =
-  "smallCard1Title" | "smallCard2Title" | "smallCard3Title";
+  | "smallCard1Title"
+  | "smallCard2Title"
+  | "smallCard3Title";
 
 type SmallCardTextKey = "smallCard1Text" | "smallCard2Text" | "smallCard3Text";
 
 const SMALL_CARD_TEXT_FIELDS: {
   titleKey: SmallCardTitleKey;
   textKey: SmallCardTextKey;
+  titleEnKey: "smallCard1TitleEn" | "smallCard2TitleEn" | "smallCard3TitleEn";
+  textEnKey: "smallCard1TextEn" | "smallCard2TextEn" | "smallCard3TextEn";
   label: string;
 }[] = [
   {
     titleKey: "smallCard1Title",
     textKey: "smallCard1Text",
+    titleEnKey: "smallCard1TitleEn",
+    textEnKey: "smallCard1TextEn",
     label: "Κάρτα 1",
   },
   {
     titleKey: "smallCard2Title",
     textKey: "smallCard2Text",
+    titleEnKey: "smallCard2TitleEn",
+    textEnKey: "smallCard2TextEn",
     label: "Κάρτα 2",
   },
   {
     titleKey: "smallCard3Title",
     textKey: "smallCard3Text",
+    titleEnKey: "smallCard3TitleEn",
+    textEnKey: "smallCard3TextEn",
     label: "Κάρτα 3",
   },
 ];
@@ -192,9 +235,13 @@ function mapDtoToState(dto: MainPageGetDto): HomeFormState {
   return {
     id: dto.id,
     title: dto.title ?? "",
+    titleEn: dto.titleEn ?? "",
     info: dto.info ?? "",
+    infoEn: dto.infoEn ?? "",
     biography: dto.biography ?? "",
+    biographyEn: dto.biographyEn ?? "",
     phylosophy: dto.phylosophy ?? "",
+    phylosophyEn: dto.phylosophyEn ?? "",
     mainPictureId: dto.mainPictureId ?? null,
     mainPictureUrl: dto.mainPictureUrl ?? null,
     bioPictureId: dto.bioPictureId ?? null,
@@ -206,12 +253,23 @@ function mapDtoToState(dto: MainPageGetDto): HomeFormState {
     mainSmallPicture3Id: dto.mainSmallPicture3Id ?? null,
     mainSmallPicture3Url: dto.mainSmallPicture3Url ?? null,
     smallCardsSectionTitle: dto.smallCardsSectionTitle ?? "",
+    smallCardsSectionTitleEn: dto.smallCardsSectionTitleEn ?? "",
+    newsletterTitle: dto.newsletterTitle ?? "",
+    newsletterTitleEn: dto.newsletterTitleEn ?? "",
+    newsletterDetails: dto.newsletterDetails ?? "",
+    newsletterDetailsEn: dto.newsletterDetailsEn ?? "",
     smallCard1Title: dto.smallCard1Title ?? "",
+    smallCard1TitleEn: dto.smallCard1TitleEn ?? "",
     smallCard1Text: dto.smallCard1Text ?? "",
+    smallCard1TextEn: dto.smallCard1TextEn ?? "",
     smallCard2Title: dto.smallCard2Title ?? "",
+    smallCard2TitleEn: dto.smallCard2TitleEn ?? "",
     smallCard2Text: dto.smallCard2Text ?? "",
+    smallCard2TextEn: dto.smallCard2TextEn ?? "",
     smallCard3Title: dto.smallCard3Title ?? "",
+    smallCard3TitleEn: dto.smallCard3TitleEn ?? "",
     smallCard3Text: dto.smallCard3Text ?? "",
+    smallCard3TextEn: dto.smallCard3TextEn ?? "",
   };
 }
 
@@ -249,6 +307,9 @@ function isSafeImageSrc(src?: string | null) {
 
 export default function ManagementHomePage() {
   const [data, setData] = useState<HomeFormState>(EMPTY_HOME);
+  const [language, setLanguage] = useState<ContentLanguage>("el");
+  const [localizedDirty, setLocalizedDirty] = useState(false);
+  const saveGuard = useBilingualSaveGuard(setLanguage);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -282,6 +343,7 @@ export default function ManagementHomePage() {
       }
 
       setData(mapDtoToState(first));
+      setLocalizedDirty(false);
     } catch (error: unknown) {
       applyApiError(error, "Δεν ήταν δυνατή η φόρτωση της αρχικής σελίδας.");
 
@@ -329,7 +391,7 @@ export default function ManagementHomePage() {
     setToast("Τοπική προεπισκόπηση εικόνας.");
   };
 
-  const onSave = async () => {
+  const performSave = async () => {
     const errors = validateHome();
 
     if (!applyFrontendErrors(errors)) {
@@ -342,9 +404,13 @@ export default function ManagementHomePage() {
 
       const payload: MainPagePostDto = {
         title: data.title.trim(),
+        titleEn: data.titleEn?.trim() ?? "",
         info: data.info.trim(),
+        infoEn: data.infoEn?.trim() ?? "",
         biography: data.biography.trim(),
+        biographyEn: data.biographyEn?.trim() ?? "",
         phylosophy: data.phylosophy.trim(),
+        phylosophyEn: data.phylosophyEn?.trim() ?? "",
 
         mainPicture: selectedFiles.mainPicture,
         mainPictureId: selectedFiles.mainPicture
@@ -357,23 +423,34 @@ export default function ManagementHomePage() {
           : (data.bioPictureId ?? null),
 
         smallCardsSectionTitle: data.smallCardsSectionTitle?.trim() ?? "",
+        smallCardsSectionTitleEn: data.smallCardsSectionTitleEn?.trim() ?? "",
+        newsletterTitle: data.newsletterTitle?.trim() ?? "",
+        newsletterTitleEn: data.newsletterTitleEn?.trim() ?? "",
+        newsletterDetails: data.newsletterDetails?.trim() ?? "",
+        newsletterDetailsEn: data.newsletterDetailsEn?.trim() ?? "",
 
         smallCard1Title: data.smallCard1Title?.trim() ?? "",
+        smallCard1TitleEn: data.smallCard1TitleEn?.trim() ?? "",
         smallCard1Text: data.smallCard1Text?.trim() ?? "",
+        smallCard1TextEn: data.smallCard1TextEn?.trim() ?? "",
         mainSmallPicture1: selectedFiles.mainSmallPicture1,
         mainSmallPicture1Id: selectedFiles.mainSmallPicture1
           ? null
           : (data.mainSmallPicture1Id ?? null),
 
         smallCard2Title: data.smallCard2Title?.trim() ?? "",
+        smallCard2TitleEn: data.smallCard2TitleEn?.trim() ?? "",
         smallCard2Text: data.smallCard2Text?.trim() ?? "",
+        smallCard2TextEn: data.smallCard2TextEn?.trim() ?? "",
         mainSmallPicture2: selectedFiles.mainSmallPicture2,
         mainSmallPicture2Id: selectedFiles.mainSmallPicture2
           ? null
           : (data.mainSmallPicture2Id ?? null),
 
         smallCard3Title: data.smallCard3Title?.trim() ?? "",
+        smallCard3TitleEn: data.smallCard3TitleEn?.trim() ?? "",
         smallCard3Text: data.smallCard3Text?.trim() ?? "",
+        smallCard3TextEn: data.smallCard3TextEn?.trim() ?? "",
         mainSmallPicture3: selectedFiles.mainSmallPicture3,
         mainSmallPicture3Id: selectedFiles.mainSmallPicture3
           ? null
@@ -392,12 +469,22 @@ export default function ManagementHomePage() {
 
       setSelectedFiles(EMPTY_IMAGE_FILES);
       setFilePreviews(EMPTY_IMAGE_PREVIEWS);
+      setLocalizedDirty(false);
       setToast("Αποθηκεύτηκε!");
     } catch (error: unknown) {
       applyApiError(error, "Δεν ήταν δυνατή η αποθήκευση της αρχικής σελίδας.");
     } finally {
       setSaving(false);
     }
+  };
+
+  const onSave = () => {
+    saveGuard.requestSave(
+      [data.title, data.info, data.biography, data.phylosophy, data.newsletterTitle, data.newsletterDetails],
+      [data.titleEn, data.infoEn, data.biographyEn, data.phylosophyEn, data.newsletterTitleEn, data.newsletterDetailsEn],
+      performSave,
+      localizedDirty,
+    );
   };
 
   function validateHome(): ApiFieldErrors {
@@ -485,274 +572,419 @@ export default function ManagementHomePage() {
                 <p className="mt-3 text-slate-600">Φόρτωση…</p>
               ) : (
                 <>
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-slate-700">
-                      Εικόνες Αρχικής
-                    </label>
+                  <div className="mt-4" data-bilingual-form tabIndex={-1}>
+                    <ContentLanguageSwitch value={language} onChange={setLanguage} />
+                  </div>
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:p-5">
+                    <p className="mb-4 text-sm font-semibold text-slate-700">
+                      Ενότητα μικρών καρτών
+                    </p>
 
-                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                      {IMAGE_FIELDS.map((field) => {
-                        const src = getPreviewSrc(field);
-                        const canRender = isSafeImageSrc(src);
-                        const hasLocalSelection = Boolean(
-                          selectedFiles[field.key],
-                        );
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">
+                        Τίτλος ενότητας μικρών καρτών
+                      </label>
 
-                        return (
+                      <input
+                        type="text"
+                        value={(language === "el" ? data.smallCardsSectionTitle : data.smallCardsSectionTitleEn) ?? ""}
+                        onChange={(e) => {
+                          setData((s) => ({
+                            ...s,
+                            [language === "el" ? "smallCardsSectionTitle" : "smallCardsSectionTitleEn"]: e.target.value,
+                          }));
+                          setLocalizedDirty(true);
+                        }}
+                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))] focus:ring-2 focus:ring-[rgba(var(--primary),0.15)]"
+                      />
+                    </div>
+
+                    <div className="mt-5">
+                      <p className="mb-3 text-sm font-medium text-slate-700">
+                        Εικόνες Αρχικής
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {IMAGE_FIELDS.map((field) => {
+                          const src = getPreviewSrc(field);
+                          const canRender = isSafeImageSrc(src);
+                          const hasLocalSelection = Boolean(
+                            selectedFiles[field.key],
+                          );
+
+                          return (
+                            <div
+                              key={field.key}
+                              className={cx(
+                                "rounded-xl border bg-white p-3",
+                                fieldErrors[field.key] ||
+                                  fieldErrors[field.idKey]
+                                  ? "border-rose-400"
+                                  : "border-slate-200",
+                              )}
+                            >
+                              <p className="mb-2 text-sm font-medium text-slate-700">
+                                {field.label}
+                              </p>
+
+                              <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg border border-slate-200 bg-white">
+                                {canRender && src ? (
+                                  <Image
+                                    alt={field.label}
+                                    src={src}
+                                    fill
+                                    sizes="(max-width: 768px) 100vw, 33vw"
+                                    className="object-cover"
+                                    unoptimized
+                                  />
+                                ) : (
+                                  <div className="flex h-full items-center justify-center text-xs text-slate-500">
+                                    Δεν υπάρχει εικόνα
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="mt-3 flex flex-wrap items-center gap-2">
+                                <label className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs cursor-pointer hover:border-[rgb(var(--primary))]">
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      const f = e.target.files?.[0];
+                                      if (!f) return;
+
+                                      onSelectImage(field.key, f);
+                                      e.target.value = "";
+                                    }}
+                                  />
+                                  Επιλογή αρχείου
+                                </label>
+
+                                {hasLocalSelection && (
+                                  <button
+                                    type="button"
+                                    className="text-xs underline underline-offset-2"
+                                    onClick={() =>
+                                      clearSelectedImage(field.key)
+                                    }
+                                  >
+                                    Καθαρισμός επιλογής
+                                  </button>
+                                )}
+                              </div>
+
+                              <FormFieldError
+                                errors={[
+                                  ...(fieldErrors[field.key] ?? []),
+                                  ...(fieldErrors[field.idKey] ?? []),
+                                ]}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="mt-5">
+                      <p className="mb-3 text-sm font-medium text-slate-700">
+                        Περιεχόμενο καρτών
+                      </p>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {SMALL_CARD_TEXT_FIELDS.map((card) => (
                           <div
-                            key={field.key}
-                            className={cx(
-                              "rounded-xl border bg-slate-50 p-3",
-                              fieldErrors[field.key] || fieldErrors[field.idKey]
-                                ? "border-rose-400"
-                                : "border-slate-200",
-                            )}
+                            key={card.label}
+                            className="rounded-xl border border-slate-200 bg-white p-4"
                           >
-                            <p className="mb-2 text-sm font-medium text-slate-700">
-                              {field.label}
+                            <p className="mb-3 text-sm font-semibold text-slate-700">
+                              {card.label}
                             </p>
 
-                            <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg border border-slate-200 bg-white">
-                              {canRender && src ? (
-                                <Image
-                                  alt={field.label}
-                                  src={src}
-                                  fill
-                                  sizes="(max-width: 768px) 100vw, 33vw"
-                                  className="object-cover"
-                                  unoptimized
-                                />
-                              ) : (
-                                <div className="flex h-full items-center justify-center text-xs text-slate-500">
-                                  Δεν υπάρχει εικόνα
-                                </div>
-                              )}
-                            </div>
+                            <label className="block text-sm font-medium text-slate-700">
+                              Τίτλος
+                            </label>
 
-                            <div className="mt-3 flex flex-wrap items-center gap-2">
-                              <label className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs cursor-pointer hover:border-[rgb(var(--primary))]">
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  className="hidden"
-                                  onChange={(e) => {
-                                    const f = e.target.files?.[0];
-                                    if (!f) return;
+                            <input
+                              type="text"
+                              value={data[language === "el" ? card.titleKey : card.titleEnKey] ?? ""}
+                              onChange={(e) => {
+                                setData((s) => ({
+                                  ...s,
+                                  [language === "el" ? card.titleKey : card.titleEnKey]: e.target.value,
+                                }));
+                                setLocalizedDirty(true);
+                              }}
+                              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                            />
 
-                                    onSelectImage(field.key, f);
-                                    e.target.value = "";
-                                  }}
-                                />
-                                Επιλογή αρχείου
-                              </label>
+                            <label className="mt-3 block text-sm font-medium text-slate-700">
+                              Κείμενο
+                            </label>
 
-                              {hasLocalSelection && (
-                                <button
-                                  type="button"
-                                  className="text-xs underline underline-offset-2"
-                                  onClick={() => clearSelectedImage(field.key)}
-                                >
-                                  Καθαρισμός επιλογής
-                                </button>
-                              )}
-                            </div>
-                            <FormFieldError
-                              errors={[
-                                ...(fieldErrors[field.key] ?? []),
-                                ...(fieldErrors[field.idKey] ?? []),
-                              ]}
+                            <textarea
+                              value={data[language === "el" ? card.textKey : card.textEnKey] ?? ""}
+                              onChange={(e) => {
+                                setData((s) => ({
+                                  ...s,
+                                  [language === "el" ? card.textKey : card.textEnKey]: e.target.value,
+                                }));
+                                setLocalizedDirty(true);
+                              }}
+                              rows={4}
+                              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
                             />
                           </div>
-                        );
-                      })}
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="mt-6">
+                  <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:p-5">
+                    <p className="mb-4 text-sm font-semibold text-slate-700">
+                      Κεντρικό Περιεχόμενο
+                    </p>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">
+                        Κεντρικός Τίτλος{" "}
+                        <span className="text-rose-600" aria-hidden="true">
+                          *
+                        </span>
+                      </label>
+
+                      <input
+                        type="text"
+                        value={language === "el" ? data.title : data.titleEn ?? ""}
+                        onChange={(e) => {
+                          const key = language === "el" ? "title" : "titleEn";
+                          setData((s) => ({ ...s, [key]: e.target.value }));
+                          clearFieldError(key);
+                          setLocalizedDirty(true);
+                        }}
+                        className={errorInputClass(
+                          Boolean(fieldErrors.title),
+                          "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))] focus:ring-2 focus:ring-[rgba(var(--primary),0.15)]",
+                        )}
+                      />
+
+                      <FormFieldError errors={fieldErrors.title} />
+                    </div>
+
+                    <div className="mt-5">
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Πληροφορίες{" "}
+                        <span className="text-rose-600" aria-hidden="true">
+                          *
+                        </span>
+                      </label>
+
+                      <div
+                        className={
+                          fieldErrors.info
+                            ? "rounded-xl ring-2 ring-rose-400"
+                            : ""
+                        }
+                      >
+                        <RichTextEditor
+                          value={language === "el" ? data.info : data.infoEn ?? ""}
+                          onChange={(html) => {
+                            setData((s) => ({
+                              ...s,
+                              [language === "el" ? "info" : "infoEn"]: html,
+                            }));
+
+                            clearFieldError(language === "el" ? "info" : "infoEn");
+                            setLocalizedDirty(true);
+                          }}
+                          placeholder="Γράψε τις βασικές πληροφορίες της αρχικής..."
+                          minHeight={160}
+                        />
+                      </div>
+
+                      <FormFieldError errors={fieldErrors.info} />
+                    </div>
+                  </div>
+
+                  <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="mb-3 text-sm font-semibold text-slate-700">
+                      Newsletter
+                    </p>
+
                     <label className="block text-sm font-medium text-slate-700">
-                      Τίτλος ενότητας μικρών καρτών
+                      Τίτλος Newsletter
                     </label>
 
                     <input
                       type="text"
-                      value={data.smallCardsSectionTitle ?? ""}
+                      value={(language === "el" ? data.newsletterTitle : data.newsletterTitleEn) ?? ""}
                       onChange={(e) => {
                         setData((s) => ({
                           ...s,
-                          smallCardsSectionTitle: e.target.value,
+                          [language === "el" ? "newsletterTitle" : "newsletterTitleEn"]: e.target.value,
                         }));
+                        setLocalizedDirty(true);
                       }}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))] focus:ring-2 focus:ring-[rgba(var(--primary),0.15)]"
-                    />
-                  </div>
-
-                  <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {SMALL_CARD_TEXT_FIELDS.map((card) => (
-                      <div
-                        key={card.label}
-                        className="rounded-xl border border-slate-200 bg-slate-50 p-4"
-                      >
-                        <p className="mb-3 text-sm font-semibold text-slate-700">
-                          {card.label}
-                        </p>
-
-                        <label className="block text-sm font-medium text-slate-700">
-                          Τίτλος
-                        </label>
-
-                        <input
-                          type="text"
-                          value={data[card.titleKey] ?? ""}
-                          onChange={(e) =>
-                            setData((s) => ({
-                              ...s,
-                              [card.titleKey]: e.target.value,
-                            }))
-                          }
-                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
-                        />
-
-                        <label className="mt-3 block text-sm font-medium text-slate-700">
-                          Κείμενο
-                        </label>
-
-                        <textarea
-                          value={data[card.textKey] ?? ""}
-                          onChange={(e) =>
-                            setData((s) => ({
-                              ...s,
-                              [card.textKey]: e.target.value,
-                            }))
-                          }
-                          rows={4}
-                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
-                        />
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-6">
-                    <label className="block text-sm font-medium text-slate-700">
-                      Τίτλος{" "}
-                      <span className="text-rose-600" aria-hidden="true">
-                        *
-                      </span>
-                    </label>
-
-                    <input
-                      type="text"
-                      value={data.title}
-                      onChange={(e) => {
-                        setData((s) => ({ ...s, title: e.target.value }));
-                        clearFieldError("title");
-                      }}
-                      className={errorInputClass(
-                        Boolean(fieldErrors.title),
-                        "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]",
-                      )}
+                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
                     />
 
-                    <FormFieldError errors={fieldErrors.title} />
-                  </div>
-
-                  <div className="mt-6">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Πληροφορίες{" "}
-                      <span className="text-rose-600" aria-hidden="true">
-                        *
-                      </span>
+                    <label className="mt-3 block text-sm font-medium text-slate-700 mb-2">
+                      Λεπτομέρειες Newsletter
                     </label>
 
                     <div
                       className={
-                        fieldErrors.info
+                        fieldErrors.newsletterDetails
                           ? "rounded-xl ring-2 ring-rose-400"
                           : ""
                       }
                     >
                       <RichTextEditor
-                        value={data.info}
+                        value={(language === "el" ? data.newsletterDetails : data.newsletterDetailsEn) ?? ""}
                         onChange={(html) => {
                           setData((s) => ({
                             ...s,
-                            info: html,
+                            [language === "el" ? "newsletterDetails" : "newsletterDetailsEn"]: html,
                           }));
 
-                          clearFieldError("info");
+                          clearFieldError(language === "el" ? "newsletterDetails" : "newsletterDetailsEn");
+                          setLocalizedDirty(true);
                         }}
-                        placeholder="Γράψε τις βασικές πληροφορίες της αρχικής..."
+                        placeholder="Γράψε τις λεπτομέρειες του newsletter..."
                         minHeight={160}
                       />
                     </div>
 
-                    <FormFieldError errors={fieldErrors.info} />
+                    <FormFieldError errors={fieldErrors.newsletterDetails} />
                   </div>
 
-                  <div className="mt-6">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Βιογραφικό{" "}
-                      <span className="text-rose-600" aria-hidden="true">
-                        *
-                      </span>
-                    </label>
+                  <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:p-5">
+                    <p className="mb-4 text-sm font-semibold text-slate-700">
+                      Βιογραφικό
+                    </p>
 
-                    <div
-                      className={
-                        fieldErrors.biography
-                          ? "rounded-xl ring-2 ring-rose-400"
-                          : ""
-                      }
-                    >
-                      <RichTextEditor
-                        value={data.biography}
-                        onChange={(html) => {
-                          setData((s) => ({
-                            ...s,
-                            biography: html,
-                          }));
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Περιεχόμενο Βιογραφικού{" "}
+                        <span className="text-rose-600" aria-hidden="true">
+                          *
+                        </span>
+                      </label>
 
-                          clearFieldError("biography");
-                        }}
-                        placeholder="Γράψε το βιογραφικό..."
-                        minHeight={220}
-                      />
+                      <div
+                        className={
+                          fieldErrors.biography
+                            ? "rounded-xl ring-2 ring-rose-400"
+                            : ""
+                        }
+                      >
+                        <RichTextEditor
+                          value={language === "el" ? data.biography : data.biographyEn ?? ""}
+                          onChange={(html) => {
+                            setData((s) => ({
+                              ...s,
+                              [language === "el" ? "biography" : "biographyEn"]: html,
+                            }));
+
+                            clearFieldError(language === "el" ? "biography" : "biographyEn");
+                            setLocalizedDirty(true);
+                          }}
+                          placeholder="Γράψε το βιογραφικό..."
+                          minHeight={220}
+                        />
+                      </div>
+
+                      <FormFieldError errors={fieldErrors.biography} />
                     </div>
-
-                    <FormFieldError errors={fieldErrors.biography} />
                   </div>
 
-                  <div className="mt-6">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Φιλοσοφία{" "}
-                      <span className="text-rose-600" aria-hidden="true">
-                        *
-                      </span>
-                    </label>
+                  <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:p-5">
+                    <p className="mb-4 text-sm font-semibold text-slate-700">
+                      Φιλοσοφία
+                    </p>
 
-                    <div
-                      className={
-                        fieldErrors.phylosophy
-                          ? "rounded-xl ring-2 ring-rose-400"
-                          : ""
-                      }
-                    >
-                      <RichTextEditor
-                        value={data.phylosophy}
-                        onChange={(html) => {
-                          setData((s) => ({
-                            ...s,
-                            phylosophy: html,
-                          }));
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Περιεχόμενο Φιλοσοφίας{" "}
+                        <span className="text-rose-600" aria-hidden="true">
+                          *
+                        </span>
+                      </label>
 
-                          clearFieldError("phylosophy");
-                        }}
-                        placeholder="Γράψε τη φιλοσοφία..."
-                        minHeight={220}
-                      />
+                      <div
+                        className={
+                          fieldErrors.phylosophy
+                            ? "rounded-xl ring-2 ring-rose-400"
+                            : ""
+                        }
+                      >
+                        <RichTextEditor
+                          value={language === "el" ? data.phylosophy : data.phylosophyEn ?? ""}
+                          onChange={(html) => {
+                            setData((s) => ({
+                              ...s,
+                              [language === "el" ? "phylosophy" : "phylosophyEn"]: html,
+                            }));
+
+                            clearFieldError(language === "el" ? "phylosophy" : "phylosophyEn");
+                            setLocalizedDirty(true);
+                          }}
+                          placeholder="Γράψε τη φιλοσοφία..."
+                          minHeight={220}
+                        />
+                      </div>
+
+                      <FormFieldError errors={fieldErrors.phylosophy} />
                     </div>
-
-                    <FormFieldError errors={fieldErrors.phylosophy} />
                   </div>
+
+                  {false && <div className="mt-6 space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-sm font-semibold text-slate-700">English content</p>
+                    {([
+                      ["titleEn", "Title (EN)"],
+                      ["smallCardsSectionTitleEn", "Small cards section title (EN)"],
+                      ["newsletterTitleEn", "Newsletter title (EN)"],
+                      ["smallCard1TitleEn", "Small card 1 title (EN)"],
+                      ["smallCard1TextEn", "Small card 1 text (EN)"],
+                      ["smallCard2TitleEn", "Small card 2 title (EN)"],
+                      ["smallCard2TextEn", "Small card 2 text (EN)"],
+                      ["smallCard3TitleEn", "Small card 3 title (EN)"],
+                      ["smallCard3TextEn", "Small card 3 text (EN)"],
+                    ] as Array<[keyof HomeFormState, string]>).map(([key, label]) => (
+                      <label key={key} className="block text-sm font-medium text-slate-700">
+                        {label}
+                        <input
+                          value={String(data[key] ?? "")}
+                          onChange={(event) =>
+                            setData((current) => ({ ...current, [key]: event.target.value }))
+                          }
+                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                        />
+                      </label>
+                    ))}
+
+                    {([
+                      ["infoEn", "Information (EN)", 160],
+                      ["biographyEn", "Biography (EN)", 220],
+                      ["phylosophyEn", "Philosophy (EN)", 220],
+                      ["newsletterDetailsEn", "Newsletter details (EN)", 160],
+                    ] as Array<[keyof HomeFormState, string, number]>).map(([key, label, minHeight]) => (
+                      <div key={key}>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                          {label}
+                        </label>
+                        <RichTextEditor
+                          value={String(data[key] ?? "")}
+                          onChange={(html) => {
+                            setData((current) => ({ ...current, [key]: html }));
+                            clearFieldError(String(key));
+                          }}
+                          placeholder={`Write ${label.toLowerCase()}...`}
+                          minHeight={minHeight}
+                        />
+                      </div>
+                    ))}
+                  </div>}
 
                   <div className="mt-6 flex flex-wrap items-center gap-3">
                     <button
@@ -873,6 +1105,7 @@ export default function ManagementHomePage() {
           message={generalError?.message ?? ""}
           onClose={closeGeneralError}
         />
+        <BilingualSaveWarning {...saveGuard.warningProps} />
       </div>
     </>
   );

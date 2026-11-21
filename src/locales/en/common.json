@@ -1,0 +1,26 @@
+{
+  "nav": {
+    "home": "HOME",
+    "biography": "BIOGRAPHY",
+    "philosophy": "PHILOSOPHY",
+    "services": "SERVICES",
+    "seminars": "SEMINARS",
+    "ebook": "EBOOK",
+    "blog": "BLOG",
+    "articles": "ARTICLES",
+    "recipes": "RECIPES",
+    "contact": "CONTACT",
+    "bookAppointment": "BOOK APPOINTMENT",
+    "contactForm": "CONTACT FORM",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "navigationMenu": "Navigation menu",
+    "submenu": "submenu"
+  },
+
+  "language": {
+    "change": "Change language",
+    "greek": "Ελληνικά",
+    "english": "English"
+  }
+}

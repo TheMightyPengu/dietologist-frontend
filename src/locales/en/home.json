@@ -1,0 +1,89 @@
+{
+  "meta": {
+    "siteName": "Dietitian Center",
+    "pageTitle": "Home — Dietitian Center",
+    "description": "Welcome to the Dietitian Center — Scientific support, personalized nutrition plans and a warm, supportive approach to nutrition."
+  },
+
+  "sections": {
+    "biography": "BIOGRAPHY",
+    "philosophy": "PHILOSOPHY"
+  },
+
+  "biography": {
+    "imageAlt": "Vasiliki Chyta — Dietitian",
+    "fallbackHtml": "<p>My name is <strong>Vasiliki Chyta</strong> and I am a Dietitian–Nutritionist.</p><p>I studied Nutrition and Dietetics at the International Hellenic University and trained at Hippocrates General Hospital of Thessaloniki, working with people facing eating disorders.</p><p>I continued my education in evidence-based medical nutrition and in the relationship between people and food. I now live in France and work online with people from different countries.</p><p>My own experience with food and body image led me to explore nutrition both nutritionally and emotionally, and to support people through the nutritional therapy they seek.</p>"
+  },
+
+  "philosophy": {
+    "fallbackHtml": "<p>My philosophy is based on the <em>biopsychosocial</em> model: health and nutrition are shaped by our body, mind and environment.</p><p>I see nutrition as a reflection of our relationship with our body, emotions and everyday context—not as an isolated set of rules.</p><p>In sessions we work holistically and with a person-centered approach, drawing on cognitive behavioral therapy and adapting it to nutritional care.</p><p>The goal is not a ‘perfect diet’, but a gentle, realistic connection with the body and its needs.</p><p>I work with adults and adolescents on eating disorders, weight regulation, PCOS and hormonal disorders, clinical nutrition, intuitive eating, and metabolic and nutritional rehabilitation.</p>"
+  },
+
+  "hero": {
+    "title": "Welcome!",
+    "description": "I am Vasiliki Chyta, Dietitian–Nutritionist. I believe in a gentle, person-centered approach that connects knowledge with care: education, wellbeing and balance, beyond stereotypes and quick fixes.",
+    "imageAlt": "Diet out of the Box — Nutrition & Health",
+    "loading": "Loading content…",
+    "book": "BOOK A SESSION",
+    "readMore": "Read more here",
+    "oneToOne": "1:1 Appointments",
+    "groups": "Group Sessions",
+    "seminars": "Seminars",
+    "cardDescription": "Learn more about how we work."
+  },
+
+  "outcomes": {
+    "title": "By the end of our work together, you will be able to",
+    "cards": [
+      { "title": "Calm", "text": "Feel calmer around food and your body." },
+      { "title": "Balance", "text": "Nourish yourself by listening to your needs, without guilt or restriction." },
+      { "title": "Stability", "text": "Care for your body in a more neutral and consistent way." }
+    ]
+  },
+
+  "podcast": {
+    "description": "Conversations about nutrition, the body and our relationship with food.",
+    "listen": "Listen on Spotify"
+  },
+
+  "newsletter": {
+    "title": "Newsletter",
+    "description": "Small, practical tips about nutrition, your relationship with food and self-care — delivered directly to your email.",
+    "privacyShort": "No spam. Unsubscribe whenever you want.",
+    "subscribe": "Subscribe",
+    "contact": "Contact",
+
+    "modal": {
+      "ariaLabel": "Newsletter",
+      "closeAriaLabel": "Close",
+
+      "formTitle": "Subscribe to the Newsletter",
+      "formDescription": "Enter your details to receive updates.",
+
+      "successTitle": "Subscription completed",
+      "successDescription": "Thank you for subscribing to the newsletter.",
+
+      "close": "Close",
+      "cancel": "Cancel",
+      "finish": "Done",
+
+      "fullName": "Full name",
+      "fullNamePlaceholder": "e.g. Maria Papadopoulou",
+
+      "email": "Email",
+      "emailPlaceholder": "e.g. name@email.com",
+
+      "submitting": "Subscribing…",
+      "submit": "Subscribe",
+
+      "successPrefix": "Great! You will receive updates at",
+      "privacy": "By subscribing, you agree to receive informational emails. We do not share your personal information."
+    },
+
+    "errors": {
+      "nameRequired": "Please enter your full name.",
+      "invalidEmail": "Please enter a valid email address.",
+      "subscribeFailed": "We could not complete your subscription. Please try again."
+    }
+  }
+}

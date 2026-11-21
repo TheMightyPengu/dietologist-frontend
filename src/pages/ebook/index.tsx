@@ -4,6 +4,10 @@ import { EbooksApi, type EbooksGetDto } from "../../api/EbooksController";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 import LeafBurstButton from "@/components/decorative/LeafBurstButton";
 import { toMediaUrl } from "@/api/_axios-client";
+import { useTranslations } from "@/components/hooks/useTranslations";
+import { useRouter } from "next/router";
+import { localizedContent } from "@/lib/localized-content";
+import type { getTranslations } from "@/lib/i18n";
 
 type EbookCard = {
   title: string;
@@ -32,23 +36,7 @@ type EbookViewModel = {
   cards: EbookCard[];
 };
 
-const DEFAULT_CARDS: EbookCard[] = [
-  {
-    title: "Πρακτικός Οδηγός",
-    description:
-      "Καθαρή δομή και εύκολη ανάγνωση για άμεση εφαρμογή στην καθημερινότητα.",
-  },
-  {
-    title: "Άμεση Χρήση",
-    description:
-      "Χρήσιμο περιεχόμενο που μπορεί να αξιοποιηθεί χωρίς περιττή θεωρία.",
-  },
-  {
-    title: "Οργανωμένο Περιεχόμενο",
-    description:
-      "Το ebook έρχεται οργανωμένο με σαφή ενότητες και εύχρηστο υλικό.",
-  },
-];
+type EbookCopy = ReturnType<typeof getTranslations>["ebook"];
 
 const EBOOK_COVER_FALLBACK = "/images/ebook-placeholder.jpg";
 
@@ -149,20 +137,36 @@ function IconBeaker(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+function stripHtml(value: string) {
+  return value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function parseEbookContent(
   raw?: string | null,
   author?: string | null,
+  copy?: EbookCopy,
 ): EbookContentData {
-  const fallbackDescription = `Ένας πρακτικός οδηγός από τον/την ${
-    author || "διαιτολόγο"
+  if (!copy) throw new Error("Ebook translations are required");
+  const defaultCards: EbookCard[] = copy.features.map((feature) => ({ ...feature }));
+  const fallbackDescription = `${copy.fallback.descriptionPrefix} ${
+    author || copy.fallback.dietitian
   }.`;
 
   if (!raw) {
     return {
       description: fallbackDescription,
       toc: [],
-      bonusTemplates: ["Πρακτικό υλικό", "Οδηγός εφαρμογής"],
-      cards: DEFAULT_CARDS,
+      bonusTemplates: [...copy.fallback.materials],
+      cards: defaultCards,
     };
   }
 
@@ -173,11 +177,13 @@ function parseEbookContent(
       return {
         description: String(parsed.description || fallbackDescription),
         toc: Array.isArray(parsed.toc)
-          ? parsed.toc.map(String).filter(Boolean)
+          ? parsed.toc
+              .map((item: unknown) => stripHtml(String(item)))
+              .filter(Boolean)
           : [],
         bonusTemplates: Array.isArray(parsed.bonusTemplates)
           ? parsed.bonusTemplates.map(String).filter(Boolean)
-          : ["Πρακτικό υλικό", "Οδηγός εφαρμογής"],
+          : [...copy.fallback.materials],
         cards:
           Array.isArray(parsed.cards) && parsed.cards.length
             ? parsed.cards
@@ -186,16 +192,18 @@ function parseEbookContent(
                   description: String(card.description || "").trim(),
                 }))
                 .filter((card: EbookCard) => card.title || card.description)
-            : DEFAULT_CARDS,
+            : defaultCards,
       };
     }
 
     if (Array.isArray(parsed)) {
       return {
         description: fallbackDescription,
-        toc: parsed.map(String).filter(Boolean),
-        bonusTemplates: ["Πρακτικό υλικό", "Οδηγός εφαρμογής"],
-        cards: DEFAULT_CARDS,
+        toc: parsed
+          .map((item: unknown) => stripHtml(String(item)))
+          .filter(Boolean),
+        bonusTemplates: [...copy.fallback.materials],
+        cards: defaultCards,
       };
     }
   } catch {
@@ -206,17 +214,21 @@ function parseEbookContent(
     description: fallbackDescription,
     toc: raw
       .split(/\r?\n|;|,/)
-      .map((x) => x.trim())
+      .map((x) => stripHtml(x))
       .filter(Boolean),
-    bonusTemplates: ["Πρακτικό υλικό", "Οδηγός εφαρμογής"],
-    cards: DEFAULT_CARDS,
+    bonusTemplates: [...copy.fallback.materials],
+    cards: defaultCards,
   };
 }
 
-function mapDtoToViewModel(dto: EbooksGetDto): EbookViewModel {
-  const author = dto.author?.trim() || "Χωρίς συγγραφέα";
+function mapDtoToViewModel(dto: EbooksGetDto, copy: EbookCopy, locale?: string): EbookViewModel {
+  const author = dto.author?.trim() || copy.fallback.author;
 
-  const content = parseEbookContent(dto.tableOfContents, author);
+  const content = parseEbookContent(
+    localizedContent(locale, dto.tableOfContents, dto.tableOfContentsEn),
+    author,
+    copy,
+  );
 
   const cover = dto.coverImageUrl
     ? dto.coverImageUrl.startsWith("http://") ||
@@ -234,7 +246,7 @@ function mapDtoToViewModel(dto: EbooksGetDto): EbookViewModel {
 
   return {
     id: dto.id,
-    title: dto.title,
+    title: localizedContent(locale, dto.title, dto.titleEn),
     author,
     cover,
     priceEUR: dto.price,
@@ -242,7 +254,9 @@ function mapDtoToViewModel(dto: EbooksGetDto): EbookViewModel {
     bonusTemplates: content.bonusTemplates,
     cards: content.cards,
 
-    description: dto.description?.trim() || content.description,
+    description:
+      localizedContent(locale, dto.description, dto.descriptionEn).trim() ||
+      content.description,
 
     sampleUrl: undefined,
     //buyUrl: fileUrl,
@@ -251,6 +265,9 @@ function mapDtoToViewModel(dto: EbooksGetDto): EbookViewModel {
 }
 
 export default function EbookPage() {
+  const t = useTranslations();
+  const router = useRouter();
+  const copy = t.ebook;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [ebooks, setEbooks] = useState<EbookViewModel[]>([]);
@@ -319,17 +336,19 @@ export default function EbookPage() {
         if (!items.length) {
           setEbooks([]);
           setActiveEbookId(null);
-          setError("Δεν βρέθηκε ebook.");
+          setError(copy.errors.notFound);
           return;
         }
 
-        const mapped = items.map(mapDtoToViewModel);
+        const mapped = items.map((item) =>
+          mapDtoToViewModel(item, copy, router.locale),
+        );
 
         setEbooks(mapped);
         setActiveEbookId(mapped[0].id);
       } catch (err: unknown) {
         if (!active) return;
-        setError(err instanceof Error ? err.message : "Κάτι πήγε στραβά.");
+        setError(err instanceof Error ? err.message : copy.errors.generic);
       } finally {
         if (active) setLoading(false);
       }
@@ -340,7 +359,7 @@ export default function EbookPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [copy, router.locale]);
 
   useEffect(() => {
     if (ebooks.length <= 1) return;
@@ -391,10 +410,10 @@ export default function EbookPage() {
   return (
     <>
       <Head>
-        <title>Ebook — Διατροφολόγος</title>
+        <title>{copy.meta.title}</title>
         <meta
           name="description"
-          content="Σύγχρονο ebook με πρακτικά εργαλεία για την καθημερινή διατροφή."
+          content={copy.meta.description}
         />
       </Head>
 
@@ -424,14 +443,16 @@ export default function EbookPage() {
                       type="button"
                       onClick={showPreviousEbook}
                       className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[rgba(var(--border),0.9)] bg-[rgb(var(--surface))] text-xl text-[rgb(var(--primary))] transition hover:border-[rgb(var(--primary))] hover:bg-[rgba(var(--primary),0.06)]"
-                      aria-label="Προηγούμενο ebook"
+                      aria-label={copy.carousel.previous}
                     >
                       ←
                     </button>
 
                     <div className="min-w-0 flex-1 text-center">
                       <p className="text-xs font-medium uppercase tracking-wide text-[rgb(var(--muted))]">
-                        Ebook {activeEbookIndex + 1} από {ebooks.length}
+                        {copy.carousel.position
+                          .replace("{current}", String(activeEbookIndex + 1))
+                          .replace("{total}", String(ebooks.length))}
                       </p>
 
                       <p className="mt-1 truncate text-base font-semibold text-[rgb(var(--ink))]">
@@ -471,7 +492,9 @@ export default function EbookPage() {
                                         "hover:bg-[rgba(var(--primary),0.6)]",
                                       ].join(" "),
                                 ].join(" ")}
-                                aria-label={`Προβολή ebook ${index + 1}: ${item.title}`}
+                                aria-label={copy.carousel.view
+                                  .replace("{number}", String(index + 1))
+                                  .replace("{title}", item.title)}
                                 aria-current={selected ? "true" : undefined}
                               />
                             );
@@ -484,7 +507,7 @@ export default function EbookPage() {
                       type="button"
                       onClick={showNextEbook}
                       className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[rgba(var(--border),0.9)] bg-[rgb(var(--surface))] text-xl text-[rgb(var(--primary))] transition hover:border-[rgb(var(--primary))] hover:bg-[rgba(var(--primary),0.06)]"
-                      aria-label="Επόμενο ebook"
+                      aria-label={copy.carousel.next}
                     >
                       →
                     </button>
@@ -517,7 +540,7 @@ export default function EbookPage() {
                         "md:hover:[transform:perspective(1200px)_rotateY(-3deg)_rotateX(1deg)]",
                         "transition-transform duration-500",
                       ].join(" ")}
-                      aria-label={`Εξώφυλλο: ${ebook.title}`}
+                      aria-label={copy.cover.replace("{title}", ebook.title)}
                     >
                       <div
                         className="h-full w-full bg-cover bg-center"
@@ -533,7 +556,7 @@ export default function EbookPage() {
 
                 <div>
                   <div className="inline-flex items-center rounded-full bg-[rgba(var(--surface),0.86)] px-3 py-1 text-xs font-semibold text-[rgb(var(--primary))] ring-1 ring-[rgba(var(--primary),0.18)] shadow-sm">
-                    Νέο ebook
+                    {copy.new}
                   </div>
 
                   <h2 className="mt-3 text-2xl md:text-3xl font-semibold tracking-tight text-[rgb(var(--ink))]">
@@ -546,12 +569,12 @@ export default function EbookPage() {
                   />
 
                   <div className="mt-3 text-sm text-[rgb(var(--muted))]">
-                    Συγγραφέας: {ebook.author}
+                    {copy.author}: {ebook.author}
                   </div>
 
                   <div className="mt-5 flex flex-wrap items-center gap-3 text-sm">
                     <span className="inline-flex items-center rounded-full bg-[rgba(var(--surface),0.86)] px-3 py-1 border border-[rgba(var(--border),0.9)] shadow-sm text-[rgb(var(--ink))]">
-                      Μορφή: {ebook.format}
+                      {copy.format}: {ebook.format}
                     </span>
                   </div>
 
@@ -563,7 +586,7 @@ export default function EbookPage() {
                         target="_blank"
                         rel="noreferrer"
                       >
-                        Προεπισκόπηση <span aria-hidden>→</span>
+                        {copy.preview} <span aria-hidden>→</span>
                       </a>
                     )}
 
@@ -571,8 +594,8 @@ export default function EbookPage() {
                         <LeafBurstButton
                           text={
                             ebook.priceEUR
-                              ? `Αγορά — ${ebook.priceEUR}€`
-                              : "Κατέβασμα"
+                              ? copy.buy.replace("{price}", String(ebook.priceEUR))
+                              : copy.download
                           }
                           href=""
                           onClick={() =>
@@ -588,8 +611,8 @@ export default function EbookPage() {
                         <LeafBurstButton
                           text={
                             ebook.priceEUR
-                              ? `Αγορά — ${ebook.priceEUR}€`
-                              : "Κατέβασμα"
+                              ? copy.buy.replace("{price}", String(ebook.priceEUR))
+                              : copy.download
                           }
                           href="/contact"
                           buttonClassName={primaryCtaClass}
@@ -598,8 +621,8 @@ export default function EbookPage() {
                     <LeafBurstButton
                       text={
                         ebook.priceEUR
-                          ? `Ενδιαφέρομαι — ${ebook.priceEUR}€`
-                          : "Ενδιαφέρομαι"
+                          ? copy.interestedPrice.replace("{price}", String(ebook.priceEUR))
+                          : copy.interested
                       }
                       href="/contact/form"
                       buttonClassName={primaryCtaClass}
@@ -610,8 +633,7 @@ export default function EbookPage() {
                       Άμεση πρόσβαση μετά την πληρωμή.
                     </p> */}
                   <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                    Για αγορά του ebook, στείλτε μας ένα μήνυμα και θα
-                    επικοινωνήσουμε μαζί σας.
+                    {copy.purchaseMessage}
                   </p>
                 </div>
               </div>
@@ -674,7 +696,7 @@ export default function EbookPage() {
                 <div className="grid sm:grid-cols-2 gap-8">
                   <div>
                     <h3 className="text-xl font-semibold text-white">
-                      Περιεχόμενα
+                      {copy.contents}
                     </h3>
 
                     <ul className="mt-3 space-y-2 text-white/92">
@@ -693,7 +715,7 @@ export default function EbookPage() {
                         ))
                       ) : (
                         <li className="text-white/86">
-                          Δεν υπάρχουν ακόμη διαθέσιμα περιεχόμενα.
+                          {copy.noContents}
                         </li>
                       )}
                     </ul>
@@ -726,8 +748,8 @@ export default function EbookPage() {
                       <LeafBurstButton
                         text={
                           ebook.priceEUR
-                            ? `Αγορά τώρα — ${ebook.priceEUR}€ →`
-                            : "Κατέβασμα τώρα →"
+                            ? copy.buyNow.replace("{price}", String(ebook.priceEUR))
+                            : copy.downloadNow
                         }
                         href=""
                         onClick={() =>
@@ -743,15 +765,15 @@ export default function EbookPage() {
                       <LeafBurstButton
                         text={
                           ebook.priceEUR
-                            ? `Αγορά τώρα — ${ebook.priceEUR}€ →`
-                            : "Κατέβασμα τώρα →"
+                            ? copy.buyNow.replace("{price}", String(ebook.priceEUR))
+                            : copy.downloadNow
                         }
                         href="/contact"
                         buttonClassName={footerCtaClass}
                       />
                     )} */}
                   <LeafBurstButton
-                    text="Στείλτε μήνυμα για αγορά →"
+                    text={copy.contactToBuy}
                     href="/contact/form"
                     buttonClassName={footerCtaClass}
                   />
@@ -759,7 +781,7 @@ export default function EbookPage() {
                       Ασφαλής πληρωμή — Άμεση πρόσβαση.
                     </p> */}
                   <p className="mt-2 text-sm text-white">
-                    Η αγορά του ebook ολοκληρώνεται κατόπιν επικοινωνίας.
+                    {copy.purchaseByContact}
                   </p>
                 </div>
               </div>

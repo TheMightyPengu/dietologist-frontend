@@ -1,0 +1,95 @@
+{
+  "meta": {
+    "title": "Seminars — Dietitian",
+    "description": "Modern nutrition seminars with practical advice and useful tools."
+  },
+  "loadError": "Seminars could not be loaded.",
+  "dateSoon": "Date coming soon",
+  "timeSoon": "Time coming soon",
+  "free": "Free",
+  "seminar": "Seminar",
+  "book": "Book a place",
+  "bookingUnavailable": "Unavailable for booking",
+  "status": {
+    "today": "Today",
+    "upcoming": "Upcoming",
+    "past": "Completed",
+    "soon": "Coming soon"
+  },
+  "filters": {
+    "aria": "Seminar filters",
+    "title": "Filters",
+    "clear": "Clear",
+    "search": "Search",
+    "searchPlaceholder": "Search seminars...",
+    "type": "Type",
+    "noTypes": "No types available.",
+    "status": "Seminar status",
+    "upcoming": "Upcoming",
+    "today": "Today",
+    "completed": "Completed",
+    "all": "All",
+    "price": "Price",
+    "paid": "Paid",
+    "duration": "Seminar duration",
+    "minDuration": "Minimum duration",
+    "maxDuration": "Maximum duration"
+  },
+  "sort": {
+    "label": "Sort:",
+    "dateNear": "Date: nearest",
+    "dateFar": "Date: furthest",
+    "durationAsc": "Duration: shortest",
+    "durationDesc": "Duration: longest"
+  },
+  "results": {
+    "found": "Found",
+    "one": "seminar",
+    "many": "seminars",
+    "none": "No seminars found",
+    "noneDescription": "Try changing or clearing the filters.",
+    "clearFilters": "Clear filters"
+  },
+  "chips": {
+    "search": "Search",
+    "allSeminars": "All seminars",
+    "completed": "Completed",
+    "paid": "Paid",
+    "exactDuration": "Exact duration"
+  },
+  "card": {
+    "pastInfo": "Information available",
+    "bookingAvailable": "Booking available",
+    "bookingUnavailable": "Booking is unavailable",
+    "more": "More"
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "drawer": {
+    "close": "Close",
+    "closeFilters": "Close filters"
+  },
+  "modal": {
+    "aria": "Seminar details",
+    "close": "Close",
+    "closeWindow": "Close window"
+  },
+  "registration": {
+    "aria": "Seminar participation request",
+    "title": "Participation request",
+    "seminarLabel": "Seminar",
+    "name": "Full name",
+    "nameRequired": "Full name is required.",
+    "emailRequired": "Email is required.",
+    "emailInvalid": "Please enter a valid email address.",
+    "submit": "Send request",
+    "submitting": "Sending...",
+    "cancel": "Cancel",
+    "submitError": "The request could not be submitted.",
+    "successTitle": "Your request was submitted successfully.",
+    "successMessage": "You will receive an email acknowledging that we received your request.",
+    "successFollowUp": "We will contact you again by email about your participation. Your place is not reserved until final confirmation."
+  }
+}

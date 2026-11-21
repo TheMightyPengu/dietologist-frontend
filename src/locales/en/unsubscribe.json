@@ -1,0 +1,27 @@
+
+{
+  "meta": {
+    "successTitle": "Unsubscribed | Dietologist",
+    "title": "Unsubscribe | Dietologist"
+  },
+
+  "loading": {
+    "message": "Your subscription is being removed...",
+    "ariaLabel": "Loading",
+    "title": "Unsubscribe"
+  },
+
+  "success": {
+    "title": "You have been unsubscribed",
+    "defaultMessage": "Your subscription has been removed successfully.",
+    "description": "Your subscription details have been deleted and you will no longer receive emails from our newsletter."
+  },
+
+  "error": {
+    "title": "Something went wrong",
+    "invalidLink": "This unsubscribe link is not valid.",
+    "generic": "We could not unsubscribe you. Please try again."
+  },
+
+  "backHome": "Back to home"
+}

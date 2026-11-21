@@ -11,6 +11,10 @@ import {
 
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 import { toMediaUrl } from "@/api/_axios-client";
+import { useTranslations } from "@/components/hooks/useTranslations";
+import { useRouter } from "next/router";
+import { getTranslations } from "@/lib/i18n";
+import { localizedContent } from "@/lib/localized-content";
 
 type Article = {
   id: number;
@@ -22,6 +26,7 @@ type Article = {
   category: string;
   dateISO: string;
   hero: string;
+  imageAlt: string;
   contentHtml: string;
 };
 
@@ -81,26 +86,29 @@ function resolveArticleImage(image?: string | null): string {
   return toMediaUrl(value);
 }
 
-function mapArticleDtoToUi(dto: ArticlesGetDto): Article {
-  const content = dto.content ?? "";
-  const title = dto.title ?? "";
+function mapArticleDtoToUi(dto: ArticlesGetDto, uncategorized: string, locale?: string): Article {
+  const content = localizedContent(locale, dto.content, dto.contentEn);
+  const title = localizedContent(locale, dto.title, dto.titleEn);
 
   return {
     id: dto.id,
     slug: slugifyArticle(title, dto.id),
     title,
-    subtitle: dto.subtitle ?? "",
-    heading: dto.heading ?? "",
+    subtitle: localizedContent(locale, dto.subtitle, dto.subtitleEn),
+    heading: localizedContent(locale, dto.heading, dto.headingEn),
 
     excerpt:
-      dto.subtitle?.trim() ||
+      localizedContent(locale, dto.subtitle, dto.subtitleEn).trim() ||
       stripHtml(content).slice(0, 160),
 
     // Use the real category instead of always using "Διατροφή".
-    category: dto.category?.trim() || "Χωρίς κατηγορία",
+    category: localizedContent(locale, dto.category, dto.categoryEn).trim() || uncategorized,
 
     dateISO: dto.publishedAt ?? "",
     hero: resolveArticleImage(dto.imageUrl),
+    imageAlt:
+      localizedContent(locale, dto.imageAltText, dto.imageAltTextEn).trim() ||
+      title,
     contentHtml: content,
   };
 }
@@ -119,7 +127,12 @@ export const getServerSideProps: GetServerSideProps<
     }
 
     const data = await ArticlesApi.get(id);
-    const article = mapArticleDtoToUi(data);
+    const translations = getTranslations(context.locale);
+    const article = mapArticleDtoToUi(
+      data,
+      translations.articles.defaults.uncategorized,
+      context.locale,
+    );
 
     return {
       props: {
@@ -141,6 +154,9 @@ export const getServerSideProps: GetServerSideProps<
 export default function ArticlePage({
   article,
 }: PageProps) {
+  const t = useTranslations();
+  const router = useRouter();
+  const locale = router.locale === "en" ? "en-US" : "el-GR";
   const formattedDate = useMemo(() => {
     if (!article.dateISO) {
       return "—";
@@ -152,12 +168,12 @@ export default function ArticlePage({
       return "—";
     }
 
-    return date.toLocaleDateString("el-GR", {
+    return date.toLocaleDateString(locale, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
     });
-  }, [article.dateISO]);
+  }, [article.dateISO, locale]);
 
   const [progress, setProgress] = useState(0);
 
@@ -204,7 +220,7 @@ export default function ArticlePage({
   return (
     <>
       <Head>
-        <title>{`${article.title} — Άρθρα`}</title>
+        <title>{`${article.title} — ${t.articles.meta.detailSuffix}`}</title>
 
         <meta
           name="description"
@@ -222,7 +238,7 @@ export default function ArticlePage({
 
         <meta
           property="og:title"
-          content={`${article.title} — Άρθρα`}
+          content={`${article.title} — ${t.articles.meta.detailSuffix}`}
         />
 
         <meta
@@ -237,7 +253,7 @@ export default function ArticlePage({
           />
         ) : null}
 
-        <meta property="og:locale" content="el_GR" />
+        <meta property="og:locale" content={router.locale === "en" ? "en_US" : "el_GR"} />
 
         <meta
           name="twitter:card"
@@ -262,7 +278,7 @@ export default function ArticlePage({
             className="inline-flex items-center gap-2 rounded-xl bg-white/70 px-3 py-2 text-sm font-medium text-slate-800 ring-1 ring-slate-200 transition hover:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
           >
             <span aria-hidden>←</span>
-            Πίσω στα άρθρα
+            {t.articles.detail.back}
           </Link>
         </div>
 
@@ -276,7 +292,7 @@ export default function ArticlePage({
               <span aria-hidden>📅</span>
 
               <span>
-                Δημοσίευση: {formattedDate}
+                {t.articles.detail.published}: {formattedDate}
               </span>
             </span>
           </div>
@@ -297,7 +313,7 @@ export default function ArticlePage({
             <div className="relative aspect-[16/9]">
               <Image
                 src={article.hero}
-                alt={article.title}
+                alt={article.imageAlt}
                 fill
                 priority
                 unoptimized
@@ -307,7 +323,7 @@ export default function ArticlePage({
           </div>
         ) : null}
 
-        <div className="mt-8 rounded-3xl bg-white/85 p-6 shadow-[0_12px_35px_rgba(164,199,126,0.12)] ring-1 ring-accent/20 md:p-8">
+        <div className="mt-8 min-w-0 rounded-3xl bg-white/85 p-4 shadow-[0_12px_35px_rgba(164,199,126,0.12)] ring-1 ring-accent/20 sm:p-6 md:p-8">
           {article.heading ? (
             <h2 className="mb-5 text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">
               {article.heading}

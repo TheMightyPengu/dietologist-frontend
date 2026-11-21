@@ -14,6 +14,9 @@ import RichTextEditor from "@/components/admin/RichTextEditor";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 import FormFieldError from "@/components/admin/FormFieldError";
 import GeneralErrorDialog from "@/components/admin/GeneralErrorDialog";
+import BilingualSaveWarning from "@/components/admin/BilingualSaveWarning";
+import ContentLanguageSwitch, { type ContentLanguage } from "@/components/admin/ContentLanguageSwitch";
+import { useBilingualSaveGuard } from "@/components/admin/useBilingualSaveGuard";
 import { useFormErrors } from "@/components/hooks/useFormErrors";
 import {
   addValidationError,
@@ -40,6 +43,94 @@ const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
     {children}
   </div>
 );
+
+function BookingAvailabilitySwitch({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-3 rounded-xl border border-[rgba(var(--border),0.9)] bg-[rgba(var(--surface-soft),0.5)] px-3 py-2">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-[rgb(var(--ink))]">
+          Κρατήσεις θέσεων
+        </p>
+        <p className="text-xs text-[rgb(var(--muted))]">
+          {checked ? "Οι κρατήσεις είναι ενεργές" : "Οι κρατήσεις είναι ανενεργές"}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label="Κρατήσεις θέσεων"
+        onClick={() => onChange(!checked)}
+        className={cx(
+          "relative ml-auto inline-flex h-6 w-11 shrink-0 rounded-full border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary))] focus-visible:ring-offset-2",
+          checked
+            ? "border-[rgb(var(--primary))] bg-[rgb(var(--primary))]"
+            : "border-slate-300 bg-slate-200",
+        )}
+      >
+        <span
+          aria-hidden="true"
+          className={cx(
+            "pointer-events-none absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform",
+            checked ? "translate-x-5" : "translate-x-0.5",
+          )}
+        />
+      </button>
+    </div>
+  );
+}
+
+function EnglishSeminarFields({
+  draft,
+  setDraft,
+}: {
+  draft: Seminar;
+  setDraft: React.Dispatch<React.SetStateAction<Seminar>>;
+}) {
+  return (
+    <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-sm font-semibold text-slate-700">English</p>
+      <label className="block text-sm font-medium text-slate-700">
+        Title (EN)
+        <input
+          value={draft.titleEn ?? ""}
+          onChange={(event) =>
+            setDraft((current) => ({ ...current, titleEn: event.target.value }))
+          }
+          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+        />
+      </label>
+      {([[
+        "descriptionEn",
+        "Description (EN)",
+        180,
+      ], ["contentEn", "Content (EN)", 240]] as const).map(
+        ([key, label, minHeight]) => (
+          <div key={key}>
+            <label className="mb-2 block text-sm font-medium text-slate-700">
+              {label}
+            </label>
+            <RichTextEditor
+              value={draft[key] ?? ""}
+              onChange={(html) =>
+                setDraft((current) => ({ ...current, [key]: html }))
+              }
+              placeholder={`Write ${label.toLowerCase()}...`}
+              minHeight={minHeight}
+            />
+          </div>
+        ),
+      )}
+    </div>
+  );
+}
 
 function fmtDateHuman(iso: string) {
   const d = new Date(iso);
@@ -91,8 +182,11 @@ function createEmptySeminar(): Seminar {
   return {
     id: 0,
     title: "",
+    titleEn: "",
     description: "",
+    descriptionEn: "",
     content: "",
+    contentEn: "",
     imageUrl: null,
     imageAssetId: null,
     imageAltText: "",
@@ -100,14 +194,18 @@ function createEmptySeminar(): Seminar {
     duration: 60,
     dateTime: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     type: "Online",
+    isBookingAvailable: true,
   } as Seminar;
 }
 
 function toPayload(sem: Seminar, imageFile: File | null): SeminarPayload {
   return {
     title: sem.title,
+    titleEn: sem.titleEn ?? "",
     description: sem.description,
+    descriptionEn: sem.descriptionEn ?? "",
     content: sem.content,
+    contentEn: sem.contentEn ?? "",
 
     imageFile,
     imageAssetId: sem.imageAssetId ?? null,
@@ -116,6 +214,7 @@ function toPayload(sem: Seminar, imageFile: File | null): SeminarPayload {
     duration: Number(sem.duration) || 0,
     dateTime: sem.dateTime || new Date().toISOString(),
     type: sem.type,
+    isBookingAvailable: sem.isBookingAvailable,
   };
 }
 
@@ -415,6 +514,8 @@ function CreateSeminarModal({
   onClose: () => void;
   onSubmit: (seminar: Seminar, imageFile: File | null) => void | Promise<void>;
 }) {
+  const [language, setLanguage] = useState<ContentLanguage>("el");
+  const saveGuard = useBilingualSaveGuard(setLanguage);
   const [draft, setDraft] = useState<Seminar>(createEmptySeminar);
 
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -445,7 +546,7 @@ function CreateSeminarModal({
     };
   }, [selectedImage]);
 
-  async function submitSeminar() {
+  async function performSubmit() {
     const errors = validateSeminar(draft, selectedImage);
 
     if (!applyFrontendErrors(errors)) {
@@ -457,6 +558,14 @@ function CreateSeminarModal({
     } catch (error: unknown) {
       applyApiError(error, "Δεν ήταν δυνατή η δημιουργία του σεμιναρίου.");
     }
+  }
+
+  function submitSeminar() {
+    saveGuard.requestSave(
+      [draft.title, draft.description, draft.content],
+      [draft.titleEn, draft.descriptionEn, draft.contentEn],
+      performSubmit,
+    );
   }
 
   const imageHasError = Boolean(
@@ -496,7 +605,16 @@ function CreateSeminarModal({
 
         <div className="overflow-y-auto p-5">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="space-y-5 lg:col-span-2">
+            <div className="space-y-5 lg:col-span-2" data-bilingual-form tabIndex={-1}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <ContentLanguageSwitch value={language} onChange={setLanguage} />
+                <BookingAvailabilitySwitch
+                  checked={draft.isBookingAvailable}
+                  onChange={(isBookingAvailable) =>
+                    setDraft((current) => ({ ...current, isBookingAvailable }))
+                  }
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-[rgb(var(--ink))]">
                   Τίτλος{" "}
@@ -506,11 +624,11 @@ function CreateSeminarModal({
                 </label>
 
                 <input
-                  value={draft.title}
+                  value={language === "el" ? draft.title : draft.titleEn ?? ""}
                   onChange={(event) => {
                     setDraft((current) => ({
                       ...current,
-                      title: event.target.value,
+                      [language === "el" ? "title" : "titleEn"]: event.target.value,
                     }));
 
                     clearFieldError("title");
@@ -642,6 +760,7 @@ function CreateSeminarModal({
 
                   <FormFieldError errors={fieldErrors.dateTime} />
                 </div>
+
               </div>
 
               <div>
@@ -708,11 +827,11 @@ function CreateSeminarModal({
                   }
                 >
                   <RichTextEditor
-                    value={draft.description}
+                    value={language === "el" ? draft.description : draft.descriptionEn ?? ""}
                     onChange={(value) => {
                       setDraft((current) => ({
                         ...current,
-                        description: value,
+                        [language === "el" ? "description" : "descriptionEn"]: value,
                       }));
 
                       clearFieldError("description");
@@ -739,11 +858,11 @@ function CreateSeminarModal({
                   }
                 >
                   <RichTextEditor
-                    value={draft.content}
+                    value={language === "el" ? draft.content : draft.contentEn ?? ""}
                     onChange={(value) => {
                       setDraft((current) => ({
                         ...current,
-                        content: value,
+                        [language === "el" ? "content" : "contentEn"]: value,
                       }));
 
                       clearFieldError("content");
@@ -755,6 +874,8 @@ function CreateSeminarModal({
 
                 <FormFieldError errors={fieldErrors.content} />
               </div>
+
+              {false && <EnglishSeminarFields draft={draft} setDraft={setDraft} />}
 
               <FormFieldError errors={fieldErrors.form} />
             </div>
@@ -837,6 +958,7 @@ function CreateSeminarModal({
         onClose={closeGeneralError}
         onRetry={submitSeminar}
       />
+      <BilingualSaveWarning {...saveGuard.warningProps} />
     </div>
   );
 }
@@ -855,6 +977,9 @@ function SeminarEditorCard({
   const [draft, setDraft] = useState<Seminar>(sem);
 
   const [open, setOpen] = useState(false);
+  const [language, setLanguage] = useState<ContentLanguage>("el");
+  const [localizedDirty, setLocalizedDirty] = useState(false);
+  const saveGuard = useBilingualSaveGuard(setLanguage);
 
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
@@ -875,6 +1000,7 @@ function SeminarEditorCard({
     setSelectedImage(null);
     setImagePreview(null);
     clearAllErrors();
+    setLocalizedDirty(false);
   }, [sem, clearAllErrors]);
 
   useEffect(() => {
@@ -916,11 +1042,12 @@ function SeminarEditorCard({
   function resetChanges() {
     clearAllErrors();
     setDraft(sem);
+    setLocalizedDirty(false);
     setSelectedImage(null);
     setImagePreview(null);
   }
 
-  async function saveSeminar() {
+  async function performSaveSeminar() {
     const errors = validateSeminar(draft, selectedImage);
 
     if (!applyFrontendErrors(errors)) {
@@ -933,6 +1060,15 @@ function SeminarEditorCard({
     } catch (error: unknown) {
       applyApiError(error, "Δεν ήταν δυνατή η αποθήκευση του σεμιναρίου.");
     }
+  }
+
+  function saveSeminar() {
+    saveGuard.requestSave(
+      [draft.title, draft.description, draft.content],
+      [draft.titleEn, draft.descriptionEn, draft.contentEn],
+      performSaveSeminar,
+      localizedDirty,
+    );
   }
 
   return (
@@ -971,7 +1107,16 @@ function SeminarEditorCard({
 
       {open && (
         <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="space-y-5 lg:col-span-2">
+          <div className="space-y-5 lg:col-span-2" data-bilingual-form tabIndex={-1}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <ContentLanguageSwitch value={language} onChange={setLanguage} />
+              <BookingAvailabilitySwitch
+                checked={draft.isBookingAvailable}
+                onChange={(isBookingAvailable) =>
+                  setDraft((current) => ({ ...current, isBookingAvailable }))
+                }
+              />
+            </div>
             {/* Title */}
             <div>
               <label className="block text-sm font-medium text-[rgb(var(--ink))]">
@@ -982,12 +1127,13 @@ function SeminarEditorCard({
               </label>
 
               <input
-                value={draft.title}
+                value={language === "el" ? draft.title : draft.titleEn ?? ""}
                 onChange={(event) => {
                   setDraft((current) => ({
                     ...current,
-                    title: event.target.value,
+                    [language === "el" ? "title" : "titleEn"]: event.target.value,
                   }));
+                  setLocalizedDirty(true);
 
                   clearFieldError("title");
                 }}
@@ -1017,12 +1163,13 @@ function SeminarEditorCard({
                 }
               >
                 <RichTextEditor
-                  value={draft.description}
+                  value={language === "el" ? draft.description : draft.descriptionEn ?? ""}
                   onChange={(value) => {
                     setDraft((current) => ({
                       ...current,
-                      description: value,
+                      [language === "el" ? "description" : "descriptionEn"]: value,
                     }));
+                    setLocalizedDirty(true);
 
                     clearFieldError("description");
                   }}
@@ -1049,12 +1196,13 @@ function SeminarEditorCard({
                 }
               >
                 <RichTextEditor
-                  value={draft.content}
+                  value={language === "el" ? draft.content : draft.contentEn ?? ""}
                   onChange={(value) => {
                     setDraft((current) => ({
                       ...current,
-                      content: value,
+                      [language === "el" ? "content" : "contentEn"]: value,
                     }));
+                    setLocalizedDirty(true);
 
                     clearFieldError("content");
                   }}
@@ -1065,6 +1213,8 @@ function SeminarEditorCard({
 
               <FormFieldError errors={fieldErrors.content} />
             </div>
+
+            {false && <EnglishSeminarFields draft={draft} setDraft={setDraft} />}
 
             {/* Image */}
             <div>
@@ -1255,6 +1405,7 @@ function SeminarEditorCard({
 
                 <FormFieldError errors={fieldErrors.dateTime} />
               </div>
+
             </div>
 
             <FormFieldError errors={fieldErrors.form} />
@@ -1360,6 +1511,7 @@ function SeminarEditorCard({
         onClose={closeGeneralError}
         onRetry={saveSeminar}
       />
+      <BilingualSaveWarning {...saveGuard.warningProps} />
     </Card>
   );
 }

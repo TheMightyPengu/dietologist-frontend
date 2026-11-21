@@ -5,12 +5,14 @@ export type ContactInfoGetDto = {
   email: string;
   telephone: string;
   location: string;
+  locationEn?: string | null;
 };
 
 export type ContactInfoPostDto = {
   email: string;
   telephone: string;
   location: string;
+  locationEn?: string | null;
 };
 
 const base = '/ContactInfo';

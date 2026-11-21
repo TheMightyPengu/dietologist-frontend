@@ -4,12 +4,16 @@ export type PageHeaderGetDto = {
   id: number;
   pageKey: string;
   title: string;
+  titleEn?: string | null;
   description: string;
+  descriptionEn?: string | null;
 };
 
 export type PageHeaderPutDto = {
   title: string;
+  titleEn?: string | null;
   description: string;
+  descriptionEn?: string | null;
 };
 
 const base = "/PageHeader";

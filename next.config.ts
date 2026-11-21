@@ -5,6 +5,12 @@ const nextConfig: NextConfig = {
 
   poweredByHeader: false,
 
+    i18n: {
+      locales: ["el", "en"],
+      defaultLocale: "el",
+      localeDetection: false,
+    },
+
   images: {
     remotePatterns: [
       {

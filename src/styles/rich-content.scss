@@ -3,6 +3,22 @@
   font-size: 16px;
   line-height: 1.8;
   word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.rich-content img,
+.rich-content video,
+.rich-content iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+.rich-content table,
+.rich-content pre {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .rich-content p {
@@ -131,6 +147,11 @@
 
   .rich-content h3 {
     margin-top: 24px;
+  }
+
+  .rich-content blockquote {
+    margin: 20px 0;
+    padding: 14px 16px;
   }
 }
 

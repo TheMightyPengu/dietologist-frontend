@@ -11,6 +11,9 @@ import RichTextEditor from "@/components/admin/RichTextEditor";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 import FormFieldError from "@/components/admin/FormFieldError";
 import GeneralErrorDialog from "@/components/admin/GeneralErrorDialog";
+import BilingualSaveWarning from "@/components/admin/BilingualSaveWarning";
+import ContentLanguageSwitch, { type ContentLanguage } from "@/components/admin/ContentLanguageSwitch";
+import { useBilingualSaveGuard } from "@/components/admin/useBilingualSaveGuard";
 import { useFormErrors } from "@/components/hooks/useFormErrors";
 import {
   addValidationError,
@@ -42,9 +45,12 @@ type EbookFormDraft = {
   id?: number;
 
   title: string;
+  titleEn: string;
   author: string;
   description: string;
+  descriptionEn: string;
   tableOfContents: string;
+  tableOfContentsEn: string;
   price: number;
   publishedAt: string;
 
@@ -83,9 +89,12 @@ function toInputDate(iso: string) {
 function getEmptyDraft(): EbookFormDraft {
   return {
     title: "",
+    titleEn: "",
     author: "",
     description: "",
+    descriptionEn: "",
     tableOfContents: "",
+    tableOfContentsEn: "",
     price: 0,
     publishedAt: new Date().toISOString(),
 
@@ -105,9 +114,12 @@ function ebookToDraft(ebook: EbooksGetDto): EbookFormDraft {
     id: ebook.id,
 
     title: ebook.title ?? "",
+    titleEn: ebook.titleEn ?? "",
     author: ebook.author ?? "",
     description: ebook.description ?? "",
+    descriptionEn: ebook.descriptionEn ?? "",
     tableOfContents: ebook.tableOfContents ?? "",
+    tableOfContentsEn: ebook.tableOfContentsEn ?? "",
     price: Number(ebook.price) || 0,
     publishedAt: ebook.publishedAt || new Date().toISOString(),
 
@@ -125,9 +137,12 @@ function ebookToDraft(ebook: EbooksGetDto): EbookFormDraft {
 function draftToPayload(draft: EbookFormDraft): EbooksPostDto {
   return {
     title: draft.title.trim(),
+    titleEn: draft.titleEn.trim(),
     author: draft.author.trim(),
     description: draft.description.trim(),
+    descriptionEn: draft.descriptionEn.trim(),
     tableOfContents: draft.tableOfContents.trim(),
+    tableOfContentsEn: draft.tableOfContentsEn.trim(),
     price: Number(draft.price),
     publishedAt: draft.publishedAt,
 
@@ -410,6 +425,9 @@ function SingleEbookForm({
   const [draft, setDraft] = useState<EbookFormDraft>(initialDraft);
 
   const [open, setOpen] = useState(!isExisting);
+  const [language, setLanguage] = useState<ContentLanguage>("el");
+  const [localizedDirty, setLocalizedDirty] = useState(false);
+  const saveGuard = useBilingualSaveGuard(setLanguage);
 
   const {
     fieldErrors,
@@ -423,13 +441,17 @@ function SingleEbookForm({
 
   useEffect(() => {
     setDraft(initialDraft);
+    setLocalizedDirty(false);
     clearAllErrors();
   }, [
     initialDraft.id,
     initialDraft.title,
+    initialDraft.titleEn,
     initialDraft.author,
     initialDraft.description,
+    initialDraft.descriptionEn,
     initialDraft.tableOfContents,
+    initialDraft.tableOfContentsEn,
     initialDraft.price,
     initialDraft.publishedAt,
     initialDraft.coverImageAssetId,
@@ -443,13 +465,14 @@ function SingleEbookForm({
   function resetChanges() {
     clearAllErrors();
     setDraft(initialDraft);
+    setLocalizedDirty(false);
 
     if (!isExisting) {
       onReset();
     }
   }
 
-  async function submitForm() {
+  async function performSubmit() {
     const errors = validateEbook(draft);
 
     if (!applyFrontendErrors(errors)) {
@@ -467,6 +490,15 @@ function SingleEbookForm({
           : "Δεν ήταν δυνατή η δημιουργία του ebook.",
       );
     }
+  }
+
+  function submitForm() {
+    saveGuard.requestSave(
+      [draft.title, draft.description, draft.tableOfContents],
+      [draft.titleEn, draft.descriptionEn, draft.tableOfContentsEn],
+      performSubmit,
+      !isExisting || localizedDirty,
+    );
   }
 
   return (
@@ -512,12 +544,15 @@ function SingleEbookForm({
 
       {open && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="space-y-4 lg:col-span-2">
+          <div className="space-y-4 lg:col-span-2" data-bilingual-form tabIndex={-1}>
+            <ContentLanguageSwitch value={language} onChange={setLanguage} />
             <BasicEbookFields
               draft={draft}
               setDraft={setDraft}
               fieldErrors={fieldErrors}
               clearFieldError={clearFieldError}
+              language={language}
+              onLocalizedChange={() => setLocalizedDirty(true)}
             />
 
             <div>
@@ -533,12 +568,13 @@ function SingleEbookForm({
                 }
               >
                 <RichTextEditor
-                  value={draft.description}
+                  value={language === "el" ? draft.description : draft.descriptionEn}
                   onChange={(html) => {
                     setDraft((current) => ({
                       ...current,
-                      description: html,
+                      [language === "el" ? "description" : "descriptionEn"]: html,
                     }));
+                    setLocalizedDirty(true);
 
                     clearFieldError("description");
                   }}
@@ -566,12 +602,13 @@ function SingleEbookForm({
                 }
               >
                 <RichTextEditor
-                  value={draft.tableOfContents}
+                  value={language === "el" ? draft.tableOfContents : draft.tableOfContentsEn}
                   onChange={(html) => {
                     setDraft((current) => ({
                       ...current,
-                      tableOfContents: html,
+                      [language === "el" ? "tableOfContents" : "tableOfContentsEn"]: html,
                     }));
+                    setLocalizedDirty(true);
 
                     clearFieldError("tableOfContents");
                   }}
@@ -582,6 +619,40 @@ function SingleEbookForm({
 
               <FormFieldError errors={fieldErrors.tableOfContents} />
             </div>
+
+            {false && <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm font-semibold text-slate-700">English</p>
+              <label className="block text-sm font-medium text-slate-700">
+                Title (EN)
+                <input
+                  value={draft.titleEn}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, titleEn: event.target.value }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+                />
+              </label>
+              {([[
+                "descriptionEn",
+                "Description (EN)",
+              ], ["tableOfContentsEn", "Table of contents (EN)"]] as const).map(
+                ([key, label]) => (
+                  <div key={key}>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      {label}
+                    </label>
+                    <RichTextEditor
+                      value={draft[key]}
+                      onChange={(html) =>
+                        setDraft((current) => ({ ...current, [key]: html }))
+                      }
+                      placeholder={`Write ${label.toLowerCase()}...`}
+                      minHeight={180}
+                    />
+                  </div>
+                ),
+              )}
+            </div>}
 
             <FormFieldError errors={fieldErrors.form} />
 
@@ -628,6 +699,7 @@ function SingleEbookForm({
         onClose={closeGeneralError}
         onRetry={submitForm}
       />
+      <BilingualSaveWarning {...saveGuard.warningProps} />
     </Card>
   );
 }
@@ -637,11 +709,15 @@ function BasicEbookFields({
   setDraft,
   fieldErrors,
   clearFieldError,
+  language,
+  onLocalizedChange,
 }: {
   draft: EbookFormDraft;
   setDraft: React.Dispatch<React.SetStateAction<EbookFormDraft>>;
   fieldErrors: ApiFieldErrors;
   clearFieldError: (fieldName: string) => void;
+  language: ContentLanguage;
+  onLocalizedChange: () => void;
 }) {
   const pdfHasError = Boolean(fieldErrors.file || fieldErrors.pdfAssetId);
 
@@ -661,12 +737,13 @@ function BasicEbookFields({
           </label>
 
           <input
-            value={draft.title}
+            value={language === "el" ? draft.title : draft.titleEn}
             onChange={(event) => {
               setDraft((current) => ({
                 ...current,
-                title: event.target.value,
+                [language === "el" ? "title" : "titleEn"]: event.target.value,
               }));
+              onLocalizedChange();
 
               clearFieldError("title");
             }}

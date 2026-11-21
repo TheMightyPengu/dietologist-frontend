@@ -10,6 +10,9 @@ import RichTextEditor from "@/components/admin/RichTextEditor";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 import FormFieldError from "@/components/admin/FormFieldError";
 import GeneralErrorDialog from "@/components/admin/GeneralErrorDialog";
+import BilingualSaveWarning from "@/components/admin/BilingualSaveWarning";
+import ContentLanguageSwitch, { type ContentLanguage } from "@/components/admin/ContentLanguageSwitch";
+import { useBilingualSaveGuard } from "@/components/admin/useBilingualSaveGuard";
 import { useFormErrors } from "@/components/hooks/useFormErrors";
 import {
   addValidationError,
@@ -38,9 +41,12 @@ const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({
 
 const EMPTY_CREATE_FORM: ProvidedServicesPostDto = {
   category: "",
+  categoryEn: "",
   duration: 60,
   title: "",
+  titleEn: "",
   description: "",
+  descriptionEn: "",
   priceIncludingVAT: 0,
   imageFile: null,
   imageAssetId: null,
@@ -155,9 +161,12 @@ export default function ManagementServicesPage() {
 
       const payload: ProvidedServicesPostDto = {
         category: createForm.category.trim(),
+        categoryEn: createForm.categoryEn?.trim() ?? "",
         duration: Number(createForm.duration),
         title: createForm.title.trim(),
+        titleEn: createForm.titleEn?.trim() ?? "",
         description: createForm.description.trim(),
+        descriptionEn: createForm.descriptionEn?.trim() ?? "",
         priceIncludingVAT: Number(createForm.priceIncludingVAT),
         imageFile: createForm.imageFile ?? null,
         imageAssetId: createForm.imageFile
@@ -194,9 +203,12 @@ export default function ManagementServicesPage() {
 
       const payload: ProvidedServicesPostDto = {
         category: service.category.trim(),
+        categoryEn: service.categoryEn?.trim() ?? "",
         duration: Number(service.duration),
         title: service.title.trim(),
+        titleEn: service.titleEn?.trim() ?? "",
         description: service.description.trim(),
+        descriptionEn: service.descriptionEn?.trim() ?? "",
         priceIncludingVAT: Number(service.priceIncludingVAT),
         imageFile: service.imageFile ?? null,
         imageAssetId: service.imageFile ? null : (service.imageAssetId ?? null),
@@ -397,7 +409,10 @@ function CreateServiceModal({
     closeGeneralError,
   } = useFormErrors();
 
-  async function submitCreateForm() {
+  const [language, setLanguage] = useState<ContentLanguage>("el");
+  const saveGuard = useBilingualSaveGuard(setLanguage);
+
+  async function performCreate() {
     const errors = validateService(form);
 
     if (!applyFrontendErrors(errors)) {
@@ -409,6 +424,14 @@ function CreateServiceModal({
     } catch (error: unknown) {
       applyApiError(error, "Δεν ήταν δυνατή η δημιουργία της υπηρεσίας.");
     }
+  }
+
+  function submitCreateForm() {
+    saveGuard.requestSave(
+      [form.title, form.category, form.description],
+      [form.titleEn, form.categoryEn, form.descriptionEn],
+      performCreate,
+    );
   }
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -441,7 +464,8 @@ function CreateServiceModal({
           </button>
         </div>
 
-        <div className="space-y-5 px-5 py-5">
+        <div className="space-y-5 px-5 py-5" data-bilingual-form tabIndex={-1}>
+          <ContentLanguageSwitch value={language} onChange={setLanguage} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700">
@@ -453,11 +477,11 @@ function CreateServiceModal({
 
               <input
                 type="text"
-                value={form.title}
+                value={language === "el" ? form.title : form.titleEn ?? ""}
                 onChange={(e) => {
                   setForm((current) => ({
                     ...current,
-                    title: e.target.value,
+                    [language === "el" ? "title" : "titleEn"]: e.target.value,
                   }));
 
                   clearFieldError("title");
@@ -481,11 +505,11 @@ function CreateServiceModal({
 
               <input
                 type="text"
-                value={form.category}
+                value={language === "el" ? form.category : form.categoryEn ?? ""}
                 onChange={(e) => {
                   setForm((d) => ({
                     ...d,
-                    category: e.target.value,
+                    [language === "el" ? "category" : "categoryEn"]: e.target.value,
                   }));
 
                   clearFieldError("category");
@@ -602,12 +626,19 @@ function CreateServiceModal({
             </label>
 
             <RichTextEditor
-              value={form.description}
-              onChange={(html) => setForm((d) => ({ ...d, description: html }))}
+              value={language === "el" ? form.description : form.descriptionEn ?? ""}
+              onChange={(html) => setForm((d) => ({ ...d, [language === "el" ? "description" : "descriptionEn"]: html }))}
               placeholder="Γράψε την περιγραφή της υπηρεσίας..."
               minHeight={180}
             />
           </div>
+
+          {false && <EnglishServiceFields
+            form={form}
+            onChange={(key, value) =>
+              setForm((current) => ({ ...current, [key]: value }))
+            }
+          />}
 
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-sm text-slate-500 mb-2">
@@ -654,6 +685,7 @@ function CreateServiceModal({
         onClose={closeGeneralError}
         onRetry={submitCreateForm}
       />
+      <BilingualSaveWarning {...saveGuard.warningProps} />
     </div>
   );
 }
@@ -674,6 +706,9 @@ function ServiceEditorCard({
     imageFile: null,
   });
   const [open, setOpen] = useState(false);
+  const [language, setLanguage] = useState<ContentLanguage>("el");
+  const [localizedDirty, setLocalizedDirty] = useState(false);
+  const saveGuard = useBilingualSaveGuard(setLanguage);
   const [fileInputKey, setFileInputKey] = useState(0);
   const {
     fieldErrors,
@@ -685,7 +720,7 @@ function ServiceEditorCard({
     closeGeneralError,
   } = useFormErrors();
 
-  async function saveService() {
+  async function performSaveService() {
     const payload: ProvidedServicesPostDto = {
       category: draft.category,
       duration: draft.duration,
@@ -710,6 +745,15 @@ function ServiceEditorCard({
     }
   }
 
+  function saveService() {
+    saveGuard.requestSave(
+      [draft.title, draft.category, draft.description],
+      [draft.titleEn, draft.categoryEn, draft.descriptionEn],
+      performSaveService,
+      localizedDirty,
+    );
+  }
+
   useEffect(() => {
     setDraft({
       ...svc,
@@ -717,6 +761,7 @@ function ServiceEditorCard({
     });
 
     clearAllErrors();
+    setLocalizedDirty(false);
   }, [svc, clearAllErrors]);
 
   return (
@@ -755,7 +800,8 @@ function ServiceEditorCard({
       </div>
 
       {open && (
-        <div className="mt-5 space-y-6">
+        <div className="mt-5 space-y-6" data-bilingual-form tabIndex={-1}>
+          <ContentLanguageSwitch value={language} onChange={setLanguage} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700">
@@ -767,12 +813,13 @@ function ServiceEditorCard({
 
               <input
                 type="text"
-                value={draft.title}
+                value={language === "el" ? draft.title : draft.titleEn ?? ""}
                 onChange={(e) => {
                   setDraft((current) => ({
                     ...current,
-                    title: e.target.value,
+                    [language === "el" ? "title" : "titleEn"]: e.target.value,
                   }));
+                  setLocalizedDirty(true);
 
                   clearFieldError("title");
                 }}
@@ -795,12 +842,13 @@ function ServiceEditorCard({
 
               <input
                 type="text"
-                value={draft.category}
+                value={language === "el" ? draft.category : draft.categoryEn ?? ""}
                 onChange={(e) => {
                   setDraft((current) => ({
                     ...current,
-                    category: e.target.value,
+                    [language === "el" ? "category" : "categoryEn"]: e.target.value,
                   }));
+                  setLocalizedDirty(true);
 
                   clearFieldError("category");
                 }}
@@ -939,14 +987,22 @@ function ServiceEditorCard({
             </label>
 
             <RichTextEditor
-              value={draft.description}
-              onChange={(html) =>
-                setDraft((d) => ({ ...d, description: html }))
-              }
+              value={language === "el" ? draft.description : draft.descriptionEn ?? ""}
+              onChange={(html) => {
+                setDraft((d) => ({ ...d, [language === "el" ? "description" : "descriptionEn"]: html }));
+                setLocalizedDirty(true);
+              }}
               placeholder="Γράψε την περιγραφή της υπηρεσίας..."
               minHeight={200}
             />
           </div>
+
+          {false && <EnglishServiceFields
+            form={draft}
+            onChange={(key, value) =>
+              setDraft((current) => ({ ...current, [key]: value }))
+            }
+          />}
 
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-sm text-slate-500 mb-2">
@@ -983,6 +1039,7 @@ function ServiceEditorCard({
                   ...svc,
                   imageFile: null,
                 });
+                setLocalizedDirty(false);
 
                 setFileInputKey((key) => key + 1);
               }}
@@ -1000,6 +1057,48 @@ function ServiceEditorCard({
         onClose={closeGeneralError}
         onRetry={saveService}
       />
+      <BilingualSaveWarning {...saveGuard.warningProps} />
     </Card>
+  );
+}
+
+function EnglishServiceFields({
+  form,
+  onChange,
+}: {
+  form: ProvidedServicesPostDto;
+  onChange: (
+    key: "titleEn" | "categoryEn" | "descriptionEn",
+    value: string,
+  ) => void;
+}) {
+  return (
+    <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-sm font-semibold text-slate-700">English</p>
+      {([[
+        "titleEn",
+        "Title (EN)",
+      ], ["categoryEn", "Category (EN)"]] as const).map(([key, label]) => (
+        <label key={key} className="block text-sm font-medium text-slate-700">
+          {label}
+          <input
+            value={form[key] ?? ""}
+            onChange={(event) => onChange(key, event.target.value)}
+            className="mt-1 w-full rounded-lg border border-slate-400 bg-white px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
+          />
+        </label>
+      ))}
+      <div>
+        <label className="mb-2 block text-sm font-medium text-slate-700">
+          Description (EN)
+        </label>
+        <RichTextEditor
+          value={form.descriptionEn ?? ""}
+          onChange={(html) => onChange("descriptionEn", html)}
+          placeholder="Write the service description in English..."
+          minHeight={180}
+        />
+      </div>
+    </div>
   );
 }
