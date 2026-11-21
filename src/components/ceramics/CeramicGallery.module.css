@@ -1,0 +1,14 @@
+@media (prefers-reduced-motion: no-preference) {
+  .photo {
+    animation: reveal-photo 180ms ease-out;
+  }
+}
+
+@keyframes reveal-photo {
+  from {
+    opacity: 0.65;
+  }
+  to {
+    opacity: 1;
+  }
+}

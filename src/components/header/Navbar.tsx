@@ -39,8 +39,8 @@ function ChevronDown({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
-function stripHash(href: string) {
-  return href.split("#")[0] || "/";
+function getPathname(href: string) {
+  return href.split(/[?#]/)[0] || "/";
 }
 
 function getServiceCategoryAnchor(category: string) {
@@ -123,6 +123,12 @@ export default function Navbar() {
         key: "ebook",
         label: t.common.nav.ebook,
         href: "/ebook",
+      },
+
+      {
+        key: "ceramics",
+        label: t.common.nav.ceramics,
+        href: "/ceramics",
       },
 
       {
@@ -282,8 +288,8 @@ export default function Navbar() {
   const isItemActive = (item: MenuItem) => {
     if (!item.href) return false;
 
-    const itemPath = stripHash(item.href);
-    const currentPath = stripHash(router.asPath);
+    const itemPath = getPathname(item.href);
+    const currentPath = getPathname(router.asPath);
 
     if (itemPath === "/") return currentPath === "/";
 
@@ -303,7 +309,7 @@ export default function Navbar() {
         <div className="flex h-16 md:h-20 items-center justify-between">
           <button
             className={[
-              "md:hidden inline-flex items-center justify-center rounded-md p-2 transition",
+              "lg:hidden inline-flex items-center justify-center rounded-md p-2 transition",
               "text-slate-700",
               "hover:bg-accent/10 hover:text-accent",
               "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
@@ -332,7 +338,7 @@ export default function Navbar() {
 
           <Link
             href="/"
-            className="flex items-baseline gap-2 md:items-center md:gap-2"
+            className="flex min-w-0 items-baseline gap-2 md:items-center md:gap-2"
             onClick={closeAll}
           >
             <Image
@@ -345,15 +351,15 @@ export default function Navbar() {
               width={44}
               height={44}
               unoptimized
-              className="h-9 w-9 md:h-14 md:w-14 rounded-full ring-2 ring-accent/25 bg-white/90 object-cover"
+              className="h-9 w-9 shrink-0 md:h-14 md:w-14 rounded-full ring-2 ring-accent/25 bg-white/90 object-cover"
             />
 
-            <span className="text-sm md:text-lg font-semibold tracking-tight text-slate-800 leading-none">
+            <span className="truncate text-sm md:text-lg font-semibold tracking-tight text-slate-800 leading-none">
               {navbar.title}
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-2">
+          <nav className="hidden shrink-0 items-center gap-0 lg:flex xl:gap-2">
             {navItems.map((item, idx) => {
               const hasChildren = !!item.children?.length;
               const isOpen = openIdx === idx;
@@ -371,7 +377,7 @@ export default function Navbar() {
                     <Link
                       href={item.href || "#"}
                       className={[
-                        "relative inline-flex items-center rounded-md px-3 py-2 text-sm md:text-[15px] transition navbar-link",
+                        "relative inline-flex items-center rounded-md px-2 py-2 text-sm xl:px-3 xl:text-[15px] transition navbar-link",
                         "font-semibold tracking-[0.06em]",
                         active
                           ? "text-accent"
@@ -456,7 +462,7 @@ export default function Navbar() {
             })}
           </nav>
 
-          <div className="flex items-center">
+          <div className="flex shrink-0 items-center">
             <LeafBurstButton
               text={t.common.nav.bookAppointment}
               href="/contact/book"
@@ -469,7 +475,7 @@ export default function Navbar() {
         {mobileMenuMounted && (
           <div
             className={[
-              "fixed inset-0 z-[70] md:hidden",
+              "fixed inset-0 z-[70] lg:hidden",
               mobileOpen ? "pointer-events-auto" : "pointer-events-none",
             ].join(" ")}
             aria-hidden={!mobileOpen}

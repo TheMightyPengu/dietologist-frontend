@@ -14,6 +14,7 @@ const TABS = [
   { key: "services", label: "ΥΠΗΡΕΣΙΕΣ", href: "/dashboard/services" },
   { key: "seminars", label: "ΣΕΜΙΝΑΡΙΑ", href: "/dashboard/seminars" },
   { key: "ebook", label: "EBOOK", href: "/dashboard/ebook" },
+  { key: "ceramics", label: "Κεραμικά", href: "/dashboard/ceramics" },
   { key: "blog", label: "BLOG", href: "/dashboard/blog" },
   { key: "contact", label: "ΕΠΙΚΟΙΝΩΝΙΑ", href: "/dashboard/contact" },
 ];
