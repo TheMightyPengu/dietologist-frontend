@@ -15,6 +15,7 @@ export type CeramicProductCard = {
   title: string;
   titleEn?: string | null;
   price: number;
+  stockQuantity: number;
   category: CeramicCategory;
   primaryImageUrl: string | null;
   createdAt: string;
@@ -42,7 +43,7 @@ export type CeramicProductPage = {
 };
 
 type CategoryInput = Pick<CeramicCategory, "name" | "nameEn">;
-export type CeramicProductInput = Pick<CeramicProduct, "title" | "titleEn" | "description" | "descriptionEn" | "price"> & {
+export type CeramicProductInput = Pick<CeramicProduct, "title" | "titleEn" | "description" | "descriptionEn" | "price" | "stockQuantity"> & {
   categoryId: number;
 };
 type ImageInput = Pick<CeramicImage, "imageUrl" | "sortOrder">;

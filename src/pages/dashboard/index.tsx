@@ -1,5 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
+import { useTranslations } from "@/components/hooks/useTranslations";
 import { logoutAdmin } from "@/lib/admin-auth";
 
 /**
@@ -8,18 +9,19 @@ import { logoutAdmin } from "@/lib/admin-auth";
  * - Minimal, clean, Greek UI matching your palette
  */
 
-const TABS = [
-  { key: "home", label: "ΑΡΧΙΚΗ", href: "/dashboard/home" },
-  { key: "navbar", label: "ΕΜΦΑΝΙΣΗ", href: "/dashboard/navbar" },
-  { key: "services", label: "ΥΠΗΡΕΣΙΕΣ", href: "/dashboard/services" },
-  { key: "seminars", label: "ΣΕΜΙΝΑΡΙΑ", href: "/dashboard/seminars" },
-  { key: "ebook", label: "EBOOK", href: "/dashboard/ebook" },
-  { key: "ceramics", label: "Κεραμικά", href: "/dashboard/ceramics" },
-  { key: "blog", label: "BLOG", href: "/dashboard/blog" },
-  { key: "contact", label: "ΕΠΙΚΟΙΝΩΝΙΑ", href: "/dashboard/contact" },
-];
-
 export default function ManagementDashboard() {
+  const { common } = useTranslations();
+  const tabs = [
+    { key: "home", label: "ΑΡΧΙΚΗ", href: "/dashboard/home" },
+    { key: "navbar", label: "ΕΜΦΑΝΙΣΗ", href: "/dashboard/navbar" },
+    { key: "services", label: "ΥΠΗΡΕΣΙΕΣ", href: "/dashboard/services" },
+    { key: "seminars", label: "ΣΕΜΙΝΑΡΙΑ", href: "/dashboard/seminars" },
+    { key: "ebook", label: "EBOOK", href: "/dashboard/ebook" },
+    { key: "ceramics", label: common.nav.ceramics, href: "/dashboard/ceramics" },
+    { key: "blog", label: "BLOG", href: "/dashboard/blog" },
+    { key: "contact", label: "ΕΠΙΚΟΙΝΩΝΙΑ", href: "/dashboard/contact" },
+  ];
+
   async function handleLogout() {
     await logoutAdmin();
   }
@@ -57,7 +59,7 @@ export default function ManagementDashboard() {
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                {TABS.map((t) => (
+                {tabs.map((t) => (
                   <Link
                     key={t.key}
                     href={t.href}

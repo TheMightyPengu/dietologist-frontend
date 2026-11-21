@@ -53,6 +53,8 @@ export default function CeramicProductEditor({ product, categories, requestBusy,
     descriptionEn: product?.descriptionEn ?? "",
   });
   const [price, setPrice] = useState(product ? String(product.price) : "");
+  const initialStockQuantity = product?.stockQuantity?.toString() ?? "";
+  const [stockQuantity, setStockQuantity] = useState(initialStockQuantity);
   const [categoryId, setCategoryId] = useState(product ? String(product.category.id) : "");
   const [images, setImages] = useState<ImageDraft[]>(() => (product?.images ?? []).map((image) => ({
     key: String(image.id), saved: image, url: image.imageUrl,
@@ -73,6 +75,7 @@ export default function CeramicProductEditor({ product, categories, requestBusy,
     || text.description !== (product?.description ?? "")
     || text.descriptionEn !== (product?.descriptionEn ?? "")
     || price !== (product ? String(product.price) : "")
+    || stockQuantity !== initialStockQuantity
     || categoryId !== (product ? String(product.category.id) : "")
     || images.length !== (originalImages?.length ?? 0)
     || images.some((image, index) => image.key !== String(originalImages?.[index]?.id));
@@ -132,10 +135,17 @@ export default function CeramicProductEditor({ product, categories, requestBusy,
     if (saving.current || requestBusy) return;
     const validation: ApiFieldErrors = {};
     const normalizedPrice = price.trim().replace(",", ".");
+    const quantityText = stockQuantity.trim();
+    const quantity = Number(quantityText);
     if (!text.title.trim()) validation.title = ["Συμπληρώστε τον τίτλο."];
     if (!text.description.trim()) validation.description = ["Συμπληρώστε την περιγραφή."];
     if (!/^\d{1,10}(?:\.\d{1,2})?$/.test(normalizedPrice)) {
       validation.price = ["Δώστε μη αρνητική τιμή με έως δύο δεκαδικά ψηφία."];
+    }
+    if (!/^\d+$/.test(quantityText) || quantity > 2_147_483_647) {
+      validation.stockQuantity = [language === "el"
+        ? "Εισαγάγετε έναν ακέραιο από 0 έως 2.147.483.647."
+        : "Enter a whole number from 0 to 2,147,483,647."];
     }
     if (!categories.some((category) => String(category.id) === categoryId)) {
       validation.categoryId = ["Επιλέξτε κατηγορία."];
@@ -144,10 +154,10 @@ export default function CeramicProductEditor({ product, categories, requestBusy,
       if (validation.title || validation.description) setLanguage("el");
       return;
     }
-    saveGuard.requestSave([text.title, text.description], [text.titleEn, text.descriptionEn], () => save(normalizedPrice));
+    saveGuard.requestSave([text.title, text.description], [text.titleEn, text.descriptionEn], () => save(normalizedPrice, quantity));
   }
 
-  async function save(normalizedPrice: string) {
+  async function save(normalizedPrice: string, quantity: number) {
     if (saving.current) return;
     saving.current = true;
     onSavingChange(true);
@@ -157,7 +167,7 @@ export default function CeramicProductEditor({ product, categories, requestBusy,
       const values = {
         title: text.title.trim(), titleEn: text.titleEn.trim(),
         description: text.description.trim(), descriptionEn: text.descriptionEn.trim(),
-        price: Number(normalizedPrice), categoryId: Number(categoryId),
+        price: Number(normalizedPrice), stockQuantity: quantity, categoryId: Number(categoryId),
       };
       let id = productId;
       if (id === undefined) {
@@ -261,6 +271,24 @@ export default function CeramicProductEditor({ product, categories, requestBusy,
               </select>
             </label>
             <FormFieldError errors={errors.fieldErrors.categoryId} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">
+              {language === "el" ? "Διαθέσιμη ποσότητα" : "Available quantity"}
+              <input
+                className={input}
+                type="text"
+                inputMode="numeric"
+                required
+                aria-invalid={Boolean(errors.fieldErrors.stockQuantity?.length)}
+                value={stockQuantity}
+                onChange={(event) => {
+                  setStockQuantity(event.target.value);
+                  errors.clearFieldError("stockQuantity");
+                }}
+              />
+            </label>
+            <FormFieldError errors={errors.fieldErrors.stockQuantity} />
           </div>
           <div className="space-y-3 sm:col-span-2">
             <label className="block text-sm font-medium">

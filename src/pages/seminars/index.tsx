@@ -243,7 +243,7 @@ export default function SeminarsPage() {
   const [durationRange, setDurationRange] = useState<[number, number]>([
     0, 180,
   ]);
-  const [datePreset, setDatePreset] = useState<DatePreset>("upcoming");
+  const [datePreset, setDatePreset] = useState<DatePreset>("all");
   const [pricePreset, setPricePreset] = useState<PricePreset>("all");
   const [sortKey, setSortKey] = useState<SortKey>("dateNear");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -363,7 +363,7 @@ export default function SeminarsPage() {
     setQuery("");
     setTypeSet(new Set());
     setDurationRange([minDuration, maxDuration]);
-    setDatePreset("upcoming");
+    setDatePreset("all");
     setPricePreset("all");
     setSortKey("dateNear");
     setPage(1);
@@ -573,16 +573,16 @@ export default function SeminarsPage() {
       });
     });
 
-    if (datePreset !== "upcoming") {
+    if (datePreset !== "all") {
       chips.push({
         key: `date:${datePreset}`,
         label:
-          datePreset === "all"
-            ? t.seminars.chips.allSeminars
+          datePreset === "upcoming"
+            ? t.seminars.filters.upcoming
             : datePreset === "today"
               ? t.seminars.status.today
               : t.seminars.chips.completed,
-        onRemove: () => setDatePreset("upcoming"),
+        onRemove: () => setDatePreset("all"),
       });
     }
 

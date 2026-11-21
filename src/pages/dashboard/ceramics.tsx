@@ -7,6 +7,7 @@ import CeramicCategoryManager from "@/components/admin/ceramics/CeramicCategoryM
 import CeramicProductEditor from "@/components/admin/ceramics/CeramicProductEditor";
 import { action, danger, panel, primary } from "@/components/admin/ceramics/styles";
 import GeneralErrorDialog from "@/components/admin/GeneralErrorDialog";
+import { useTranslations } from "@/components/hooks/useTranslations";
 import CeramicGallery from "@/components/ceramics/CeramicGallery";
 import CeramicImage from "@/components/ceramics/CeramicImage";
 import { getAdminSession } from "@/lib/admin-auth";
@@ -21,6 +22,7 @@ const date = new Intl.DateTimeFormat("el-GR", {
 });
 
 export default function CeramicDashboardPage() {
+  const { common } = useTranslations();
   const [authorized, setAuthorized] = useState<boolean>();
   const [sessionAttempt, setSessionAttempt] = useState(0);
   const [tab, setTab] = useState<"products" | "categories">("products");
@@ -167,16 +169,25 @@ export default function CeramicDashboardPage() {
   }
 
   return (
-    <section className="mx-auto min-h-[70vh] max-w-6xl space-y-5 px-4 py-8 sm:px-6 md:py-12">
+    <section className="mx-auto min-h-[70vh] max-w-6xl space-y-5 px-4 py-8 text-slate-800 md:px-6 md:py-12 lg:px-8">
       <Head>
-        <title>Κεραμικά | Dashboard</title>
+        <title>{`${common.nav.ceramics} | Dashboard`}</title>
         <meta name="robots" content="noindex,nofollow" />
       </Head>
-      <header className={panel}>
-        <Link className="text-sm font-medium text-primary hover:underline" href="/dashboard">← Πίνακας διαχείρισης</Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">Κεραμικά</h1>
+      <header>
+        <div className="mb-6 flex items-center gap-3">
+          <Link
+            href="/dashboard"
+            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm hover:border-[rgb(var(--primary))]"
+          >
+            ← Πίσω στο Dashboard
+          </Link>
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+            {common.nav.ceramics}
+          </h1>
+        </div>
         {authorized && (
-          <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Ενότητες κεραμικών">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Ενότητες κεραμικών">
             <button type="button" disabled={actionsBusy} aria-pressed={tab === "products"} className={tab === "products" ? primary : action} onClick={() => changeTab("products")}>Προϊόντα</button>
             <button type="button" disabled={actionsBusy} aria-pressed={tab === "categories"} className={tab === "categories" ? primary : action} onClick={() => changeTab("categories")}>Κατηγορίες</button>
           </div>
@@ -244,6 +255,9 @@ export default function CeramicDashboardPage() {
                     <div className="min-w-0 break-words">
                       <p className="font-semibold">{product.title}</p>
                       <p className="text-sm text-slate-600">{product.category.name} · {ceramicPrice(product.price)} · {date.format(new Date(product.createdAt))}</p>
+                      <p className="text-sm text-slate-600">
+                        {product.stockQuantity > 0 ? `Διαθέσιμα: ${product.stockQuantity}` : "Εξαντλήθηκε"}
+                      </p>
                     </div>
                     <div className="col-span-2 flex flex-wrap gap-2 sm:col-span-1">
                       <button type="button" disabled={actionsBusy} className={action} onClick={() => void openProduct(product.id, "view")}>Προβολή</button>

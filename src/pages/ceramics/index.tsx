@@ -170,6 +170,9 @@ export default function CeramicsPage() {
                       <div className="flex grow flex-col gap-2 p-5">
                         <h2 className="break-words text-lg font-semibold leading-snug text-slate-900">{localizedContent(router.locale, product.title, product.titleEn)}</h2>
                         <p className="mt-auto text-sm text-slate-700">{ceramicPrice(product.price, router.locale)}</p>
+                        {product.stockQuantity === 0 && (
+                          <p className="text-xs font-medium text-slate-600">{copy.soldOut}</p>
+                        )}
                       </div>
                     </Link>
                   </li>

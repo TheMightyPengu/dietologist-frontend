@@ -53,9 +53,9 @@ export default function CeramicProductPage() {
           </p>
         )}
         {product && (
-          <div className="grid items-start gap-7 md:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] md:gap-9 lg:gap-16">
-            <CeramicGallery key={product.id} images={product.images} title={title} labels={copy} showcase />
-            <div className="min-w-0 md:pt-7 lg:pt-12">
+          <div className="grid items-start gap-7 md:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] md:gap-9 lg:gap-12">
+            <CeramicGallery key={product.id} images={product.images} title={title} labels={copy} showcase={copy.lightbox} />
+            <div className="min-w-0">
               <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs font-semibold tracking-wide text-[rgb(var(--primary-dark))]">
                 <span>{copy.handmade}</span>
                 <span aria-hidden="true" className="h-1 w-1 shrink-0 rounded-full bg-accent" />
@@ -67,10 +67,16 @@ export default function CeramicProductPage() {
                 {localizedContent(router.locale, product.description, product.descriptionEn)}
               </p>
               <div className="mt-6 border-t border-[rgb(var(--border))] pt-6 sm:mt-8">
-                <Link href="/contact/form" className="btn-primary w-full text-center text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary sm:w-auto">
-                  {copy.inquire}
-                  <ArrowUpRight size={16} className="shrink-0" aria-hidden="true" />
-                </Link>
+                {product.stockQuantity > 0 ? (
+                  <Link href="/contact/form" className="btn-primary w-full text-center text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary sm:w-auto">
+                    {copy.inquire}
+                    <ArrowUpRight size={16} className="shrink-0" aria-hidden="true" />
+                  </Link>
+                ) : (
+                  <p className="inline-flex rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-slate-700">
+                    {copy.soldOut}
+                  </p>
+                )}
               </div>
             </div>
           </div>

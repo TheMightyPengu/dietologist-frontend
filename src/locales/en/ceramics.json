@@ -19,7 +19,12 @@
   "back": "All ceramics",
   "handmade": "Handmade ceramics",
   "inquire": "Ask about availability",
+  "soldOut": "Sold out",
   "previous": "Previous",
   "next": "Next",
-  "image": "Image"
+  "image": "Image",
+  "lightbox": {
+    "expand": "Enlarge photo",
+    "close": "Close photo viewer"
+  }
 }
