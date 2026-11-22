@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { CeramicsApi, type CeramicProduct } from "@/api/CeramicsController";
 import { toApiError } from "@/api/_axios-client";
 import CeramicGallery from "@/components/ceramics/CeramicGallery";
+import AddToCart from "@/components/cart/AddToCart";
 import { useTranslations } from "@/components/hooks/useTranslations";
 import { ceramicPrice } from "@/lib/ceramics";
 import { localizedContent } from "@/lib/localized-content";
@@ -68,10 +69,13 @@ export default function CeramicProductPage() {
               </p>
               <div className="mt-6 border-t border-[rgb(var(--border))] pt-6 sm:mt-8">
                 {product.stockQuantity > 0 ? (
-                  <Link href="/contact/form" className="btn-primary w-full text-center text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary sm:w-auto">
-                    {copy.inquire}
-                    <ArrowUpRight size={16} className="shrink-0" aria-hidden="true" />
-                  </Link>
+                  <div className="space-y-3">
+                    <AddToCart key={product.id} type="ceramic" id={product.id} limit={product.stockQuantity} />
+                    <Link href="/contact/form" className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+                      {copy.inquire}
+                      <ArrowUpRight size={16} className="shrink-0" aria-hidden="true" />
+                    </Link>
+                  </div>
                 ) : (
                   <p className="inline-flex rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-slate-700">
                     {copy.soldOut}

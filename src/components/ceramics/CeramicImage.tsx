@@ -4,19 +4,20 @@ import { toMediaUrl } from "@/api/_axios-client";
 
 const placeholder = "/images/ceramicplaceholder.jpg";
 
-export default function CeramicImage({ url, alt, sizes, eager = false, fit = "cover" }: {
+export default function CeramicImage({ url, alt, sizes, eager = false, fit = "cover", fallback = placeholder }: {
   url?: string | null;
   alt: string;
   sizes: string;
   eager?: boolean;
   fit?: "cover" | "contain" | "natural";
+  fallback?: string;
 }) {
-  const source = toMediaUrl(url?.trim()) || placeholder;
+  const source = toMediaUrl(url?.trim()) || fallback;
   const [failedSource, setFailedSource] = useState<string>();
-  const src = failedSource === source ? placeholder : source;
+  const src = failedSource === source ? fallback : source;
   const loading = eager ? "eager" : "lazy";
   const onError = () => {
-    if (source !== placeholder) setFailedSource(source);
+    if (source !== fallback) setFailedSource(source);
   };
 
   if (fit === "natural") {

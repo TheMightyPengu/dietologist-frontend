@@ -7,6 +7,8 @@ import {
 } from "@/api/SeminarsController";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 import LeafBurstButton from "@/components/decorative/LeafBurstButton";
+import AddToCart from "@/components/cart/AddToCart";
+import { seminarAvailable } from "@/lib/cart";
 import { toMediaUrl } from "@/api/_axios-client";
 import { usePageHeader } from "@/lib/usePageHeader";
 import { useTranslations } from "@/components/hooks/useTranslations";
@@ -229,6 +231,7 @@ function Pill({
 export default function SeminarsPage() {
   const t = useTranslations();
   const router = useRouter();
+  const requestedSeminarId = typeof router.query.seminar === "string" ? Number(router.query.seminar) : undefined;
   const localeCode = router.locale === "en" ? "en-US" : "el-GR";
   const pageHeader = usePageHeader("seminars", {
     title: t.common.nav.seminars,
@@ -308,6 +311,15 @@ export default function SeminarsPage() {
       alive = false;
     };
   }, [t.seminars.loadError, router.locale]);
+
+  useEffect(() => {
+    if (requestedSeminarId === undefined) return;
+    const seminar = items.find((item) => item.id === requestedSeminarId);
+    if (seminar) {
+      setActive(seminar);
+      setOpen(true);
+    }
+  }, [items, requestedSeminarId]);
 
   useEffect(() => {
     if (!open) return;
@@ -1261,7 +1273,8 @@ const badge = getStatusBadge(s.dateTime, t.seminars.status);
                   </div>
 
                   <div className="sticky bottom-0 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-7">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-end">
+                      {seminarAvailable(active) && <AddToCart key={active.id} type="seminar" id={active.id} limit={1} />}
                       <LeafBurstButton
                         text={
                           active.isBookingAvailable

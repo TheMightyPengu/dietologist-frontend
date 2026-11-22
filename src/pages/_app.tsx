@@ -8,6 +8,7 @@ import "@/styles/rich-text-editor.scss";
 import "@/styles/rich-content.scss";
 
 import RootLayout from "@/layout/RootLayout";
+import { CartProvider } from "@/components/cart/CartProvider";
 import { WebsiteThemeApi } from "@/api/WebsiteThemeController";
 import { applyTheme, DEFAULT_THEME } from "@/lib/Websitetheme";
 
@@ -48,11 +49,13 @@ export default function MyApp({
   }, []);
 
   return (
-    <RootLayout>
-      <Component
-        {...pageProps}
-        themeLoaded={themeLoaded}
-      />
-    </RootLayout>
+    <CartProvider>
+      <RootLayout>
+        <Component
+          {...pageProps}
+          themeLoaded={themeLoaded}
+        />
+      </RootLayout>
+    </CartProvider>
   );
 }

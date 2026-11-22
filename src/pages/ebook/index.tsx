@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { EbooksApi, type EbooksGetDto } from "../../api/EbooksController";
 import RichHtmlRenderer from "@/components/admin/RichHtmlRenderer";
 import LeafBurstButton from "@/components/decorative/LeafBurstButton";
+import AddToCart from "@/components/cart/AddToCart";
+import { isPaidPrice } from "@/lib/cart";
 import { toMediaUrl } from "@/api/_axios-client";
 import { useTranslations } from "@/components/hooks/useTranslations";
 import { useRouter } from "next/router";
@@ -267,6 +269,7 @@ function mapDtoToViewModel(dto: EbooksGetDto, copy: EbookCopy, locale?: string):
 export default function EbookPage() {
   const t = useTranslations();
   const router = useRouter();
+  const requestedEbookId = typeof router.query.ebook === "string" ? Number(router.query.ebook) : undefined;
   const copy = t.ebook;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -345,7 +348,7 @@ export default function EbookPage() {
         );
 
         setEbooks(mapped);
-        setActiveEbookId(mapped[0].id);
+        setActiveEbookId(mapped.find((item) => item.id === requestedEbookId)?.id ?? mapped[0].id);
       } catch (err: unknown) {
         if (!active) return;
         setError(err instanceof Error ? err.message : copy.errors.generic);
@@ -359,7 +362,7 @@ export default function EbookPage() {
     return () => {
       active = false;
     };
-  }, [copy, router.locale]);
+  }, [copy, router.locale, requestedEbookId]);
 
   useEffect(() => {
     if (ebooks.length <= 1) return;
@@ -627,6 +630,7 @@ export default function EbookPage() {
                       href="/contact/form"
                       buttonClassName={primaryCtaClass}
                     />
+                    {isPaidPrice(ebook.priceEUR) && <AddToCart key={ebook.id} type="ebook" id={ebook.id} limit={1} />}
                   </div>
 
                   {/* <p className="mt-2 text-sm text-[rgb(var(--muted))]">

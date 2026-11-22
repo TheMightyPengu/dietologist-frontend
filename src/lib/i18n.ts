@@ -7,6 +7,7 @@ import elSeminars from "@/locales/el/seminars.json";
 import elRecipes from "@/locales/el/recipes.json";
 import elEbook from "@/locales/el/ebook.json";
 import elCeramics from "@/locales/el/ceramics.json";
+import elCart from "@/locales/el/cart.json";
 import elContact from "@/locales/el/contact.json";
 import elArticles from "@/locales/el/articles.json";
 import enCommon from "@/locales/en/common.json";
@@ -18,6 +19,7 @@ import enSeminars from "@/locales/en/seminars.json";
 import enRecipes from "@/locales/en/recipes.json";
 import enEbook from "@/locales/en/ebook.json";
 import enCeramics from "@/locales/en/ceramics.json";
+import enCart from "@/locales/en/cart.json";
 import enContact from "@/locales/en/contact.json";
 import enArticles from "@/locales/en/articles.json";
 
@@ -34,6 +36,7 @@ const translations = {
     recipes: elRecipes,
     ebook: elEbook,
     ceramics: elCeramics,
+    cart: elCart,
     contact: elContact,
     articles: elArticles,
   },
@@ -48,6 +51,7 @@ const translations = {
     recipes: enRecipes,
     ebook: enEbook,
     ceramics: enCeramics,
+    cart: enCart,
     contact: enContact,
     articles: enArticles,
   },

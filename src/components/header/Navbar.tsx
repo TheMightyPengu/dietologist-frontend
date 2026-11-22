@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
+import { ShoppingBag } from "lucide-react";
+import { useCart } from "@/components/cart/CartProvider";
 import { localizedContent } from "@/lib/localized-content";
 import LeafBurstButton from "../decorative/LeafBurstButton";
 import { NavbarApi, type NavbarGetDto } from "@/api/NavbarController";
@@ -78,6 +80,7 @@ function getUniqueServiceCategories(
 export default function Navbar() {
   const router = useRouter();
   const t = useTranslations();
+  const { count } = useCart();
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileMenuMounted, setMobileMenuMounted] = useState(false);
@@ -462,7 +465,21 @@ export default function Navbar() {
             })}
           </nav>
 
-          <div className="flex shrink-0 items-center">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            {!router.pathname.startsWith("/dashboard") && (
+              <Link href="/cart" onClick={closeAll}
+                aria-label={count ? `${t.cart.title} (${count})` : t.cart.title}
+                aria-current={router.pathname === "/cart" ? "page" : undefined}
+                className="relative inline-grid h-10 w-10 shrink-0 place-items-center rounded-full text-primary transition hover:bg-accent/10 focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <ShoppingBag size={19} aria-hidden="true" />
+                {count > 0 && (
+                  <span aria-hidden="true" className="absolute right-0 top-0 min-w-4 rounded-full bg-primary px-1 text-center text-[10px] font-semibold leading-4 text-white">
+                    {count > 99 ? "99+" : count}
+                  </span>
+                )}
+              </Link>
+            )}
             <LeafBurstButton
               text={t.common.nav.bookAppointment}
               href="/contact/book"
